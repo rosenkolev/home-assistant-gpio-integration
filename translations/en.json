@@ -1,0 +1,26 @@
+{
+  "title": "GPIO Integration",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Setup Cover",
+        "description": "Enter your GPIO data",
+        "data": {
+          "name": "Name",
+          "up_pin": "GPIO up pin",
+          "up_pin_invert": "GPIO up pin invert(default 5v)",
+          "down_pin": "GPIO down pin",
+          "down_pin_invert": "GPIO down pin invert(default 5v)",
+          "relay_time": "relay time (pin on time)",
+          "pin_closed_sensor": "pin for 'door closed' sensor"
+        }
+      }
+    },
+    "error": {
+      "already_configured": "Bridge is already configured"
+    },
+    "abort": {
+      "already_configured": "Bridge is already configured"
+    }
+  }
+}
