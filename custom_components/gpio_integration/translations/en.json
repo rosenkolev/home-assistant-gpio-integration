@@ -3,8 +3,45 @@
   "config": {
     "step": {
       "user": {
+        "title": "Set the entity type",
+        "description": "Select the entity type you want to setup",
+        "data": {
+          "type": "The entity type"
+        }
+      },
+      "switch": {
+        "title": "Setup Switch",
+        "description": "Enter your GPIO data for the switch",
+        "data": {
+          "name": "Name",
+          "port": "GPIO pin",
+          "invert_logic": "Invert logic",
+          "default_state": "Default state"
+        }
+      },
+      "binary_sensor": {
+        "title": "Setup Binary Sensor",
+        "description": "Enter your GPIO data for the binary sensor",
+        "data": {
+          "name": "Name",
+          "port": "GPIO pin",
+          "invert_logic": "Invert logic"
+        }
+      },
+      "cover_toggle": {
         "title": "Setup Cover",
-        "description": "Enter your GPIO data",
+        "description": "Enter your GPIO data for the cover with toggle action",
+        "data": {
+          "name": "Name",
+          "port": "GPIO pin",
+          "invert_logic": "Invert logic",
+          "relay_time":"relay time in milliseconds",
+          "pin_closed_sensor": "pin for 'door closed' sensor"
+        }
+      },
+      "cover_up_down": {
+        "title": "Setup Cover",
+        "description": "Enter your GPIO data for the cover with up and down actions",
         "data": {
           "name": "Name",
           "up_pin": "GPIO up pin",
@@ -13,29 +50,6 @@
           "down_pin_invert": "GPIO down pin invert(default 5v)",
           "relay_time": "relay time in seconds (pin on time)",
           "pin_closed_sensor": "pin for 'door closed' sensor"
-        },
-        "data_metadata": {
-          "name": {
-            "description": "Name of the cover"
-          },
-          "up_pin": {
-            "description": "GPIO pin/port number for up action"
-          },
-          "up_pin_invert": {
-            "description": "Set to true if the up pin is active low"
-          },
-          "down_pin": {
-            "description": "GPIO pin number for down action"
-          },
-          "down_pin_invert": {
-            "description": "Set to true if the down pin is active low"
-          },
-          "relay_time": {
-            "description": "Time in seconds the relay is on for the door to be fully open or closed"
-          },
-          "pin_closed_sensor": {
-            "description": "GPIO pin number for 'door closed' sensor"
-          }
         }
       }
     },
