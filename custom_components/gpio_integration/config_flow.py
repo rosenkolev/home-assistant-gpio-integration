@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Callable, Any
 
 from homeassistant import config_entries, exceptions
 from homeassistant.const import CONF_NAME, CONF_PORT
@@ -50,10 +50,54 @@ def validate_cover_toggle(data: dict):
         raise InvalidPin
 
 
+CONF_ENTITIES: dict = {
+    "cover_up_down": {
+        "schema": COVER_UP_DOWN_SCHEMA,
+        "validate": validate_cover_up_down,
+    },
+    "cover_toggle": {"schema": COVER_TOGGLE_SCHEMA, "validate": validate_cover_toggle},
+    "binary_sensor": {"schema": SENSOR_SCHEMA, "validate": validate_sensor},
+    "switch": {"schema": SWITCH_SCHEMA, "validate": validate_switch},
+}
+
+
+def async_validate_config_data(
+    entity_type: str,
+    data_input: dict,
+    show_form_fn: Callable[[str, Any | None, dict], None],
+    add_update_fn: Callable[[str, dict], None],
+):
+    errors = {}
+    schema = CONF_ENTITIES[entity_type]["schema"]
+    if data_input is None:
+        return show_form_fn(entity_type, schema, None)
+    try:
+        CONF_ENTITIES[entity_type]["validate"](data_input)
+    except InvalidPin:
+        errors["base"] = "invalid_pin"
+    except Exception as e:  # pylint: disable=broad-except
+        _LOGGER.exception("Unexpected exception: {}".format(e))
+        errors["base"] = "unknown"
+    else:
+        return add_update_fn(data_input[CONF_NAME], data_input)
+
+    return show_form_fn(entity_type, schema, errors)
+
+
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Hello World."""
 
     VERSION = 1
+
+    def show_form_fn(self, entity_type: str, schema: Any | None, errors: dict):
+        return self.async_show_form(
+            step_id=entity_type,
+            data_schema=schema,
+            errors=errors,
+        )
+
+    def add_update_fn(self, title: str, data: dict):
+        return self.async_create_entry(title=title, data=data)
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
@@ -72,52 +116,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_cover_up_down(self, data_input=None):
         """Handle the initial step."""
-        return self.__async_inner_handler(
-            "cover_up_down", COVER_UP_DOWN_SCHEMA, validate_cover_up_down, data_input
+        return async_validate_config_data(
+            "cover_up_down", data_input, self.show_form_fn, self.add_update_fn
         )
 
     async def async_step_binary_sensor(self, data_input=None):
         """Handle the initial step."""
-        return self.__async_inner_handler(
-            "binary_sensor", SENSOR_SCHEMA, validate_sensor, data_input
+        return async_validate_config_data(
+            "binary_sensor", data_input, self.show_form_fn, self.add_update_fn
         )
 
     async def async_step_switch(self, data_input=None):
         """Handle the initial step."""
-        return self.__async_inner_handler(
-            "switch", SWITCH_SCHEMA, validate_switch, data_input
+        return async_validate_config_data(
+            "switch", data_input, self.show_form_fn, self.add_update_fn
         )
 
     async def async_step_cover_toggle(self, data_input=None):
         """Handle the initial step."""
-        return self.__async_inner_handler(
-            "cover_toggle", COVER_TOGGLE_SCHEMA, validate_cover_toggle, data_input
+        return async_validate_config_data(
+            "cover_toggle", data_input, self.show_form_fn, self.add_update_fn
         )
-
-    def __async_inner_handler(
-        self,
-        step_id: str,
-        schema,
-        validate_fn,
-        data_input: dict = None,
-        title_key: str = "name",
-    ):
-        errors = {}
-        if data_input is None:
-            return self.async_show_form(step_id=step_id, data_schema=schema)
-
-        try:
-            validate_fn(data_input)
-        except InvalidPin:
-            errors["base"] = "invalid_pin"
-        except Exception as e:  # pylint: disable=broad-except
-            _LOGGER.exception("Unexpected exception: {}".format(e))
-            errors["base"] = "unknown"
-        else:
-            data_input["type"] = step_id
-            return self.async_create_entry(title=data_input[title_key], data=data_input)
-
-        return self.async_show_form(step_id=step_id, data_schema=schema, errors=errors)
 
     # async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
     #     if user_input is not None:
@@ -144,55 +163,60 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self.config_entry = config_entry
 
+    def show_form_fn(self, entity_type: str, schema: Any | None, errors: dict):
+        return self.async_show_form(
+            step_id=entity_type,
+            data_schema=schema,
+            errors=errors,
+        )
+
+    def add_update_fn(self, title: str, data: dict):
+        return self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            data=data,
+        )
+
     async def async_step_init(self, user_input=None):
         errors = {}
+        data = self.config_entry.options
+        _LOGGER.info("Type: {0} {1}".format(self.config_entry, user_input))
 
-        if user_input is not None:
-            self.type = user_input["type"]
-            if self.type == "cover_up_down":
-                return await self.async_step_edit()
+        entity_type = data["type"]
+        if entity_type is None:
+            return self.async_show_form(step_id="init", errors=errors)
+        elif entity_type == "cover_up_down":
+            return await self.async_step_cover_up_down(data)
+        elif entity_type == "cover_toggle":
+            return await self.async_step_cover_toggle(data)
+        elif entity_type == "binary_sensor":
+            return await self.async_step_binary_sensor(data)
+        elif entity_type == "switch":
+            return await self.async_step_switch(data)
+        else:
+            errors["base"] = "unknown"
 
-        _LOGGER.info("Type: {}".format(user_input))
-        errors["base"] = "unknown"
         return self.async_show_form(step_id="init", errors=errors)
 
-    async def async_step_edit(self, user_input=None):
-        """Manage the options for the custom component."""
-        errors = {}
+    async def async_step_cover_up_down(self, data_input=None):
+        """Handle the initial step."""
+        return async_validate_config_data(
+            "cover_up_down", data_input, self.show_form_fn, self.add_update_fn
+        )
 
-        # vacuums = self.config_entry.data[CONF_VACS]
+    async def async_step_binary_sensor(self, data_input=None):
+        """Handle the initial step."""
+        return async_validate_config_data(
+            "binary_sensor", data_input, self.show_form_fn, self.add_update_fn
+        )
 
-        # if user_input is not None:
-        #     updated_vacuums = deepcopy(vacuums)
-        #     updated_vacuums[self.selected_vacuum][CONF_AUTODISCOVERY] = user_input[
-        #         CONF_AUTODISCOVERY
-        #     ]
-        #     if user_input[CONF_IP_ADDRESS]:
-        #         updated_vacuums[self.selected_vacuum][CONF_IP_ADDRESS] = user_input[
-        #             CONF_IP_ADDRESS
-        #         ]
+    async def async_step_switch(self, data_input=None):
+        """Handle the initial step."""
+        return async_validate_config_data(
+            "switch", data_input, self.show_form_fn, self.add_update_fn
+        )
 
-        #     self.hass.config_entries.async_update_entry(
-        #         self.config_entry,
-        #         data={CONF_VACS: updated_vacuums},
-        #     )
-
-        #     return self.async_create_entry(title="", data={})
-        return self.async_create_entry(title="", data={})
-
-        # options_schema = vol.Schema(
-        #     {
-        #         vol.Required(
-        #             CONF_AUTODISCOVERY,
-        #             default=vacuums[self.selected_vacuum].get(CONF_AUTODISCOVERY, True),
-        #         ): bool,
-        #         vol.Optional(
-        #             CONF_IP_ADDRESS,
-        #             default=vacuums[self.selected_vacuum].get(CONF_IP_ADDRESS),
-        #         ): str,
-        #     }
-        # )
-
-        # return self.async_show_form(
-        #     step_id="edit", data_schema=options_schema, errors=errors
-        # )
+    async def async_step_cover_toggle(self, data_input=None):
+        """Handle the initial step."""
+        return async_validate_config_data(
+            "cover_toggle", data_input, self.show_form_fn, self.add_update_fn
+        )
