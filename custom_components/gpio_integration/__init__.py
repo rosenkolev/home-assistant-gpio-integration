@@ -1,5 +1,6 @@
 """Load Platform integration."""
 
+from custom_components.gpio_integration.config_schema import RollerConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
@@ -9,11 +10,12 @@ from homeassistant.const import (
     Platform,
 )
 
-from .io_interface import setup_io, clean_up_io, get_logger
+from .io_interface import setup_io, clean_up_io
 from .hub import Hub
 from .const import DOMAIN
 
-PLATFORMS = [Platform.COVER, Platform.NUMBER]
+PLATFORMS = [Platform.COVER, Platform.NUMBER, Platform.SENSOR, Platform.SWITCH]
+
 
 def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Raspberry PI GPIO component."""
@@ -30,14 +32,17 @@ def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.bus.listen_once(EVENT_HOMEASSISTANT_START, prepare_gpio)
     return True
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up from a config entry."""
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = Hub(entry.data)
+    hub = Hub(entry.data)
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = hub
 
     # This creates each HA object for each platform your device requires.
     # It's done by calling the `async_setup_entry` function in each platform module.
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(entry, hub.platforms)
     return True
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""

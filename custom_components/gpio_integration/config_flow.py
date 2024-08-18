@@ -1,56 +1,51 @@
 from typing import Literal
-import voluptuous as vol
+
+from homeassistant import config_entries, exceptions
+from homeassistant.const import CONF_NAME, CONF_PORT
 
 from .const import DOMAIN
 from .io_interface import get_logger
-
-import homeassistant.helpers.config_validation as cv
-from homeassistant import config_entries, exceptions
-from homeassistant.core import HomeAssistant
-from homeassistant.const import CONF_NAME
+from .config_schema import (
+    get_type,
+    MAIN_SCHEMA,
+    COVER_UP_DOWN_SCHEMA,
+    COVER_TOGGLE_SCHEMA,
+    SENSOR_SCHEMA,
+    SWITCH_SCHEMA,
+    CONF_RELAY_UP_PIN,
+    CONF_RELAY_DOWN_PIN,
+)
 
 _LOGGER = get_logger()
 
-CONF_COVERS = "covers"
-CONF_RELAY_UP_PIN = "up_pin"
-CONF_RELAY_UP_INVERT = "up_pin_invert"
-CONF_RELAY_DOWN_PIN = "down_pin"
-CONF_RELAY_DOWN_INVERT = "down_pin_invert"
-CONF_RELAY_TIME = "relay_time"
-CONF_PIN_CLOSED_SENSOR = "pin_closed_sensor"
-DEFAULT_INVERT_RELAY = False
-DEFAULT_RELAY_TIME = 15
 
-DATA_SCHEMA = vol.Schema({
-    vol.Required(CONF_NAME): cv.string,
-    vol.Required(CONF_RELAY_UP_PIN): cv.positive_int,
-    vol.Optional(CONF_RELAY_UP_INVERT, default=DEFAULT_INVERT_RELAY): cv.boolean,
-    vol.Required(CONF_RELAY_DOWN_PIN): cv.positive_int,
-    vol.Optional(CONF_RELAY_DOWN_INVERT, default=DEFAULT_INVERT_RELAY): cv.boolean,
-    vol.Optional(CONF_RELAY_TIME, default=DEFAULT_RELAY_TIME): cv.positive_int,
-    vol.Optional(CONF_PIN_CLOSED_SENSOR, default=None): int,
-})
-
-class RollerConfig():
-    def __init__(self, data: dict):
-        self.name: str = data[CONF_NAME]
-        self.pin_up: int = data[CONF_RELAY_UP_PIN]
-        self.pin_up_on_state: Literal['high', 'low'] = 'high' if data[CONF_RELAY_UP_INVERT] else 'low'
-        self.pin_down: int = data[CONF_RELAY_DOWN_PIN]
-        self.pin_down_on_state: Literal['high', 'low'] = 'high' if data[CONF_RELAY_DOWN_INVERT] else 'low'
-        self.relay_time: int = data[CONF_RELAY_TIME]
-        self.pin_closed: int | None = data[CONF_PIN_CLOSED_SENSOR]
-        self.pin_closed_on_state: Literal['high','low'] = 'high'
-        self.pin_closed_mode: Literal['up','down'] = 'up'
-        self.unique_id: str = self.name.lower().replace(' ', '_')
-
-        if self.pin_closed <= 0:
-            self.pin_closed = None
-
-def validate_input(data: dict):
-    """Validate the user input allows us to connect."""
-    if data["up_pin"] < 1 or data["down_pin"] < 1:
+def validate_cover_up_down(data: dict):
+    if data[CONF_NAME] == None or data[CONF_NAME] == "":
+        raise ValueError("Name is required")
+    if data[CONF_RELAY_UP_PIN] < 1 or data[CONF_RELAY_DOWN_PIN] < 1:
         raise InvalidPin
+
+
+def validate_sensor(data: dict):
+    if data[CONF_NAME] == None or data[CONF_NAME] == "":
+        raise ValueError("Name is required")
+    if data[CONF_PORT] < 1:
+        raise InvalidPin
+
+
+def validate_switch(data: dict):
+    if data[CONF_NAME] == None or data[CONF_NAME] == "":
+        raise ValueError("Name is required")
+    if data[CONF_PORT] < 1:
+        raise InvalidPin
+
+
+def validate_cover_toggle(data: dict):
+    if data[CONF_NAME] == None or data[CONF_NAME] == "":
+        raise ValueError("Name is required")
+    if data[CONF_PORT] < 1:
+        raise InvalidPin
+
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Hello World."""
@@ -59,22 +54,60 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
+        type = get_type(user_input)
+        if type is None:
+            return self.async_show_form(step_id="user", data_schema=MAIN_SCHEMA)
+
+        return await self.async_step_select(type)
+
+    async def async_step_cover_up_down(self, data_input=None):
+        """Handle the initial step."""
+        await self.__async_inner_handler(
+            "cover_up_down", COVER_UP_DOWN_SCHEMA, validate_cover_up_down, data_input
+        )
+
+    async def async_step_binary_sensor(self, data_input=None):
+        """Handle the initial step."""
+        await self.__async_inner_handler(
+            "binary_sensor", SENSOR_SCHEMA, validate_sensor, data_input
+        )
+
+    async def async_step_switch(self, data_input=None):
+        """Handle the initial step."""
+        await self.__async_inner_handler(
+            "switch", SWITCH_SCHEMA, validate_switch, data_input
+        )
+
+    async def async_step_cover_toggle(self, data_input=None):
+        """Handle the initial step."""
+        await self.__async_inner_handler(
+            "cover_toggle", COVER_TOGGLE_SCHEMA, validate_cover_toggle, data_input
+        )
+
+    async def __async_inner_handler(
+        self,
+        step_id: str,
+        schema,
+        validate_fn,
+        data_input: dict = None,
+        title_key: str = "name",
+    ):
         errors = {}
-        if user_input is None:
-            return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA)
+        if data_input is None:
+            return self.async_show_form(step_id=step_id, data_schema=schema)
 
         try:
-            validate_input(user_input)
+            validate_fn(data_input)
+        except InvalidPin:
+            errors["base"] = "invalid_pin"
         except Exception as e:  # pylint: disable=broad-except
             _LOGGER.exception("Unexpected exception: {}".format(e))
             errors["base"] = "unknown"
         else:
+            data_input["type"] = step_id
+            return self.async_create_entry(title=data_input[title_key], data=data_input)
 
-            return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
-
-        return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA, errors=errors
-        )
+        return self.async_show_form(step_id=step_id, data_schema=schema, errors=errors)
 
     # async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
     #     if user_input is not None:
@@ -83,6 +116,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     #     return self.async_show_form(
     #         step_id="reconfigure", data_schema=DATA_SCHEMA))
+
 
 class InvalidPin(exceptions.HomeAssistantError):
     """Error to indicate invalid pin."""

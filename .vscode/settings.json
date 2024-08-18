@@ -1,0 +1,19 @@
+{
+    "[json]": {
+        "editor.indentSize": "tabSize",
+        "editor.tabSize": 2
+    },
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit"
+        },
+        "editor.formatOnSave": true
+    },
+    "cSpell.words": [
+        "ruff",
+        "hass",
+        "homeassistant",
+        "gpio"
+    ]
+}

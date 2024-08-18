@@ -11,8 +11,31 @@
           "up_pin_invert": "GPIO up pin invert(default 5v)",
           "down_pin": "GPIO down pin",
           "down_pin_invert": "GPIO down pin invert(default 5v)",
-          "relay_time": "relay time (pin on time)",
+          "relay_time": "relay time in seconds (pin on time)",
           "pin_closed_sensor": "pin for 'door closed' sensor"
+        },
+        "data_metadata": {
+          "name": {
+            "description": "Name of the cover"
+          },
+          "up_pin": {
+            "description": "GPIO pin/port number for up action"
+          },
+          "up_pin_invert": {
+            "description": "Set to true if the up pin is active low"
+          },
+          "down_pin": {
+            "description": "GPIO pin number for down action"
+          },
+          "down_pin_invert": {
+            "description": "Set to true if the down pin is active low"
+          },
+          "relay_time": {
+            "description": "Time in seconds the relay is on for the door to be fully open or closed"
+          },
+          "pin_closed_sensor": {
+            "description": "GPIO pin number for 'door closed' sensor"
+          }
         }
       }
     },
