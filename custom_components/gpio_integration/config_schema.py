@@ -3,6 +3,8 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.const import CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
 
+from .const import DOMAIN
+
 CONF_COVERS = "covers"
 CONF_RELAY_UP_PIN = "up_pin"
 CONF_RELAY_UP_INVERT = "up_pin_invert"
@@ -18,25 +20,25 @@ DEFAULT_INVERT_LOGIC = False
 DEFAULT_RELAY_TIME = 15
 DEFAULT_PULL_MODE = "up"
 DEFAULT_BOUNCE_TIME = 50
+CONF_TYPES: dict = {
+    "Cover with up and down button (optional sensor)": "cover_up_down",
+    "Cover with toggle button (optional sensor)": "cover_toggle",
+    "Binary sensor": "binary_sensor",
+    "Switch": "switch",
+}
 
 MAIN_SCHEMA = vol.Schema(
     {
-        vol.Required("type"): vol.In(
-            {
-                "binary_sensor": "Binary Sensor",
-                "switch": "Switch",
-                "cover_up_down": "Cover with up/down buttons",
-                "cover_toggle": "Cover with toggle button",
-            }
-        ),
+        vol.Required("type"): vol.In(CONF_TYPES.keys()),
     }
 )
 
 
 def get_type(data: dict) -> str | None:
-    return data["type"] if data != None else None
+    return CONF_TYPES.get(data["type"]) if data != None else None
 
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 COVER_UP_DOWN_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_NAME): cv.string,
@@ -65,7 +67,7 @@ SENSOR_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_NAME): cv.string,
         vol.Required(CONF_PORT): cv.positive_int,
-        vol.Optional(CONF_PULL_MODE, default=DEFAULT_PULL_MODE): cv.in_(["up", "down"]),
+        vol.Optional(CONF_PULL_MODE, default=DEFAULT_PULL_MODE): vol.In(["up", "down"]),
         vol.Optional(CONF_BOUNCE_TIME, default=DEFAULT_BOUNCE_TIME): cv.positive_int,
         vol.Optional(CONF_INVERT_LOGIC, default=DEFAULT_INVERT_LOGIC): cv.boolean,
         vol.Optional(CONF_UNIQUE_ID): cv.string,

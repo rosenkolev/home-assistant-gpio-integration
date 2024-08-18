@@ -15,7 +15,7 @@ async def async_setup_entry(
     """Add cover for passed config_entry in HA."""
     hub: Hub = hass.data[DOMAIN][config_entry.entry_id]
     if hub.is_cover:
-        async_add_entities([GpioPosition(hub.roller)])
+        async_add_entities([GpioPosition(hub.controller)])
 
 
 class GpioPosition(NumberEntity):

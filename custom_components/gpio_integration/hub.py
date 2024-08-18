@@ -23,6 +23,7 @@ class Hub:
     def __init__(self, configs: dict) -> None:
         """Init hub."""
         self.type = configs["type"]
+        _LOGGER.debug('Hub type "%s"', self.type)
         if self.type == "cover_up_down":
             self.controller = Roller(RollerConfig(configs))
             self.platforms = [Platform.COVER, Platform.NUMBER]
@@ -117,7 +118,7 @@ class BasicToggleRoller:
     def toggle(self):
         """Trigger the cover."""
         write_output(self.__pin, 1 if self.__invert else 0)
-        sleep(self._relay_time)
+        sleep(self.__relay_time)
         write_output(self.__pin, 0 if self.__invert else 1)
 
 

@@ -3,13 +3,9 @@
   "name": "GPIO Integration",
   "codeowners": ["@rosenkolev"],
   "config_flow": true,
-  "dependencies": [],
   "documentation": "https://github.com/rosenkolev/home-assistant-gpio-integration/tree/main/",
-  "issue_tracker": "https://github.com/rosenkolev/home-assistant-gpio-integration/issues",
-  "homekit": {},
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/rosenkolev/home-assistant-gpio-integration/issues",
   "requirements": ["RPi.GPIO==0.7.1"],
-  "version": "2022.7.0",
-  "ssdp": [],
-  "zeroconf": []
+  "version": "0.0.1"
 }
