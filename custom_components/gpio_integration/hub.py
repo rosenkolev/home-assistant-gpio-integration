@@ -4,15 +4,9 @@ from time import sleep
 from homeassistant.const import Platform
 
 import threading
-from .io_interface import (
-    edge_detect,
-    setup_input,
-    write_output,
-    read_input,
-    setup_output,
-    get_logger,
-)
 from .config_schema import RollerConfig, SensorConfig, SwitchConfig, ToggleRollerConfig
+from .const import get_logger
+from .gpio import Gpio
 
 _LOGGER = get_logger()
 
@@ -25,16 +19,18 @@ class Hub:
         self.type = configs["type"]
         _LOGGER.debug('Hub type "%s"', self.type)
         if self.type == "cover_up_down":
-            self.controller = Roller(RollerConfig(configs))
+            self.config = RollerConfig(configs)
+            self.controller = Roller(self.config)
             self.platforms = [Platform.COVER, Platform.NUMBER]
         elif self.type == "cover_toggle":
-            self.controller = BasicToggleRoller(ToggleRollerConfig(configs))
+            self.config = ToggleRollerConfig(configs)
+            self.controller = BasicToggleRoller(self.config)
             self.platforms = [Platform.COVER]
         elif self.type == "binary_sensor":
-            self.controller = Sensor(SensorConfig(configs))
+            self.config = SensorConfig(configs)
             self.platforms = [Platform.BINARY_SENSOR]
         elif self.type == "switch":
-            self.controller = Switch(SwitchConfig(configs))
+            self.config = SwitchConfig(configs)
             self.platforms = [Platform.SWITCH]
 
     @property
@@ -46,87 +42,40 @@ class Hub:
         return self.type == "cover_toggle"
 
 
-class Switch:
-    def __init__(self, config: SwitchConfig) -> None:
-        self.name = config.name
-        self.id = config.unique_id
-        self.pin = config.port
-        self.__invert = config.invert_logic
-        self.__initial_state = config.default_state
-        setup_output(self.pin)
-        self.reset()
-
-    def __get_actual_state_value(self, state: bool) -> bool:
-        return not self.__invert if state else self.__invert
-
-    @property
-    def state(self) -> bool:
-        return self.__state
-
-    def reset(self):
-        _LOGGER.debug('switch "%s" reset to "%s"', self.name, self.__initial_state)
-        self.set_state(self.__initial_state)
-
-    def set_state(self, state) -> None:
-        value = self.__get_actual_state_value(state)
-        _LOGGER.debug('switch "%s" set high to %s', self.name, value)
-        write_output(self.pin, value)
-        self.__state = state
-
-
-class Sensor:
-    def __init__(self, config: SensorConfig) -> None:
-        self.config = config
-        self.name = config.name
-        self.id = config.unique_id
-        self.pin = config.pin
-        self.state = None
-        self.bounce_time_ms = config.bounce_time_ms
-        self.__invert = config.invert_logic
-        setup_input(self.pin, config.pull_mode)
-
-    def add_detection(self, event_callback: Callable):
-        edge_detect(self.pin, event_callback, self.bounce_time_ms)
-
-    def update(self):
-        self.__state = read_input(self.__pin)
-
-    @property
-    def bounce_time_sec(self) -> float:
-        return float(self.bounce_time_ms) / 1000.0
-
-    @property
-    def is_on(self) -> bool:
-        return self.__state != self.__invert
-
-
 class BasicToggleRoller:
     def __init__(self, config: ToggleRollerConfig) -> None:
-        self.config = config
         self.name = config.name
         self.id = config.unique_id
-        self.__pin = config.port
+        self.__has_close_sensor = config.pin_closed != None
         self.__state = False
         self.__invert = config.invert_logic
         self.__relay_time = config.relay_time
+        self.__io = Gpio(config.port, mode="write")
 
-        setup_output(self.port, self.__invert)
-        if config.pin_closed:
-            setup_input(config.pin_closed, "up")
+        if self.__has_close_sensor:
+            self.__io_closed = Gpio(config.pin_closed, mode="read")
 
     @property
     def is_closed(self):
         """Return true if cover is closed."""
         return self.__state != self.__invert
 
-    def update_state(self):
-        self.__state = read_input(self.__pin)
+    def release(self):
+        self.__io.release()
+        if self.__has_close_sensor:
+            self.__io_closed.release()
+
+    def update(self):
+        if self.__has_close_sensor:
+            self.__state = self.__io_closed.read()
 
     def toggle(self):
         """Trigger the cover."""
-        write_output(self.__pin, 1 if self.__invert else 0)
+        self.__io.write(1 if self.__invert else 0)
         sleep(self.__relay_time)
-        write_output(self.__pin, 0 if self.__invert else 1)
+        self.__io.write(0 if self.__invert else 1)
+        if not self.__has_close_sensor:
+            self.__state = not self.__state
 
 
 class Roller:
@@ -166,16 +115,20 @@ class Roller:
             self.__pin_up,
             self.__pin_up_default_to_high,
         )
-        setup_output(self.__pin_down, self.__pin_down_default_to_high)
-        setup_output(self.__pin_up, self.__pin_up_default_to_high)
+        self.__io_down = Gpio(
+            self.__pin_down, mode="write", default_value=self.__pin_down_default_to_high
+        )
+        self.__io_up = Gpio(
+            self.__pin_up, mode="write", default_value=self.__pin_up_default_to_high
+        )
 
         if self.__has_close_sensor:
-            setup_input(self.__pin_closed, config.pin_closed_mode)
-            self.__position = 0 if self.sensor_closed else 100
+            self.__io_closed = Gpio(self.__pin_closed, mode="read")
+            self.__position = 0 if self.__io_closed.read() else 100
 
     @property
     def sensor_closed(self) -> bool:
-        return read_input() == self.__pin_closed_on_state
+        return self.__io_closed.read() == self.__pin_closed_on_state
 
     @property
     def position(self) -> int:
@@ -193,6 +146,12 @@ class Roller:
     @property
     def moving(self) -> int:
         return self.__moving
+
+    def release(self):
+        self.__io_down.release()
+        self.__io_up.release()
+        if self.__has_close_sensor:
+            self.__io_closed.release()
 
     def update_state(self):
         if self.__has_close_sensor:
@@ -261,7 +220,7 @@ class Roller:
     def __move(self, steps, closing=False, full_close=False):
         """toggle a state to GRIO"""
 
-        pin = self.__pin_down if closing else self.__pin_up
+        pin = self.__io_down if closing else self.__io_up
         pin_off = (
             self.__pin_down_default_to_high
             if closing
@@ -283,7 +242,7 @@ class Roller:
             self.__position,
         )
 
-        write_output(pin, pin_on)
+        pin.write(pin_on)
         for x in range(steps):
             cancelled = self.__cancel.wait(self.__step_time)
             time += self.__step_time
@@ -292,15 +251,17 @@ class Roller:
                 _LOGGER.debug('"%s" move cancelled', self.name)
                 break
 
+        is_sensor_show_closed = self.__has_close_sensor and self.sensor_closed
+
         # wait extra second to make sure it's fully closed
-        if full_close and not (self.__has_close_sensor and self.sensor_closed):
+        if not is_sensor_show_closed and full_close:
             sleep(1)
             time += 1
 
         _LOGGER.debug('move "%s" time %s', self.name, time)
         self.__moving = 0
         self.__cancel.clear()
-        write_output(pin, pin_off)
+        pin.write(pin_off)
 
         if self.__position < 0 and closing:
             self.__position = 0

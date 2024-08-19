@@ -61,6 +61,11 @@ class GpioBasicCover(CoverEntity):
         """Return if the cover is closed, same as position 0."""
         return self.__roller.is_closed
 
+    async def async_will_remove_from_hass(self) -> None:
+        """Release the resources."""
+        await super().async_will_remove_from_hass()
+        self.__roller.release()
+
     def update(self):
         """Update the cover state."""
         self.__roller.update_state()
@@ -116,6 +121,11 @@ class GpioCover(CoverEntity):
     def is_opening(self) -> bool:
         """Return if the cover is opening or not."""
         return self.__roller.moving > 0
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Release the resources."""
+        await super().async_will_remove_from_hass()
+        self.__roller.release()
 
     def update(self):
         """Update the cover state."""

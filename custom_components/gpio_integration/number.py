@@ -32,6 +32,11 @@ class GpioPosition(NumberEntity):
         """Return the current position of the cover."""
         return self.__roller.position
 
+    async def async_will_remove_from_hass(self) -> None:
+        """Cleanup before removing from hass."""
+        await super().async_will_remove_from_hass()
+        self.__roller.release()
+
     def set_native_value(self, value: float) -> None:
         """Update the current value."""
         self.__roller.set_position(int(value))

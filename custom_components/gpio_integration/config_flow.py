@@ -6,8 +6,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME, CONF_PORT
 from homeassistant.core import callback
 
-from .const import DOMAIN
-from .io_interface import get_logger
+from .const import DOMAIN, get_logger
 from .config_schema import (
     InvalidPin,
     get_type,

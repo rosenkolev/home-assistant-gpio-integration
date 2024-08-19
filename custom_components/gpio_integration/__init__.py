@@ -10,7 +10,6 @@ from homeassistant.const import (
     Platform,
 )
 
-from .io_interface import setup_io, clean_up_io
 from .hub import Hub
 from .const import DOMAIN
 
@@ -22,14 +21,12 @@ def setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     def cleanup_gpio(event):
         """Stuff to do before stopping."""
-        clean_up_io()
 
     def prepare_gpio(event):
         """Stuff to do when Home Assistant starts."""
-        hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup_gpio)
 
-    setup_io()
     hass.bus.listen_once(EVENT_HOMEASSISTANT_START, prepare_gpio)
+    hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup_gpio)
     return True
 
 
