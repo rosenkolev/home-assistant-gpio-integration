@@ -14,7 +14,7 @@ from .io_interface import setup_io, clean_up_io
 from .hub import Hub
 from .const import DOMAIN
 
-PLATFORMS = [Platform.COVER, Platform.NUMBER, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.COVER, Platform.NUMBER, Platform.BINARY_SENSOR, Platform.SWITCH]
 
 
 def setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -49,7 +49,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # This is called when an entry/configured device is to be removed. The class
     # needs to unload itself, and remove callbacks. See the classes for further
     # details
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    platforms = hass.data[DOMAIN][entry.entry_id].platforms
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 

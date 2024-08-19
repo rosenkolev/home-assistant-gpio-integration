@@ -30,10 +30,10 @@ class Hub:
         elif self.type == "cover_toggle":
             self.controller = BasicToggleRoller(ToggleRollerConfig(configs))
             self.platforms = [Platform.COVER]
-        elif type == "binary_sensor":
+        elif self.type == "binary_sensor":
             self.controller = Sensor(SensorConfig(configs))
-            self.platforms = [Platform.SENSOR]
-        elif type == "switch":
+            self.platforms = [Platform.BINARY_SENSOR]
+        elif self.type == "switch":
             self.controller = Switch(SwitchConfig(configs))
             self.platforms = [Platform.SWITCH]
 
@@ -50,12 +50,11 @@ class Switch:
     def __init__(self, config: SwitchConfig) -> None:
         self.name = config.name
         self.id = config.unique_id
-        self.pin = config.pin
-        self.__state = config.default_state
+        self.pin = config.port
         self.__invert = config.invert_logic
-
-        init_value = self.__get_actual_state_value(config.default_state)
-        setup_output(self.pin, init_value)
+        self.__initial_state = config.default_state
+        setup_output(self.pin)
+        self.reset()
 
     def __get_actual_state_value(self, state: bool) -> bool:
         return not self.__invert if state else self.__invert
@@ -64,13 +63,20 @@ class Switch:
     def state(self) -> bool:
         return self.__state
 
+    def reset(self):
+        _LOGGER.debug('switch "%s" reset to "%s"', self.name, self.__initial_state)
+        self.set_state(self.__initial_state)
+
     def set_state(self, state) -> None:
-        write_output(self.pin, self.__get_actual_state_value(state))
+        value = self.__get_actual_state_value(state)
+        _LOGGER.debug('switch "%s" set high to %s', self.name, value)
+        write_output(self.pin, value)
         self.__state = state
 
 
 class Sensor:
     def __init__(self, config: SensorConfig) -> None:
+        self.config = config
         self.name = config.name
         self.id = config.unique_id
         self.pin = config.pin
@@ -80,7 +86,7 @@ class Sensor:
         setup_input(self.pin, config.pull_mode)
 
     def add_detection(self, event_callback: Callable):
-        edge_detect(self.pin, event_callback, self.bounce_time)
+        edge_detect(self.pin, event_callback, self.bounce_time_ms)
 
     def update(self):
         self.__state = read_input(self.__pin)
@@ -96,6 +102,7 @@ class Sensor:
 
 class BasicToggleRoller:
     def __init__(self, config: ToggleRollerConfig) -> None:
+        self.config = config
         self.name = config.name
         self.id = config.unique_id
         self.__pin = config.port
@@ -129,7 +136,8 @@ class Roller:
         self,
         config: RollerConfig,
     ) -> None:
-        """Init dummy roller."""
+        """Init the roller."""
+        self.config = config
         self.name = config.name
         self.id = config.unique_id
         self.step: int = 5
@@ -244,9 +252,6 @@ class Roller:
         if steps == 0:
             return
 
-        _LOGGER.debug(
-            '"%s" target %s current %s', self.name, target_position, self.__position
-        )
         self.__move(steps, closing, target_position == 0)
 
         _LOGGER.debug(

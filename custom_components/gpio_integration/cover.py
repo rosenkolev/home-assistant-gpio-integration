@@ -27,6 +27,19 @@ async def async_setup_entry(
         async_add_entities([GpioBasicCover(hub.controller)])
 
 
+def get_device_class(mode: str) -> CoverDeviceClass:
+    if mode == "Door":
+        return CoverDeviceClass.DOOR
+    if mode == "Garage":
+        return CoverDeviceClass.GARAGE
+    if mode == "Shade":
+        return CoverDeviceClass.SHADE
+    if mode == "Blind":
+        return CoverDeviceClass.BLIND
+    if mode == "Curtain":
+        return CoverDeviceClass.CURTAIN
+
+
 class GpioBasicCover(CoverEntity):
     def __init__(
         self,
@@ -38,7 +51,7 @@ class GpioBasicCover(CoverEntity):
         self._attr_unique_id = roller.id
         self._attr_assumed_state = True
         self._attr_has_entity_name = True
-        self._attr_device_class = CoverDeviceClass.DOOR
+        self._attr_device_class = get_device_class(roller.config.mode)
         self._attr_supported_features = (
             CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
         )
@@ -76,7 +89,7 @@ class GpioCover(CoverEntity):
         self._attr_unique_id = roller.id
         self._attr_assumed_state = True
         self._attr_has_entity_name = True
-        self._attr_device_class = CoverDeviceClass.SHADE
+        self._attr_device_class = get_device_class(roller.config.mode)
         self._attr_supported_features = (
             CoverEntityFeature.OPEN
             | CoverEntityFeature.CLOSE

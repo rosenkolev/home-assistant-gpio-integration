@@ -35,13 +35,14 @@ def read_input(port):
     return GPIO.input(port)
 
 
-def setup_output(pin, init_state):
+def setup_output(pin, init_state: bool | None = None):
     """initialize the GPIO pin"""
     GPIO.setup(pin, GPIO.OUT)
 
-    write_output(pin, init_state)
-    state = read_input(pin)
-    assert state == init_state
+    if init_state is not None:
+        write_output(pin, init_state)
+        state = read_input(pin)
+        assert state == init_state
 
 
 def edge_detect(port, event_callback, bounce):

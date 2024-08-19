@@ -26,4 +26,17 @@ The `gpio_integration` binary sensor platform allows you to read sensor values o
 
 ### Configuration
 
-Use the UI
+To configure the integration use the UI
+
+#### 1. Select the entity type
+
+![Configuration flow first step!](/docs/step_user.png)
+
+#### 2. Fill entity fields
+
+![Configuration flow first step!](/docs/step_cover.png)
+
+#### Notes
+
+* unique_id is not required and will be created automatically based on `Name`
+* the `door closed` sensor is not required for `cover` and will be assumed to be closed initially, state will be tracked so if you use other remote to open/close may get out of sync
