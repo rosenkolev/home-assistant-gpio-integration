@@ -10,9 +10,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
 from .hub import Hub
-from .const import DOMAIN
+from .const import DOMAIN, get_logger
 from .config_schema import SensorConfig
 from .gpio import Gpio
+
+_LOGGER = get_logger()
 
 
 async def async_setup_entry(
@@ -62,6 +64,7 @@ class GpioBinarySensor(BinarySensorEntity):
 
     async def _detect_edges(self, time=None):
         if self.__io.read_edge_events():
+            _LOGGER.debug("%s events", self._attr_name)
             self.async_schedule_update_ha_state(force_refresh=True)
 
     async def async_added_to_hass(self) -> None:
@@ -86,3 +89,4 @@ class GpioBinarySensor(BinarySensorEntity):
     def update(self):
         """Update the GPIO state."""
         self.__state = self.__io.read()
+        _LOGGER.debug("%s update %s", self._attr_name, self.__state)

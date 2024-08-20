@@ -67,17 +67,20 @@
   "options": {
     "step": {
       "init": {
-        "name": "Name",
-        "port": "GPIO pin",
-        "up_pin": "GPIO up pin",
-        "up_pin_invert": "GPIO up pin invert(default 5v)",
-        "down_pin": "GPIO down pin",
-        "down_pin_invert": "GPIO down pin invert(default 5v)",
-        "invert_logic": "Invert logic",
-        "default_state": "Default state",
-        "relay_time": "relay time in seconds (pin on time)",
-        "pin_closed_sensor": "pin for 'door closed' sensor",
-        "unique_id": "Unique ID"
+        "title": "Setup GPIO Integration",
+        "data": {
+          "name": "Name",
+          "port": "GPIO pin",
+          "up_pin": "GPIO up pin",
+          "up_pin_invert": "GPIO up pin invert(default 5v)",
+          "down_pin": "GPIO down pin",
+          "down_pin_invert": "GPIO down pin invert(default 5v)",
+          "invert_logic": "Invert logic",
+          "default_state": "Default state",
+          "relay_time": "relay time in seconds (pin on time)",
+          "pin_closed_sensor": "pin for 'door closed' sensor",
+          "unique_id": "Unique ID"
+        }
       }
     }
   }

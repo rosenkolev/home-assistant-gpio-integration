@@ -1,3 +1,4 @@
 # python gitignore
 *.pyc
 __pycache__/
+.venv/

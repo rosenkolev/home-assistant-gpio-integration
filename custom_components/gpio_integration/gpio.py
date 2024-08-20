@@ -6,21 +6,13 @@ import gpiod
 from gpiod.line import Direction, Bias, Edge, Value
 from gpiod.line_settings import LineSettings
 
-from .const import get_logger, DOMAIN
+from .const import get_logger, DOMAIN, read_device_model
 
 _LOGGER = get_logger()
 
 
-def _read_device_model() -> str:
-    try:
-        with open("/sys/firmware/devicetree/base/model") as model_file:
-            return model_file.read()
-    except IOError:
-        return ""
-
-
 def _guess_default_device() -> str:
-    device_model = _read_device_model()
+    device_model = read_device_model()
     device_path = "/dev/gpiochip0"
     if "Raspberry Pi 5 Model B" in device_model:
         device_path = "/dev/gpiochip4"
@@ -100,13 +92,11 @@ class Gpio:
         _LOGGER.debug("set pin %s to %s", self.pin, value)
         self.req.set_values({self.pin: value})
 
-    def read_edge_events(self, timeout: int = 0):
-        if self.req.wait_edge_events(timeout):
+    def read_edge_events(self, timeout_ms: int = 0):
+        if self.req.wait_edge_events(datetime.timedelta(milliseconds=timeout_ms)):
             events = self.req.read_edge_events()
             for event in events:
-                _LOGGER.debug(
-                    "Edge event on %s:%s: %s", self.req.chip_name, self.req.lines, event
-                )
+                _LOGGER.debug("edge event %s: %s", self.req.lines, event.type)
             return events
         return []
 

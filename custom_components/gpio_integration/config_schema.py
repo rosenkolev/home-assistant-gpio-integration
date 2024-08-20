@@ -1,14 +1,11 @@
 from typing import Literal
+
 import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.selector import selector
 from homeassistant.const import CONF_NAME, CONF_MODE, CONF_PORT, CONF_UNIQUE_ID
 from homeassistant.exceptions import HomeAssistantError
-
-from .const import DOMAIN
-
-CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 CONF_COVERS = "covers"
 CONF_RELAY_UP_PIN = "up_pin"
