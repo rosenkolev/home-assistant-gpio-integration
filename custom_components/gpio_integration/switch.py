@@ -44,8 +44,8 @@ class GpioSwitch(SwitchEntity):
         self.__io.release()
 
     def set_state(self, state) -> None:
-        value = not self.__invert_logic if state else self.__invert
-        _LOGGER.debug('switch "%s" set high to %s', self.name, value)
+        value = not self.__invert_logic if state else self.__invert_logic
+        _LOGGER.debug('switch "%s" set high to %s', self._attr_name, value)
         self.__io.write(value)
         self.__state = state
 

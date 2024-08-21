@@ -70,7 +70,7 @@ class GpioBinarySensorBase(BinarySensorEntity):
         )
 
     async def _detect_edges(self, time=None):
-        events = self.__io.read_edge_events()
+        events = self._io.read_edge_events()
         if events and len(events) > 0:
             self.on_edge_event()
 
@@ -118,7 +118,7 @@ class GpioBinarySensor(GpioBinarySensorBase):
     def update(self):
         """Update the GPIO state."""
         self._state = self._io.read() != self.__invert_logic
-        _LOGGER.debug("%s update %s", self._attr_name, self.__state)
+        _LOGGER.debug("%s update %s", self._attr_name, self._state)
 
 
 class GpioMotionBinarySensor(GpioBinarySensorBase):
@@ -127,6 +127,7 @@ class GpioMotionBinarySensor(GpioBinarySensorBase):
     def __init__(self, config: SensorConfig) -> None:
         super().__init__(config)
         self.__motion_timeout_sec = config.edge_event_timeout_sec
+        self.__event_detected = False
         self.update_last_event_time()
 
     @property
@@ -135,6 +136,7 @@ class GpioMotionBinarySensor(GpioBinarySensorBase):
 
     def on_edge_event(self):
         """On edge event schedule state update (update method will be called)"""
+        self.__event_detected = True
         self.update()
         self.update_last_event_time()
 
@@ -144,8 +146,9 @@ class GpioMotionBinarySensor(GpioBinarySensorBase):
         if timeout_elapsed and self._state:
             self._state = False
             self.async_write_ha_state()
-        elif not timeout_elapsed and not self._state:
-            self._state = False
+        elif self.__event_detected and not timeout_elapsed and not self._state:
+            self._state = True
+            self.__event_detected = False
             self.async_write_ha_state()
 
     def update_last_event_time(self):
