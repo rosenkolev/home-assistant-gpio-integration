@@ -83,7 +83,7 @@ class Gpio:
         if self.req.wait_edge_events(datetime.timedelta(milliseconds=timeout_ms)):
             events = self.req.read_edge_events()
             for event in events:
-                _LOGGER.debug("edge event %s: %s", self.req.lines, event.type)
+                _LOGGER.debug("edge event %s: %s", self.req.lines, event)
             return events
         return []
 
