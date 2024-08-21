@@ -1,19 +1,16 @@
 """Load Platform integration."""
 
-from custom_components.gpio_integration.config_schema import RollerConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.const import (
-    EVENT_HOMEASSISTANT_START,
-    EVENT_HOMEASSISTANT_STOP,
-    Platform,
-)
+from homeassistant.helpers.config_validation import config_entry_only_config_schema
+from homeassistant.const import Platform
 
 from .hub import Hub
 from .const import DOMAIN
 
 PLATFORMS = [Platform.COVER, Platform.NUMBER, Platform.BINARY_SENSOR, Platform.SWITCH]
+CONFIG_SCHEMA = config_entry_only_config_schema(DOMAIN)
 
 
 def setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -25,8 +22,8 @@ def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     def prepare_gpio(event):
         """Stuff to do when Home Assistant starts."""
 
-    hass.bus.listen_once(EVENT_HOMEASSISTANT_START, prepare_gpio)
-    hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup_gpio)
+    # hass.bus.listen_once(EVENT_HOMEASSISTANT_START, prepare_gpio)
+    # hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup_gpio)
     return True
 
 

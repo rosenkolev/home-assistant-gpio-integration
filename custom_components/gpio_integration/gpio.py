@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import TypeVar, Literal, Generic, Callable
 
 import datetime
 
@@ -30,19 +30,6 @@ DEFAULT_DEVICE = _guess_default_device()
 PORTS = set()
 HIGH = Value.ACTIVE
 LOW = Value.INACTIVE
-
-# TODO: Add support for generic GPIO parse
-# T = TypeVar('T')
-# class BoolParser(Generic[T]):
-#     def parse(self, value: int) -> T:
-#         return value == HIGH
-#     def serialize(self, value: T) -> int:
-#         return HIGH if value else LOW
-# class BoolInvertParser(Generic[T]):
-#     def parse(self, value: int) -> T:
-#         return value == LOW
-#     def serialize(self, value: T) -> int:
-#         return LOW if value else HIGH
 
 
 class Gpio:

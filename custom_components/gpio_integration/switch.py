@@ -1,4 +1,4 @@
-from homeassistant.components.switch import PLATFORM_SCHEMA, SwitchEntity
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -29,7 +29,7 @@ class GpioSwitch(SwitchEntity):
         self._attr_name = config.name
         self._attr_unique_id = config.unique_id
         self._attr_should_poll = False
-        self.__state = False
+        self.__state = config.default_state
         self.__invert_logic = config.invert_logic
         self.__io = Gpio(config.port, mode="write")
 

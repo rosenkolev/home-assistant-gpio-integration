@@ -18,6 +18,7 @@ CONF_PULL_MODE = "pull_mode"
 CONF_INVERT_LOGIC = "invert_logic"
 CONF_BOUNCE_TIME = "bounce_time_in_ms"
 CONF_DEFAULT_STATE = "default_state"
+CONF_EDGE_EVENT_TIMEOUT = "edge_event_timeout"
 
 ## VALIDATORS
 
@@ -226,6 +227,12 @@ def create_binary_sensor_schema(data: dict) -> vol.Schema:
                     }
                 }
             ),
+            vol.Optional(
+                CONF_DEFAULT_STATE, default=data[CONF_DEFAULT_STATE]
+            ): cv.boolean,
+            vol.Optional(
+                CONF_EDGE_EVENT_TIMEOUT, default=data[CONF_EDGE_EVENT_TIMEOUT]
+            ): cv.positive_int,
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }
     )
@@ -239,6 +246,8 @@ BINARY_SENSOR_SCHEMA = create_binary_sensor_schema(
         CONF_BOUNCE_TIME: 50,
         CONF_INVERT_LOGIC: False,
         CONF_MODE: "Door",
+        CONF_DEFAULT_STATE: False,
+        CONF_EDGE_EVENT_TIMEOUT: 5,
         CONF_UNIQUE_ID: "",
     }
 )
@@ -340,6 +349,8 @@ class SensorConfig:
         self.mode: str = data[CONF_MODE]
         self.bounce_time_ms: int = data[CONF_BOUNCE_TIME]
         self.invert_logic: bool = data[CONF_INVERT_LOGIC]
+        self.default_state: bool = data[CONF_DEFAULT_STATE]
+        self.edge_event_timeout_sec: int = data[CONF_EDGE_EVENT_TIMEOUT]
         self.unique_id: str = get_unique_id(data)
 
 

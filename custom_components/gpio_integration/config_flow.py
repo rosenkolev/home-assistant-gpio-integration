@@ -3,9 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME, CONF_PORT
+from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
-from homeassistant.helpers.config_validation import config_entry_only_config_schema
 
 from .const import DOMAIN, get_logger
 from .config_schema import (
@@ -28,8 +27,6 @@ from .config_schema import (
 )
 
 _LOGGER = get_logger()
-
-CONFIG_SCHEMA = config_entry_only_config_schema(DOMAIN)
 
 CONF_ENTITIES: dict = {
     "cover_up_down": {

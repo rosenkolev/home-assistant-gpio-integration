@@ -1,4 +1,5 @@
 import datetime
+import time
 
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
@@ -24,7 +25,14 @@ async def async_setup_entry(
 ) -> None:
     """Add binary sensor for passed config_entry in HA."""
     hub: Hub = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([GpioBinarySensor(hub.config)])
+    async_add_entities([create_binary_sensor(hub.config)])
+
+
+def create_binary_sensor(config: SensorConfig):
+    """Create binary sensor based on config."""
+    if config.mode == "Motion" or config.mode == "Vibration":
+        return GpioMotionBinarySensor(config)
+    return GpioBinarySensor(config)
 
 
 def get_device_class(mode: str) -> BinarySensorDeviceClass:
@@ -42,7 +50,7 @@ def get_device_class(mode: str) -> BinarySensorDeviceClass:
     return BinarySensorDeviceClass.DOOR
 
 
-class GpioBinarySensor(BinarySensorEntity):
+class GpioBinarySensorBase(BinarySensorEntity):
     """Represent a binary sensor that uses Raspberry Pi GPIO."""
 
     def __init__(self, config: SensorConfig) -> None:
@@ -51,10 +59,9 @@ class GpioBinarySensor(BinarySensorEntity):
         self._attr_unique_id = config.unique_id
         self._attr_should_poll = False
         self._attr_device_class = get_device_class(config.mode)
-        self.__invert_logic = config.invert_logic
-        self.__state = None
         self.__bounce_time = config.bounce_time_ms
-        self.__io = Gpio(
+        self._state = config.default_state
+        self._io = Gpio(
             config.pin,
             mode="read",
             pull_mode=config.pull_mode,
@@ -63,9 +70,9 @@ class GpioBinarySensor(BinarySensorEntity):
         )
 
     async def _detect_edges(self, time=None):
-        if self.__io.read_edge_events():
-            _LOGGER.debug("%s events", self._attr_name)
-            self.async_schedule_update_ha_state(force_refresh=True)
+        events = self.__io.read_edge_events()
+        if events and len(events) > 0:
+            self.on_edge_event()
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added."""
@@ -78,15 +85,68 @@ class GpioBinarySensor(BinarySensorEntity):
         )
 
     async def async_will_remove_from_hass(self) -> None:
+        """On entity remove release the GPIO resources."""
         await super().async_will_remove_from_hass()
-        self.__io.release()
+        self._io.release()
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool:
         """Return the state of the entity."""
-        return self.__state != self.__invert_logic
+        return self._state
+
+    def on_edge_event(self):
+        """Handle edge event."""
+        pass
 
     def update(self):
         """Update the GPIO state."""
-        self.__state = self.__io.read()
+        pass
+
+
+class GpioBinarySensor(GpioBinarySensorBase):
+    """Represent a binary sensor that uses Raspberry Pi GPIO."""
+
+    def __init__(self, config: SensorConfig) -> None:
+        """Initialize the RPi binary sensor."""
+        super().__init__(config)
+        self.__invert_logic = config.invert_logic
+
+    def on_edge_event(self):
+        """On edge event schedule state update (update method will be called)"""
+        self.async_schedule_update_ha_state(force_refresh=True)
+
+    def update(self):
+        """Update the GPIO state."""
+        self._state = self._io.read() != self.__invert_logic
         _LOGGER.debug("%s update %s", self._attr_name, self.__state)
+
+
+class GpioMotionBinarySensor(GpioBinarySensorBase):
+    """Represent a motion time of binary sensor that uses Raspberry Pi GPIO."""
+
+    def __init__(self, config: SensorConfig) -> None:
+        super().__init__(config)
+        self.__motion_timeout_sec = config.edge_event_timeout_sec
+        self.update_last_event_time()
+
+    @property
+    def time_since_last_event_sec(self) -> float:
+        return time.perf_counter() - self.__event_time
+
+    def on_edge_event(self):
+        """On edge event schedule state update (update method will be called)"""
+        self.update()
+        self.update_last_event_time()
+
+    def update(self):
+        """Update the GPIO state."""
+        timeout_elapsed = self.time_since_last_event_sec > self.__motion_timeout_sec
+        if timeout_elapsed and self._state:
+            self._state = False
+            self.async_write_ha_state()
+        elif not timeout_elapsed and not self._state:
+            self._state = False
+            self.async_write_ha_state()
+
+    def update_last_event_time(self):
+        self.__event_time = time.perf_counter()
