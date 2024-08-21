@@ -21,26 +21,39 @@ sys.modules["gpiod"] = Mock()
 sys.modules["gpiod.line"] = Mock()
 sys.modules["gpiod.line_settings"] = Mock()
 
-mocked_gpio_data = dict()
+mocked_gpio = dict()
 
 
 class MockedGpio:
-    def __init__(self, port, mode, **kwargs):
-        mocked_gpio_data.clear()
-        mocked_gpio_data.setdefault("read_value", False)
-        mocked_gpio_data.setdefault("read_events", [])
+    def __init__(
+        self,
+        port,
+        mode=None,
+        pull_mode=None,
+        edge_detect=None,
+        debounce_ms=None,
+        default_value=None,
+    ):
+        self.data = mocked_gpio.setdefault(port, dict())
 
-        mocked_gpio_data["port"] = port
-        mocked_gpio_data["mode"] = mode
+        self.data.clear()
+        self.data.setdefault("read_value", False)
+        self.data.setdefault("read_events", [])
+
+        self.data["mode"] = mode
+        self.data["default_value"] = pull_mode
+        self.data["edge_detect"] = edge_detect
+        self.data["debounce_ms"] = debounce_ms
+        self.data["default_value"] = default_value
 
     def read(self):
-        return mocked_gpio_data.get("read_value")
+        return self.data.get("read_value")
 
     def write(self, value):
-        mocked_gpio_data["write_value"] = value
+        self.data["write_value"] = value
 
     def read_edge_events(self):
-        return mocked_gpio_data.get("read_events")
+        return self.data.get("read_events")
 
 
 class MockedBaseEntity:

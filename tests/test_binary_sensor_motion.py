@@ -60,7 +60,7 @@ async def test__GpioMotionBinarySensor_edge_events_should_update_state():
         assert gpio.is_on == False
         assert gpio.ha_state_write == False
 
-        mocked.mocked_gpio_data["read_events"] = [1]
+        mocked.mocked_gpio[1]["read_events"] = ["event"]
         await gpio._detect_edges()
         assert gpio.is_on == True
         assert gpio.ha_state_write == True

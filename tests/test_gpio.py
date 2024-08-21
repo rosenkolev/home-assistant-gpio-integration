@@ -32,6 +32,13 @@ def test__Gpio_init_should_bind_Input_line():
 
 
 @patch.object(gpio, "HIGH", 1)
+def test__Gpio_init_should_set_default_state():
+    io = gpio.Gpio(1, mode="write", default_value=True)
+
+    io.req.set_values.assert_called_with({1: 1})
+
+
+@patch.object(gpio, "HIGH", 1)
 def test__Gpio_should_read():
     io = gpio.Gpio(6, mode="read")
 

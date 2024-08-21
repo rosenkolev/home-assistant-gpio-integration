@@ -33,12 +33,23 @@ def test__GpioSwitch_should_init_default_sate():
 
 
 @patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
-def test__GpioSwitch_should_init_default_state_False():
+def test__GpioSwitch_should_init_default_state():
     from custom_components.gpio_integration.switch import GpioSwitch
 
     gpio = GpioSwitch(__create_config(default_state=True))
 
     assert gpio.is_on == True
+
+
+@patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
+def test__GpioSwitch_should_init_default_state_io():
+    import custom_components.gpio_integration.switch as base
+
+    with patch.object(base, "Gpio", mocked.MockedGpio):
+        base.GpioSwitch(__create_config(port=17, default_state=True))
+
+        assert mocked.mocked_gpio[17]["mode"] == "write"
+        assert mocked.mocked_gpio[17]["default_value"] == True
 
 
 @patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
@@ -49,10 +60,10 @@ def test__GpioSwitch_should_set_pin():
         gpio = base.GpioSwitch(__create_config(port=13))
 
         gpio.set_state(True)
-        assert mocked.mocked_gpio_data["write_value"] == True
+        assert mocked.mocked_gpio[13]["write_value"] == True
 
         gpio.set_state(False)
-        assert mocked.mocked_gpio_data["write_value"] == False
+        assert mocked.mocked_gpio[13]["write_value"] == False
 
 
 @patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
@@ -63,7 +74,7 @@ def test__GpioSwitch_should_set_pin_invert():
         gpio = base.GpioSwitch(__create_config(invert_logic=True))
 
         gpio.set_state(True)
-        assert mocked.mocked_gpio_data["write_value"] == False
+        assert mocked.mocked_gpio[1]["write_value"] == False
 
         gpio.set_state(False)
-        assert mocked.mocked_gpio_data["write_value"] == True
+        assert mocked.mocked_gpio[1]["write_value"] == True

@@ -53,11 +53,11 @@ def test__GpioBinarySensor_update_should_set_state_not_inverted():
     with patch.object(base, "Gpio", mocked.MockedGpio):
         gpio = base.GpioBinarySensor(__create_config(port=13))
 
-        mocked.mocked_gpio_data["read_value"] = True
+        mocked.mocked_gpio[13]["read_value"] = True
         gpio.update()
         assert gpio.is_on == True
 
-        mocked.mocked_gpio_data["read_value"] = False
+        mocked.mocked_gpio[13]["read_value"] = False
         gpio.update()
         assert gpio.is_on == False
 
@@ -71,11 +71,11 @@ def test__GpioBinarySensor_update_should_set_state_inverted():
     with patch.object(base, "Gpio", mocked.MockedGpio):
         gpio = base.GpioBinarySensor(__create_config(invert_logic=True))
 
-        mocked.mocked_gpio_data["read_value"] = True
+        mocked.mocked_gpio[1]["read_value"] = True
         gpio.update()
         assert gpio.is_on == False
 
-        mocked.mocked_gpio_data["read_value"] = False
+        mocked.mocked_gpio[1]["read_value"] = False
         gpio.update()
         assert gpio.is_on == True
 
@@ -93,6 +93,6 @@ async def test__GpioBinarySensor_edge_events_should_trigger_update():
         await gpio._detect_edges()
         assert gpio.ha_state_update_scheduled == False
 
-        mocked.mocked_gpio_data["read_events"] = [1]
+        mocked.mocked_gpio[1]["read_events"] = ["event"]
         await gpio._detect_edges()
         assert gpio.ha_state_update_scheduled == True

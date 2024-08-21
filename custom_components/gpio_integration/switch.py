@@ -31,7 +31,7 @@ class GpioSwitch(SwitchEntity):
         self._attr_should_poll = False
         self.__state = config.default_state
         self.__invert_logic = config.invert_logic
-        self.__io = Gpio(config.port, mode="write")
+        self.__io = Gpio(config.port, mode="write", default_value=config.default_state)
 
     @property
     def is_on(self) -> bool | None:
