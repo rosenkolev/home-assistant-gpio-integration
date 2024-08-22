@@ -243,7 +243,7 @@ BINARY_SENSOR_SCHEMA = create_binary_sensor_schema(
         CONF_NAME: None,
         CONF_PORT: None,
         CONF_PULL_MODE: "up",
-        CONF_BOUNCE_TIME: 50,
+        CONF_BOUNCE_TIME: 500,
         CONF_INVERT_LOGIC: False,
         CONF_MODE: "Door",
         CONF_DEFAULT_STATE: False,

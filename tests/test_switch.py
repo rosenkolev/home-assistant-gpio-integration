@@ -1,5 +1,6 @@
-import sys
-from unittest.mock import patch, Mock, ANY
+from unittest.mock import patch, ANY
+
+import pytest
 
 import mocked_models as mocked
 
@@ -78,3 +79,19 @@ def test__GpioSwitch_should_set_pin_invert():
 
         gpio.set_state(False)
         assert mocked.mocked_gpio[1]["write_value"] == True
+
+
+@pytest.mark.asyncio
+@patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
+async def test__GpioSwitch_on_off_should_write_ha():
+    import custom_components.gpio_integration.switch as base
+
+    gpio = base.GpioSwitch(__create_config())
+
+    gpio.ha_state_write == False
+    await gpio.async_turn_on()
+    assert gpio.ha_state_write == True
+
+    gpio.ha_state_write == False
+    await gpio.async_turn_off()
+    assert gpio.ha_state_write == True

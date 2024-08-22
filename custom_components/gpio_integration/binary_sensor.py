@@ -69,20 +69,21 @@ class GpioBinarySensorBase(BinarySensorEntity):
             debounce_ms=config.bounce_time_ms,
         )
 
-    async def _detect_edges(self, time=None):
+    async def _detect_edges(self, _=None):
         events = self._io.read_edge_events()
-        if events and len(events) > 0:
-            self.on_edge_event()
+        await self.async_edge_detection_callback(events and len(events) > 0)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added."""
         await super().async_added_to_hass()
-        async_track_time_interval(
+        timer_cancel = async_track_time_interval(
             self.hass,
             self._detect_edges,
             datetime.timedelta(milliseconds=self.__bounce_time),
             cancel_on_shutdown=True,
         )
+
+        self.async_on_remove(timer_cancel)
 
     async def async_will_remove_from_hass(self) -> None:
         """On entity remove release the GPIO resources."""
@@ -94,12 +95,7 @@ class GpioBinarySensorBase(BinarySensorEntity):
         """Return the state of the entity."""
         return self._state
 
-    def on_edge_event(self):
-        """Handle edge event."""
-        pass
-
-    def update(self):
-        """Update the GPIO state."""
+    async def async_edge_detection_callback(self, has_event: bool):
         pass
 
 
@@ -111,9 +107,10 @@ class GpioBinarySensor(GpioBinarySensorBase):
         super().__init__(config)
         self.__invert_logic = config.invert_logic
 
-    def on_edge_event(self):
+    async def async_edge_detection_callback(self, has_event: bool):
         """On edge event schedule state update (update method will be called)"""
-        self.async_schedule_update_ha_state(force_refresh=True)
+        if has_event:
+            self.async_schedule_update_ha_state(force_refresh=True)
 
     def update(self):
         """Update the GPIO state."""
@@ -127,28 +124,38 @@ class GpioMotionBinarySensor(GpioBinarySensorBase):
     def __init__(self, config: SensorConfig) -> None:
         super().__init__(config)
         self.__motion_timeout_sec = config.edge_event_timeout_sec
-        self.__event_detected = False
-        self.update_last_event_time()
+        self.__event_time: float | None = None
 
     @property
-    def time_since_last_event_sec(self) -> float:
-        return time.perf_counter() - self.__event_time
+    def last_motion_event_timeout(self) -> bool:
+        return (
+            self.__event_time is not None
+            and (time.perf_counter() - self.__event_time) > self.__motion_timeout_sec
+        )
 
-    def on_edge_event(self):
-        """On edge event schedule state update (update method will be called)"""
-        self.__event_detected = True
-        self.update()
-        self.update_last_event_time()
+    async def async_edge_detection_callback(self, has_event: bool):
+        """On edge detection schedule state update (update method will be called)"""
+        if has_event:
+            """If event detected, set state to on."""
+            self.set_on()
+            self.update_last_event_time()
+        elif self.last_motion_event_timeout:
+            """If no event detected for a while, set state to off."""
+            self.set_off()
 
     def update(self):
-        """Update the GPIO state."""
-        timeout_elapsed = self.time_since_last_event_sec > self.__motion_timeout_sec
-        if timeout_elapsed and self._state:
+        if self.last_motion_event_timeout:
+            """If no event detected for a while, set state to off."""
+            self.set_off()
+
+    def set_off(self):
+        if self._state:
             self._state = False
             self.async_write_ha_state()
-        elif self.__event_detected and not timeout_elapsed and not self._state:
+
+    def set_on(self):
+        if not self._state:
             self._state = True
-            self.__event_detected = False
             self.async_write_ha_state()
 
     def update_last_event_time(self):

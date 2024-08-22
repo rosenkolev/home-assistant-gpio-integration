@@ -39,7 +39,7 @@ def __create_config(port=1, default_state=False, invert_logic=False):
 def test__GpioBinarySensor_should_init_default_sate():
     from custom_components.gpio_integration.binary_sensor import GpioBinarySensor
 
-    gpio = GpioBinarySensor(__create_config())
+    gpio = GpioBinarySensor(__create_config(port=5))
 
     assert gpio.is_on == False
 
@@ -51,13 +51,13 @@ def test__GpioBinarySensor_update_should_set_state_not_inverted():
     import custom_components.gpio_integration.binary_sensor as base
 
     with patch.object(base, "Gpio", mocked.MockedGpio):
-        gpio = base.GpioBinarySensor(__create_config(port=13))
+        gpio = base.GpioBinarySensor(__create_config(port=6))
 
-        mocked.mocked_gpio[13]["read_value"] = True
+        mocked.mocked_gpio[6]["read_value"] = True
         gpio.update()
         assert gpio.is_on == True
 
-        mocked.mocked_gpio[13]["read_value"] = False
+        mocked.mocked_gpio[6]["read_value"] = False
         gpio.update()
         assert gpio.is_on == False
 
@@ -69,13 +69,13 @@ def test__GpioBinarySensor_update_should_set_state_inverted():
     import custom_components.gpio_integration.binary_sensor as base
 
     with patch.object(base, "Gpio", mocked.MockedGpio):
-        gpio = base.GpioBinarySensor(__create_config(invert_logic=True))
+        gpio = base.GpioBinarySensor(__create_config(port=7, invert_logic=True))
 
-        mocked.mocked_gpio[1]["read_value"] = True
+        mocked.mocked_gpio[7]["read_value"] = True
         gpio.update()
         assert gpio.is_on == False
 
-        mocked.mocked_gpio[1]["read_value"] = False
+        mocked.mocked_gpio[7]["read_value"] = False
         gpio.update()
         assert gpio.is_on == True
 
@@ -88,11 +88,12 @@ async def test__GpioBinarySensor_edge_events_should_trigger_update():
     import custom_components.gpio_integration.binary_sensor as base
 
     with patch.object(base, "Gpio", mocked.MockedGpio):
-        gpio = base.GpioBinarySensor(__create_config())
+        gpio = base.GpioBinarySensor(__create_config(port=8))
 
+        mocked.mocked_gpio[8]["read_events"] = []
         await gpio._detect_edges()
         assert gpio.ha_state_update_scheduled == False
 
-        mocked.mocked_gpio[1]["read_events"] = ["event"]
+        mocked.mocked_gpio[8]["read_events"] = ["event"]
         await gpio._detect_edges()
         assert gpio.ha_state_update_scheduled == True
