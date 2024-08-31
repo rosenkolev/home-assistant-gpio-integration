@@ -6,7 +6,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .hub import Hub
 from .const import DOMAIN, get_logger
 from .config_schema import SwitchConfig
-from .gpio import Gpio
+from .gpio.pin_factory import create_pin
 
 _LOGGER = get_logger()
 
@@ -31,7 +31,12 @@ class GpioSwitch(SwitchEntity):
         self._attr_should_poll = False
         self.__state = config.default_state
         self.__invert_logic = config.invert_logic
-        self.__io = Gpio(config.port, mode="write", default_value=config.default_state)
+        self.__io = create_pin(
+            config.port,
+            mode="output",
+            pull="up",
+            default_value=(config.default_state != config.invert_logic),
+        )
 
     @property
     def is_on(self) -> bool | None:
@@ -41,12 +46,12 @@ class GpioSwitch(SwitchEntity):
     async def async_will_remove_from_hass(self) -> None:
         """Cleanup before removing from hass."""
         await super().async_will_remove_from_hass()
-        self.__io.release()
+        self.__io.close()
 
     def set_state(self, state) -> None:
-        value = not self.__invert_logic if state else self.__invert_logic
+        value = self.__invert_logic != state
         _LOGGER.debug('switch "%s" set high to %s', self._attr_name, value)
-        self.__io.write(value)
+        self.__io.state = value
         self.__state = state
 
     async def async_turn_on(self, **kwargs) -> None:

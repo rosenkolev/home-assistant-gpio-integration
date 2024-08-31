@@ -19,6 +19,7 @@ CONF_INVERT_LOGIC = "invert_logic"
 CONF_BOUNCE_TIME = "bounce_time_in_ms"
 CONF_DEFAULT_STATE = "default_state"
 CONF_EDGE_EVENT_TIMEOUT = "edge_event_timeout"
+CONF_FREQUENCY = "frequency"
 
 ## VALIDATORS
 
@@ -55,6 +56,7 @@ CONF_TYPES: dict = {
     "Cover with toggle button (optional sensor)": "cover_toggle",
     "Binary sensor": "binary_sensor",
     "Switch": "switch",
+    "Light": "light",
 }
 
 MAIN_SCHEMA = vol.Schema(
@@ -298,6 +300,46 @@ SWITCH_SCHEMA = create_switch_schema(
 validate_switch_data = lambda data: v_name(data[CONF_NAME]) and v_pin(data[CONF_PORT])
 
 
+## LIGHT SCHEMA
+
+
+def create_light_schema(data: dict) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_NAME, default=data[CONF_NAME]): cv.string,
+            vol.Required(
+                CONF_PORT,
+                default=data[CONF_PORT],
+                description="GPIO pin number for the switch",
+            ): cv.positive_int,
+            vol.Optional(
+                CONF_FREQUENCY,
+                default=data[CONF_FREQUENCY],
+                description="The light pulse frequency (for LED)",
+            ): cv.positive_int,
+            vol.Optional(
+                CONF_DEFAULT_STATE,
+                default=data[CONF_DEFAULT_STATE],
+                description="Default state",
+            ): cv.boolean,
+            vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
+        }
+    )
+
+
+LIGHT_SCHEMA = create_light_schema(
+    {
+        CONF_NAME: None,
+        CONF_PORT: None,
+        CONF_FREQUENCY: 100,
+        CONF_DEFAULT_STATE: False,
+        CONF_UNIQUE_ID: "",
+    }
+)
+
+validate_light_data = lambda data: v_name(data[CONF_NAME]) and v_pin(data[CONF_PORT])
+
+
 ## CONFIG CLASSES
 
 
@@ -359,5 +401,14 @@ class SwitchConfig:
         self.name: str = data[CONF_NAME]
         self.port: int = data[CONF_PORT]
         self.invert_logic: bool = data[CONF_INVERT_LOGIC]
+        self.default_state: bool = data[CONF_DEFAULT_STATE]
+        self.unique_id: str = get_unique_id(data)
+
+
+class LightConfig:
+    def __init__(self, data: dict):
+        self.name: str = data[CONF_NAME]
+        self.port: int = data[CONF_PORT]
+        self.frequency: int = data[CONF_FREQUENCY]
         self.default_state: bool = data[CONF_DEFAULT_STATE]
         self.unique_id: str = get_unique_id(data)

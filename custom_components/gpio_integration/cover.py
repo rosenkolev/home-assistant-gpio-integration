@@ -66,10 +66,6 @@ class GpioBasicCover(CoverEntity):
         await super().async_will_remove_from_hass()
         self.__roller.release()
 
-    def update(self):
-        """Update the cover state."""
-        self.__roller.update_state()
-
     def close_cover(self, **kwargs):
         """Close the cover."""
         if not self.__roller.is_closed:
@@ -103,7 +99,7 @@ class GpioCover(CoverEntity):
         )
 
     @property
-    def current_cover_position(self):
+    def current_cover_position(self) -> int:
         """Return the current position of the cover."""
         return self.__roller.position
 

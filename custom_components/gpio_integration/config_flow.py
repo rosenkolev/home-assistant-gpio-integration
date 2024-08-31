@@ -24,6 +24,9 @@ from .config_schema import (
     SWITCH_SCHEMA,
     create_switch_schema,
     validate_switch_data,
+    LIGHT_SCHEMA,
+    create_light_schema,
+    validate_light_data,
 )
 
 _LOGGER = get_logger()
@@ -48,6 +51,11 @@ CONF_ENTITIES: dict = {
         "schema": SWITCH_SCHEMA,
         "validate": validate_switch_data,
         "schema_builder": create_switch_schema,
+    },
+    "light": {
+        "schema": LIGHT_SCHEMA,
+        "validate": validate_light_data,
+        "schema_builder": create_light_schema,
     },
 }
 
@@ -82,6 +90,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_binary_sensor()
         elif type == "switch":
             return await self.async_step_switch()
+        elif type == "light":
+            return await self.async_step_light()
 
     async def async_step_cover_up_down(self, data_input=None):
         """Handle the initial step."""
@@ -98,6 +108,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_cover_toggle(self, data_input=None):
         """Handle the initial step."""
         return self.handle_config_data("cover_toggle", data_input)
+
+    async def async_step_light(self, data_input=None):
+        """Handle the initial step."""
+        return self.handle_config_data("light", data_input)
 
     def handle_config_data(self, id: str, data_input: dict | None):
         schema = CONF_ENTITIES[id]["schema"]

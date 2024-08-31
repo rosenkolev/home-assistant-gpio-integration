@@ -7,18 +7,6 @@ import mocked_models
 from custom_components.gpio_integration import gpio
 
 
-@patch("gpiod.is_gpiochip_device")
-def test__guess_default_device(is_gpiochip_device: Mock):
-    is_gpiochip_device.return_value = True
-    with patch.object(gpio, "read_device_model", return_value=[]):
-        assert gpio._guess_default_device() == "/dev/gpiochip0"
-
-    with patch.object(
-        gpio, "read_device_model", return_value=["Raspberry Pi 5 Model B"]
-    ):
-        assert gpio._guess_default_device() == "/dev/gpiochip4"
-
-
 @patch.object(gpio, "DEFAULT_DEVICE", "/dev/gpiochip0")
 def test__Gpio_init_should_bind_Input_line():
     with patch("gpiod.request_lines", return_value=None) as request_lines:

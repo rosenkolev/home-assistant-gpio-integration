@@ -4,12 +4,20 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.config_validation import config_entry_only_config_schema
-from homeassistant.const import Platform
+from homeassistant.const import Platform, EVENT_HOMEASSISTANT_STOP
 
 from .hub import Hub
 from .const import DOMAIN
+from .gpio import close_all_pins
 
-PLATFORMS = [Platform.COVER, Platform.NUMBER, Platform.BINARY_SENSOR, Platform.SWITCH]
+PLATFORMS = [
+    Platform.COVER,
+    Platform.NUMBER,
+    Platform.BINARY_SENSOR,
+    Platform.SWITCH,
+    Platform.LIGHT,
+]
+
 CONFIG_SCHEMA = config_entry_only_config_schema(DOMAIN)
 
 
@@ -18,12 +26,9 @@ def setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     def cleanup_gpio(event):
         """Stuff to do before stopping."""
+        close_all_pins()
 
-    def prepare_gpio(event):
-        """Stuff to do when Home Assistant starts."""
-
-    # hass.bus.listen_once(EVENT_HOMEASSISTANT_START, prepare_gpio)
-    # hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup_gpio)
+    hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup_gpio)
     return True
 
 

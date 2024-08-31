@@ -29,20 +29,20 @@ def __create_config(port=1, invert_logic=False, closed_sensor=0):
 
 
 def test__Roller_should_init_default_sate():
-    with patch.object(hub, "Gpio", mocked.MockedGpio):
-
+    proxy = mocked.MockedCreatePin()
+    with patch.object(hub, "create_pin", proxy.mock):
         roller = hub.BasicToggleRoller(__create_config(port=10, closed_sensor=11))
 
-        assert mocked.mocked_gpio[10]["mode"] == "write"
-        assert mocked.mocked_gpio[10]["default_value"] == None
-        assert mocked.mocked_gpio[11]["mode"] == "read"
+        assert proxy.pins[10].mode == "output"
+        assert proxy.pins[10].state == None
+        assert proxy.pins[11].mode == "input"
 
 
 def test__Roller_should_open():
-    with patch.object(hub, "Gpio", mocked.MockedGpio):
-
+    proxy = mocked.MockedCreatePin()
+    with patch.object(hub, "create_pin", proxy.mock):
         roller = hub.BasicToggleRoller(__create_config(port=20))
 
         roller.toggle()
 
-        assert mocked.mocked_gpio[20]["write_value"] == True
+        assert proxy.pin.data["write"] == True
