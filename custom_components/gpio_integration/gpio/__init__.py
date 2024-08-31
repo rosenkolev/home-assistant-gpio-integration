@@ -26,8 +26,11 @@ class Pin:
     *pwm* override:
     * :meth:`_read_pwm`
     * :meth:`_write_pww`
-    * :meth:`_get_frequency`
-    * :meth:`_set_frequency`
+    * :meth:`_enable_pwm`
+    * :meth:`_update_frequency`
+    * :meth:`_disable_pwm`
+    * :meth:`_get_frequency` *optional*
+    * :meth:`_set_frequency` *optional*
 
     *optional* override:
     * :meth:`_get_pull`
@@ -54,7 +57,7 @@ class Pin:
         if pin == None:
             raise ValueError("pin is none")
         if pin in ALL_PINS:
-            raise RuntimeError("Pin is already setup")
+            raise RuntimeError(f"pin {pin} is already setup")
 
         self._pin = pin
         self._frequency: int | None = None

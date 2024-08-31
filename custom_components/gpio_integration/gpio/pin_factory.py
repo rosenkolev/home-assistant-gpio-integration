@@ -10,13 +10,19 @@ default_factories = {
 }
 
 
+def _get_pin_factory_class(name: str) -> Type[Pin]:
+    mod_name, cls_name = default_factories[name].split(":", 1)
+    path = f"{__package__}{mod_name}"
+    _LOGGER.warning(f"Loading {mod_name} {cls_name}: {path}")
+    module = __import__(path, fromlist=(cls_name))
+    pin_cls = getattr(module, cls_name)()
+    return pin_cls
+
+
 def _get_default_pin_factory_class() -> Type[Pin]:
-    for name, entry_point in default_factories.items():
+    for name, _ in default_factories.items():
         try:
-            mod_name, cls_name = entry_point.split(":", 1)
-            module = __import__(mod_name, fromlist=(cls_name,))
-            pin_cls = getattr(module, cls_name)()
-            return pin_cls
+            return _get_pin_factory_class(name)
         except Exception as e:
             _LOGGER.warn(f"Falling back from {name}: {e!s}")
 
@@ -33,10 +39,18 @@ def create_pin(
     frequency: int | None = None,
     default_value: float | bool | None = None,
     when_changed: Callable[[int], None] = None,
+    interface: str | None = None,
 ) -> Pin:
-    if DEFAULT_PIN_CLASS is None:
-        DEFAULT_PIN_CLASS = _get_default_pin_factory_class()
+    global DEFAULT_PIN_CLASS
+    pin_cls: Type[Pin]
+    if interface is not None and interface in default_factories:
+        pin_cls = _get_pin_factory_class(interface)
+    else:
+        if DEFAULT_PIN_CLASS is None:
+            DEFAULT_PIN_CLASS = _get_default_pin_factory_class()
 
-    return DEFAULT_PIN_CLASS(
+        pin_cls = DEFAULT_PIN_CLASS
+
+    return pin_cls(
         pin, mode, pull, bounce, edges, frequency, default_value, when_changed
     )

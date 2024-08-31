@@ -1,4 +1,3 @@
-from typing import Callable
 import pigpio
 
 from custom_components.gpio_integration.const import get_logger
@@ -91,7 +90,9 @@ class GpioPin(Pin):
         if value not in GPIO_MODES:
             raise ValueError(f"mode {value} not supported by pigpio")
 
-        self._connection.set_mode(pigpio.INPUT if value == "input" else pigpio.OUTPUT)
+        self._connection.set_mode(
+            self.pin, pigpio.INPUT if value == "input" else pigpio.OUTPUT
+        )
 
         _LOGGER.debug(f"pin {self.pin} mode set '{value}'")
 
@@ -101,17 +102,22 @@ class GpioPin(Pin):
         if value not in GPIO_PULL_UPS:
             raise ValueError(f"Pull {value} not supported by pigpio")
 
-        self._connection.set_pull_up_down(GPIO_PULL_UPS[value])
+        self._connection.set_pull_up_down(self.pin, GPIO_PULL_UPS[value])
 
         _LOGGER.debug(f"pin {self.pin} pull set '{value}'")
 
         super()._set_pull(value)
 
     def _set_bounce(self, value: float | None) -> None:
-        filter = int(value * 1000000) if value is not None and value > 0 else 0
+        if value is not None and value < 0 and value > 0.3:
+            raise ValueError(f"bounce {value} not supported by pigpio")
+        elif value is None:
+            value = 0
+
+        filter = int(value * 1000000)
         self._connection.set_glitch_filter(self.pin, filter)
         _LOGGER.debug(f"pin {self.pin} bounce set {value}s({filter}µs)")
-        super()._set_bounce(value)
+        super()._set_bounce(filter)
 
     def _update_frequency(self, frequency: int):
         self._connection.set_PWM_frequency(self.pin, int(frequency))
@@ -130,7 +136,9 @@ class GpioPin(Pin):
         value = self.edges
         if value in GPIO_EDGES:
             self._callback = self._connection.callback(
-                self.pin, GPIO_EDGES[value], self._call_when_changed
+                self.pin,
+                GPIO_EDGES[value],
+                self._call_when_changed,
             )
 
             _LOGGER.debug(f"pin {self.pin} edge detection enabled")

@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
+import mocked_modules
 import mocked_models as mocked
 
 from custom_components.gpio_integration.config_schema import (
@@ -12,11 +13,11 @@ from custom_components.gpio_integration.config_schema import (
 )
 
 
-def __create_config(port=1, default_state=False, invert_logic=False):
+def __create_config(port=None, default_state=False, invert_logic=False):
     return SwitchConfig(
         {
             CONF_NAME: "Test Name",
-            CONF_PORT: port,
+            CONF_PORT: mocked.get_next_pin() if port is None else port,
             CONF_DEFAULT_STATE: default_state,
             CONF_INVERT_LOGIC: invert_logic,
         }
@@ -47,10 +48,11 @@ def test__GpioSwitch_should_init_default_state():
 def test__GpioSwitch_should_init_default_state_io():
     import custom_components.gpio_integration.switch as base
 
+    pin = mocked.get_next_pin()
     with patch.object(base, "create_pin", Mock()) as create_pin:
-        gpio = base.GpioSwitch(__create_config(port=17, default_state=True))
+        gpio = base.GpioSwitch(__create_config(port=pin, default_state=True))
         create_pin.assert_called_once_with(
-            17, mode="output", pull="up", default_value=True
+            pin, mode="output", pull="up", default_value=True
         )
 
 
@@ -60,7 +62,7 @@ def test__GpioSwitch_should_set_pin():
 
     proxy = mocked.MockedCreatePin()
     with patch.object(base, "create_pin", proxy.mock):
-        gpio = base.GpioSwitch(__create_config(port=13))
+        gpio = base.GpioSwitch(__create_config())
 
         gpio.set_state(True)
         assert proxy.pin.data["write"] == True
@@ -91,10 +93,10 @@ async def test__GpioSwitch_on_off_should_write_ha():
 
     gpio = base.GpioSwitch(__create_config())
 
-    gpio.ha_state_write == False
+    gpio.ha_state_write = False
     await gpio.async_turn_on()
-    assert gpio.ha_state_write == True
+    assert gpio.ha_state_write
 
-    gpio.ha_state_write == False
+    gpio.ha_state_write = False
     await gpio.async_turn_off()
-    assert gpio.ha_state_write == True
+    assert gpio.ha_state_write

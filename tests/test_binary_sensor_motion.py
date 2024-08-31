@@ -1,8 +1,6 @@
-import sys
-from unittest.mock import patch, Mock, ANY
+from unittest.mock import patch, Mock
 
-import pytest
-
+import mocked_modules
 import mocked_models as mocked
 
 from custom_components.gpio_integration.config_schema import (
@@ -18,11 +16,11 @@ from custom_components.gpio_integration.config_schema import (
 )
 
 
-def __create_config(port=1, default_state=False, invert_logic=False, timeout=10):
+def __create_config(port=None, default_state=False, invert_logic=False, timeout=10):
     return SensorConfig(
         {
             CONF_NAME: "Test Name",
-            CONF_PORT: port,
+            CONF_PORT: mocked.get_next_pin() if port is None else port,
             CONF_PULL_MODE: "up",
             CONF_MODE: "read",
             CONF_BOUNCE_TIME: 5,
@@ -40,7 +38,7 @@ def test__GpioMotionBinarySensor_should_init_default_sate():
     import custom_components.gpio_integration.binary_sensor as base
 
     with patch.object(base, "create_pin", Mock()):
-        gpio = base.GpioMotionBinarySensor(__create_config(1))
+        gpio = base.GpioMotionBinarySensor(__create_config())
 
         assert gpio.is_on == False
         assert gpio.last_motion_event_timeout == False
@@ -54,7 +52,7 @@ def test__GpioMotionBinarySensor_edge_events_should_update_state():
 
     proxy = mocked.MockedCreatePin()
     with patch.object(base, "create_pin", proxy.mock):
-        gpio = base.GpioMotionBinarySensor(__create_config(2))
+        gpio = base.GpioMotionBinarySensor(__create_config())
 
         assert gpio.is_on == False
 
@@ -73,7 +71,7 @@ def test__GpioMotionBinarySensor_should_update_not_update(counter: Mock):
     proxy = mocked.MockedCreatePin()
     with patch.object(base, "create_pin", proxy.mock):
         counter.return_value = 0
-        gpio = base.GpioMotionBinarySensor(__create_config(3))
+        gpio = base.GpioMotionBinarySensor(__create_config())
 
         counter.return_value = 1
         gpio.update()
@@ -102,7 +100,7 @@ def test__GpioMotionBinarySensor_should_update_state_after_elapsed(counter: Mock
     with patch.object(base, "create_pin", proxy.mock):
         counter.return_value = 1.0
 
-        gpio = base.GpioMotionBinarySensor(__create_config(4, timeout=5))
+        gpio = base.GpioMotionBinarySensor(__create_config(None, timeout=5))
         proxy.pin._call_when_changed(0)
 
         counter.return_value = 6.01

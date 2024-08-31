@@ -1,23 +1,5 @@
-import sys
 from typing import Callable
 from unittest.mock import Mock
-
-sys.modules["voluptuous"] = Mock()
-sys.modules["homeassistant"] = Mock()
-sys.modules["homeassistant.const"] = Mock()
-sys.modules["homeassistant.core"] = Mock()
-sys.modules["homeassistant.config_entries"] = Mock()
-sys.modules["homeassistant.helpers"] = Mock()
-sys.modules["homeassistant.helpers.event"] = Mock()
-sys.modules["homeassistant.helpers.config_validation"] = Mock()
-sys.modules["homeassistant.helpers.typing"] = Mock()
-sys.modules["homeassistant.helpers.entity_platform"] = Mock()
-sys.modules["homeassistant.helpers.selector"] = Mock()
-sys.modules["homeassistant.exceptions"] = Mock()
-sys.modules["homeassistant.components"] = Mock()
-sys.modules["homeassistant.components.cover"] = Mock()
-sys.modules["homeassistant.components.binary_sensor"] = Mock()
-sys.modules["homeassistant.components.switch"] = Mock()
 
 from custom_components.gpio_integration.gpio import (
     BounceType,
@@ -26,6 +8,14 @@ from custom_components.gpio_integration.gpio import (
     Pin,
     PullType,
 )
+
+PIN_NUMBER = 0
+
+
+def get_next_pin() -> int:
+    global PIN_NUMBER
+    PIN_NUMBER += 1
+    return PIN_NUMBER
 
 
 class MockedPin(Pin):
@@ -60,8 +50,21 @@ class MockedPin(Pin):
     def _read(self):
         return self.data.get("read")
 
+    def _read_pwm(self):
+        return self.data.get("read_pwm")
+
+    def _enable_pwm(self, frequency: int):
+        self.data["enable_pwm"] = True
+        self.data["frequency"] = frequency
+
+    def _disable_pwm(self):
+        self.data["disable_pwm"] = True
+
     def _write(self, value):
         self.data["write"] = value
+
+    def _write_pwm(self, value: float) -> None:
+        self.data["write_pwm"] = value
 
     def _enable_event_detect(self):
         self.data["event_detect"] = True
@@ -102,6 +105,10 @@ class MockedBaseEntity:
     def async_write_ha_state(self):
         self.ha_state_write = True
 
-    def async_schedule_update_ha_state(self, force_refresh):
+    def async_schedule_update_ha_state(self, force_refresh=False):
         self.ha_state_update_scheduled = True
         self.ha_state_update_scheduled_force_refresh = force_refresh
+
+    def schedule_update_ha_state(self, force_refresh=False):
+        self.ha_state_update_scheduled = True
+        self.ha_state_update_scheduled_force_refresh = False

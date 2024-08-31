@@ -1,4 +1,4 @@
-from unittest.mock import patch, Mock, ANY
+from unittest.mock import patch
 
 import mocked_models as mocked
 
@@ -15,7 +15,7 @@ from custom_components.gpio_integration.config_schema import (
 )
 
 
-def __create_config(port=1, invert_logic=False, closed_sensor=0):
+def __create_config(port=None, invert_logic=False, closed_sensor=0):
     return ToggleRollerConfig(
         {
             CONF_NAME: "Test Name",
@@ -30,18 +30,23 @@ def __create_config(port=1, invert_logic=False, closed_sensor=0):
 
 def test__Roller_should_init_default_sate():
     proxy = mocked.MockedCreatePin()
+    pin_in = mocked.get_next_pin()
+    pin_out = mocked.get_next_pin()
     with patch.object(hub, "create_pin", proxy.mock):
-        roller = hub.BasicToggleRoller(__create_config(port=10, closed_sensor=11))
+        roller = hub.BasicToggleRoller(
+            __create_config(port=pin_out, closed_sensor=pin_in)
+        )
 
-        assert proxy.pins[10].mode == "output"
-        assert proxy.pins[10].state == None
-        assert proxy.pins[11].mode == "input"
+        assert proxy.pins[pin_out].mode == "output"
+        assert proxy.pins[pin_out].state == None
+        assert proxy.pins[pin_in].mode == "input"
 
 
 def test__Roller_should_open():
     proxy = mocked.MockedCreatePin()
+    pin = mocked.get_next_pin()
     with patch.object(hub, "create_pin", proxy.mock):
-        roller = hub.BasicToggleRoller(__create_config(port=20))
+        roller = hub.BasicToggleRoller(__create_config(port=pin))
 
         roller.toggle()
 

@@ -1,4 +1,3 @@
-from typing import Callable, Literal
 from time import sleep
 
 from homeassistant.const import Platform
