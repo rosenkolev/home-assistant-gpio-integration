@@ -5,7 +5,8 @@
         "reports/",
         ".pytest_cache/",
         "LICENSE",
-        "manifest.json"
+        "manifest.json",
+        "extensions.json"
     ],
     "words": [
         "gpio",

@@ -59,6 +59,17 @@
           "pin_closed_sensor": "pin for 'door closed' sensor",
           "unique_id": "Unique ID"
         }
+      },
+      "light": {
+        "title": "Setup Light",
+        "description": "Enter your GPIO data for the light",
+        "data": {
+          "name": "Name",
+          "port": "GPIO pin",
+          "frequency": "The frequency of the PWM signal or 0/None",
+          "default_state": "Default state (unchecked = off, checked = on)",
+          "unique_id": "Unique ID"
+        }
       }
     },
     "error": {
@@ -86,6 +97,7 @@
           "relay_time": "relay time in seconds (pin on time)",
           "pin_closed_sensor": "pin for 'door closed' sensor",
           "edge_event_timeout": "Event timeout in seconds (only for motion/vibration sensors)",
+          "frequency": "The frequency of the PWM signal or 0/None",
           "unique_id": "Unique ID"
         }
       }
