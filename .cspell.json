@@ -1,0 +1,28 @@
+{
+    "version": "0.2",
+    "language": "en",
+    "ignorePaths": [
+        "reports/",
+        ".pytest_cache/",
+        "LICENSE",
+        "manifest.json"
+    ],
+    "words": [
+        "gpio",
+        "GPIO",
+        "hass",
+        "homeassistant",
+        "orgoro",
+        "ruff",
+        "ONOFF",
+        "rpigpio",
+        "pigpio",
+        "dutycycle",
+        "bouncetime",
+        "pytest",
+        "asyncio",
+
+        "HACS",
+        "Asus"
+    ]
+}

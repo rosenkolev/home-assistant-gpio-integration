@@ -1,6 +1,9 @@
-from unittest.mock import Mock, patch
-import mocked_models as mocked
+# cspell:ignore setwarnings
+
 import logging
+from unittest.mock import Mock, patch
+
+import mocked_models as mocked
 
 PINS = dict()
 
@@ -72,7 +75,7 @@ def test__rpigpio_connect():
     with patch("RPi.GPIO", proxy):
         import custom_components.gpio_integration.gpio.rpigpio as base
 
-        gpio = base.GpioPin(pin)
+        base.GpioPin(pin)
 
         assert proxy.pins[pin]["mode"] == proxy.IN
         assert proxy.pins[pin]["pull"] == proxy.PUD_OFF
@@ -95,7 +98,7 @@ def test__rpigpio_set_frequency():
     with patch("RPi.GPIO", proxy):
         import custom_components.gpio_integration.gpio.rpigpio as base
 
-        gpio = base.GpioPin(pin, mode="output", frequency=100)
+        base.GpioPin(pin, mode="output", frequency=100)
 
         proxy.pins[pin]["pwm"].start.assert_called_once_with(0)
         assert proxy.pins[pin]["frequency"] == 100
@@ -108,7 +111,7 @@ def test__rpigpio_edge_detection():
     with patch("RPi.GPIO", proxy):
         import custom_components.gpio_integration.gpio.rpigpio as base
 
-        gpio = base.GpioPin(pin, edge="rising", when_changed=callback)
+        base.GpioPin(pin, edge="rising", when_changed=callback)
 
         proxy.trigger_event(pin, 1)
 

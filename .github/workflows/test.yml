@@ -1,5 +1,5 @@
-name: Run Unit Test via Pytest  
-  
+name: Verification
+
 on: [push]  
   
 jobs:  
@@ -15,15 +15,18 @@ jobs:
         run: |  
           python -m pip install --upgrade pip  
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi  
-      - uses: chartboost/ruff-action@v1
-        continue-on-error: true  
-      - name: Test with pytest  
+      - name: Run Ruff
+        run: ruff check --output-format=github .
+      - name: Spell Check
+        uses: streetsidesoftware/cspell-action@v6
+      - name: Test with pytest
         run: coverage run --data-file reports/.coverage -m pytest -v -s
-      - name: Generate Coverage Report  
+      - name: Generate Coverage Report Summary
+        run: coverage report -m --data-file reports/.coverage --format=markdown >> $GITHUB_STEP_SUMMARY
+      - name: Generate Coverage Report
         run: coverage xml --data-file reports/.coverage -o reports/coverage.xml
-      - name: Get Cover 
+      - name: Get Cover
         uses: orgoro/coverage@v3.2
         with:
             coverageFile: reports/.coverage
             token: ${{ secrets.GITHUB_TOKEN }}
-        

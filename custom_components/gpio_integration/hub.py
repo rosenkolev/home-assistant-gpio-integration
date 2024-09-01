@@ -1,8 +1,8 @@
+import threading
 from time import sleep
 
 from homeassistant.const import Platform
 
-import threading
 from .config_schema import (
     LightConfig,
     RollerConfig,
@@ -54,7 +54,7 @@ class BasicToggleRoller:
     def __init__(self, config: ToggleRollerConfig) -> None:
         self.name = config.name
         self.id = config.unique_id
-        self.__has_close_sensor = config.pin_closed != None
+        self.__has_close_sensor = config.pin_closed is not None
         self.__state: bool = False
         self.__invert = config.invert_logic
         self.__relay_time = config.relay_time
@@ -110,7 +110,7 @@ class Roller:
         self.__pin_up_default_to_high = config.pin_up_on_state == "high"
         self.__pin_closed = config.pin_closed
         self.__pin_closed_on_state = config.pin_closed_on_state == "high"
-        self.__has_close_sensor = config.pin_closed != None
+        self.__has_close_sensor = config.pin_closed is not None
         self.__step_time = (config.relay_time / 100.0) * 5.0
         self.__direction = -1
 
@@ -228,7 +228,7 @@ class Roller:
         )
 
     def __move(self, steps, closing=False, full_close=False):
-        """toggle a state to GRIO"""
+        """Move the roller at the given position."""
 
         pin = self.__io_down if closing else self.__io_up
         pin_off = (

@@ -1,6 +1,8 @@
 from typing import Callable
 from unittest.mock import Mock
 
+import mocked_modules  # noqa: F401
+
 from custom_components.gpio_integration.gpio import (
     BounceType,
     EdgesType,

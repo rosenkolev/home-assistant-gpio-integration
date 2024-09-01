@@ -3,11 +3,11 @@ from unittest.mock import Mock, patch
 import mocked_models as mocked
 
 from custom_components.gpio_integration.config_schema import (
-    LightConfig,
+    CONF_DEFAULT_STATE,
+    CONF_FREQUENCY,
     CONF_NAME,
     CONF_PORT,
-    CONF_FREQUENCY,
-    CONF_DEFAULT_STATE,
+    LightConfig,
 )
 
 
@@ -31,7 +31,7 @@ def test__GpioLight_should_init_default_light():
     with patch.object(base, "create_pin", Mock()) as create_pin:
         gpio = base.GpioLight(__create_config(port=pin, frequency=0))
 
-        assert gpio.is_on == False
+        assert gpio.is_on is False
         assert gpio.brightness == 0
         assert base.ColorMode.ONOFF in gpio._attr_supported_color_modes
         assert gpio._attr_color_mode == base.ColorMode.ONOFF
@@ -47,7 +47,7 @@ def test__GpioLight_LED_should_init_default():
     with patch.object(base, "create_pin", Mock()) as create_pin:
         gpio = base.GpioLight(__create_config(port=pin, frequency=200))
 
-        assert gpio.is_on == False
+        assert gpio.is_on is False
         assert gpio.brightness == 0
         assert base.ColorMode.BRIGHTNESS in gpio._attr_supported_color_modes
         assert gpio._attr_color_mode == base.ColorMode.BRIGHTNESS
@@ -61,7 +61,7 @@ def test__GpioLight_LED_should_init_default_state():
 
     gpio = GpioLight(__create_config(default_state=True))
 
-    assert gpio.is_on == True
+    assert gpio.is_on is True
     assert gpio.brightness == 255
 
 
@@ -76,12 +76,12 @@ def test__GpioLight_LED_should_turn_on_off():
         gpio.turn_on()
         assert proxy.pin.data["write_pwm"] == 1
         assert gpio.brightness == 255
-        assert gpio.is_on == True
+        assert gpio.is_on is True
 
         gpio.turn_off()
         assert proxy.pin.data["write_pwm"] == 0
         assert gpio.brightness == 0
-        assert gpio.is_on == False
+        assert gpio.is_on is False
 
 
 @patch("homeassistant.components.light.LightEntity", mocked.MockedBaseEntity)
@@ -90,10 +90,10 @@ def test__GpioLight_LED_on_off_should_write_ha():
 
     gpio = base.GpioLight(__create_config())
 
-    gpio.ha_state_write == False
+    gpio.ha_state_write = False
     gpio.turn_on()
-    assert gpio.ha_state_update_scheduled == True
+    assert gpio.ha_state_update_scheduled is True
 
-    gpio.ha_state_write == False
+    gpio.ha_state_write = False
     gpio.turn_off()
-    assert gpio.ha_state_update_scheduled == True
+    assert gpio.ha_state_update_scheduled is True

@@ -1,4 +1,5 @@
 from unittest.mock import Mock, patch
+
 import mocked_models as mocked
 
 
@@ -50,7 +51,7 @@ def test__pigpio_connect():
     with patch("pigpio.pi", return_value=proxy):
         import custom_components.gpio_integration.gpio.pigpio as base
 
-        gpio = base.GpioPin(pin)
+        base.GpioPin(pin)
 
         assert proxy.pins[pin]["mode"] == base.pigpio.INPUT
         assert proxy.pins[pin]["pull"] == base.pigpio.PUD_OFF
@@ -89,7 +90,7 @@ def test__pigpio_edge_detection():
     with patch("pigpio.pi", return_value=proxy):
         import custom_components.gpio_integration.gpio.pigpio as base
 
-        gpio = base.GpioPin(pin, edge="rising", when_changed=callback)
+        base.GpioPin(pin, edge="rising", when_changed=callback)
 
         assert proxy.pins[pin]["edge"] == base.pigpio.RISING_EDGE
 

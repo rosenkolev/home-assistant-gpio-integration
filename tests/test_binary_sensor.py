@@ -1,18 +1,17 @@
 from unittest.mock import patch
 
-import mocked_modules
 import mocked_models as mocked
 
 from custom_components.gpio_integration.config_schema import (
-    SensorConfig,
+    CONF_BOUNCE_TIME,
+    CONF_DEFAULT_STATE,
+    CONF_EDGE_EVENT_TIMEOUT,
+    CONF_INVERT_LOGIC,
+    CONF_MODE,
     CONF_NAME,
     CONF_PORT,
-    CONF_MODE,
-    CONF_BOUNCE_TIME,
-    CONF_EDGE_EVENT_TIMEOUT,
     CONF_PULL_MODE,
-    CONF_DEFAULT_STATE,
-    CONF_INVERT_LOGIC,
+    SensorConfig,
 )
 
 
@@ -42,7 +41,7 @@ def test__GpioBinarySensor_should_init_default_state():
     with patch.object(base, "create_pin", create_pin.mock):
         gpio = base.GpioBinarySensor(__create_config(port=pin))
 
-        assert gpio.is_on == False
+        assert gpio.is_on is False
         assert create_pin.pin.pin == pin
 
 
@@ -58,11 +57,11 @@ def test__GpioBinarySensor_update_should_set_state_not_inverted():
 
         proxy.pin.data["read"] = True
         gpio.update()
-        assert gpio.is_on == True
+        assert gpio.is_on is True
 
         proxy.pin.data["read"] = False
         gpio.update()
-        assert gpio.is_on == False
+        assert gpio.is_on is False
 
 
 @patch(
@@ -77,11 +76,11 @@ def test__GpioBinarySensor_update_should_set_state_inverted():
 
         proxy.pin.data["read"] = True
         gpio.update()
-        assert gpio.is_on == False
+        assert gpio.is_on is False
 
         proxy.pin.data["read"] = False
         gpio.update()
-        assert gpio.is_on == True
+        assert gpio.is_on is True
 
 
 @patch(
@@ -95,4 +94,4 @@ def test__GpioBinarySensor_edge_events_should_trigger_update():
         gpio = base.GpioBinarySensor(__create_config())
 
         proxy.pin._call_when_changed(0)
-        assert gpio.ha_state_update_scheduled == True
+        assert gpio.ha_state_update_scheduled is True

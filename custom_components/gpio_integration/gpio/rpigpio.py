@@ -1,8 +1,12 @@
+# cspell:ignore setwarnings
+
 from typing import Callable
-from custom_components.gpio_integration.const import get_logger
-from . import Pin, PullType, EdgesType, BounceType, ModeType
 
 from RPi import GPIO
+
+from custom_components.gpio_integration.const import get_logger
+
+from . import BounceType, EdgesType, ModeType, Pin, PullType
 
 _LOGGER = get_logger()
 _INITIALIZED = False
@@ -45,7 +49,7 @@ class GpioPin(Pin):
         )
 
     def _connect(self):
-        if _INITIALIZED == False:
+        if _INITIALIZED is False:
             GPIO.setmode(GPIO.BCM)
             GPIO.setwarnings(False)
 

@@ -1,15 +1,14 @@
 from unittest.mock import Mock, patch
 
-import pytest
-import mocked_modules
 import mocked_models as mocked
+import pytest
 
 from custom_components.gpio_integration.config_schema import (
-    SwitchConfig,
-    CONF_NAME,
-    CONF_PORT,
     CONF_DEFAULT_STATE,
     CONF_INVERT_LOGIC,
+    CONF_NAME,
+    CONF_PORT,
+    SwitchConfig,
 )
 
 
@@ -31,7 +30,7 @@ def test__GpioSwitch_should_init_default_sate():
 
     gpio = GpioSwitch(__create_config())
 
-    assert gpio.is_on == False
+    assert gpio.is_on is False
 
 
 @patch("custom_components.gpio_integration.gpio.pin_factory.create_pin", Mock())
@@ -41,7 +40,7 @@ def test__GpioSwitch_should_init_default_state():
 
     gpio = GpioSwitch(__create_config(default_state=True))
 
-    assert gpio.is_on == True
+    assert gpio.is_on is True
 
 
 @patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
@@ -50,7 +49,7 @@ def test__GpioSwitch_should_init_default_state_io():
 
     pin = mocked.get_next_pin()
     with patch.object(base, "create_pin", Mock()) as create_pin:
-        gpio = base.GpioSwitch(__create_config(port=pin, default_state=True))
+        base.GpioSwitch(__create_config(port=pin, default_state=True))
         create_pin.assert_called_once_with(
             pin, mode="output", pull="up", default_value=True
         )
@@ -65,10 +64,10 @@ def test__GpioSwitch_should_set_pin():
         gpio = base.GpioSwitch(__create_config())
 
         gpio.set_state(True)
-        assert proxy.pin.data["write"] == True
+        assert proxy.pin.data["write"] is True
 
         gpio.set_state(False)
-        assert proxy.pin.data["write"] == False
+        assert proxy.pin.data["write"] is False
 
 
 @patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
@@ -80,10 +79,10 @@ def test__GpioSwitch_should_set_pin_invert():
         gpio = base.GpioSwitch(__create_config(invert_logic=True))
 
         gpio.set_state(True)
-        assert proxy.pin.data["write"] == False
+        assert not proxy.pin.data["write"]
 
         gpio.set_state(False)
-        assert proxy.pin.data["write"] == True
+        assert proxy.pin.data["write"]
 
 
 @pytest.mark.asyncio

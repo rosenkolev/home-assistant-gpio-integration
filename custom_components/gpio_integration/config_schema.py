@@ -1,11 +1,10 @@
 from typing import Literal
 
-import voluptuous as vol
-
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.selector import selector
-from homeassistant.const import CONF_NAME, CONF_MODE, CONF_PORT, CONF_UNIQUE_ID
+import voluptuous as vol
+from homeassistant.const import CONF_MODE, CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.selector import selector
 
 CONF_COVERS = "covers"
 CONF_RELAY_UP_PIN = "up_pin"
@@ -37,7 +36,7 @@ def v_pin(pin) -> bool:
 
 def v_name(name) -> bool:
     """Validate name."""
-    if name == None or name == "":
+    if name is None or name == "":
         raise ValueError("Name is required")
     return True
 
@@ -67,7 +66,7 @@ MAIN_SCHEMA = vol.Schema(
 
 
 def get_type(data: dict) -> str | None:
-    return CONF_TYPES.get(data["type"]) if data != None else None
+    return CONF_TYPES.get(data["type"]) if data is not None else None
 
 
 ## COVER UP/DOWN SCHEMA
@@ -133,12 +132,14 @@ COVER_UP_DOWN_SCHEMA = create_cover_up_down_schema(
 )
 
 
-validate_cover_up_down_data = (
-    lambda data: v_name(data[CONF_NAME])
-    and v_pin(data[CONF_RELAY_UP_PIN])
-    and v_pin(data[CONF_RELAY_DOWN_PIN])
-    and v_time(data[CONF_RELAY_TIME])
-)
+def validate_cover_up_down_data(data: dict) -> bool:
+    return (
+        v_name(data[CONF_NAME])
+        and v_pin(data[CONF_RELAY_UP_PIN])
+        and v_pin(data[CONF_RELAY_DOWN_PIN])
+        and v_time(data[CONF_RELAY_TIME])
+    )
+
 
 ## COVER TOGGLE SCHEMA
 
@@ -188,11 +189,14 @@ COVER_TOGGLE_SCHEMA = create_toggle_cover_schema(
     }
 )
 
-validate_toggle_cover_data = (
-    lambda data: v_name(data[CONF_NAME])
-    and v_pin(data[CONF_PORT])
-    and v_time(data[CONF_RELAY_TIME])
-)
+
+def validate_toggle_cover_data(data: dict):
+    return (
+        v_name(data[CONF_NAME])
+        and v_pin(data[CONF_PORT])
+        and v_time(data[CONF_RELAY_TIME])
+    )
+
 
 ## BINARY SENSOR SCHEMA
 
@@ -254,11 +258,14 @@ BINARY_SENSOR_SCHEMA = create_binary_sensor_schema(
     }
 )
 
-validate_binary_sensor_data = (
-    lambda data: v_name(data[CONF_NAME])
-    and v_pin(data[CONF_PORT])
-    and v_time(data[CONF_BOUNCE_TIME])
-)
+
+def validate_binary_sensor_data(data):
+    return (
+        v_name(data[CONF_NAME])
+        and v_pin(data[CONF_PORT])
+        and v_time(data[CONF_BOUNCE_TIME])
+    )
+
 
 ## SWITCH SCHEMA
 
@@ -297,7 +304,9 @@ SWITCH_SCHEMA = create_switch_schema(
     }
 )
 
-validate_switch_data = lambda data: v_name(data[CONF_NAME]) and v_pin(data[CONF_PORT])
+
+def validate_switch_data(data):
+    return v_name(data[CONF_NAME]) and v_pin(data[CONF_PORT])
 
 
 ## LIGHT SCHEMA
@@ -316,7 +325,7 @@ def create_light_schema(data: dict) -> vol.Schema:
                 CONF_FREQUENCY,
                 default=data[CONF_FREQUENCY],
                 description="The light pulse frequency (for LED)",
-            ): cv.positive_int,
+            ): cv.nullable(cv.positive_int),
             vol.Optional(
                 CONF_DEFAULT_STATE,
                 default=data[CONF_DEFAULT_STATE],
@@ -331,13 +340,15 @@ LIGHT_SCHEMA = create_light_schema(
     {
         CONF_NAME: None,
         CONF_PORT: None,
-        CONF_FREQUENCY: 100,
+        CONF_FREQUENCY: None,
         CONF_DEFAULT_STATE: False,
         CONF_UNIQUE_ID: "",
     }
 )
 
-validate_light_data = lambda data: v_name(data[CONF_NAME]) and v_pin(data[CONF_PORT])
+
+def validate_light_data(data):
+    return v_name(data[CONF_NAME]) and v_pin(data[CONF_PORT])
 
 
 ## CONFIG CLASSES

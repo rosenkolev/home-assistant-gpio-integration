@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 
-
 # Mock the Pin class
 class MockPin:
     def __init__(

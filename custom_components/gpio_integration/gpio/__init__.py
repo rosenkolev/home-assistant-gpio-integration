@@ -1,6 +1,6 @@
 from threading import RLock
 from types import MethodType
-from typing import Literal, Callable
+from typing import Callable, Literal
 from weakref import WeakMethod, ref
 
 PullType = Literal["floating", "up", "down"]
@@ -54,7 +54,7 @@ class Pin:
         default_value: float | bool | None = None,
         when_changed: Callable[[int], None] = None,
     ):
-        if pin == None:
+        if pin is None:
             raise ValueError("pin is none")
         if pin in ALL_PINS:
             raise RuntimeError(f"pin {pin} is already setup")

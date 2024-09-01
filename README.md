@@ -26,6 +26,15 @@ folder and all of its contents into it.
 * [x] Cover
 * [x] Number
 * [x] Switch
+* [x] Light
+
+## Dependencies
+
+The integration is for Home Assistant OS for `Raspberry Pi`.
+
+It uses `pigpio` package (should be in the HA OS already) and fallback to `rpigpio` package when 'pigpio' is not found. When using the extension outside HA OS you should ensure at least 1 of this python packages are installed.
+
+The integration is created in a way that can be extended for other hardware like 'Asus Tinker Board' or 'ODroid' but I don't have the hardware to implement it and anyone is welcome to do so (see Development section)
 
 ## Usage
 
@@ -47,9 +56,9 @@ To configure the integration use the UI
 * the `door closed` sensor is not required for `cover` and will be assumed to be closed initially, state will be tracked so if you use other remote to open/close may get out of sync
 * **Pin numbers are GPIO pin numbers and not the actual pin order of the board**
 
-#### Entities / Types
+### Entities / Types
 
-##### Binary Sensor
+#### Binary Sensor
 
 Binary sensor set state based on GPIO pin input (ON = 5v, OFF = 0v) or based on RISING/FALLING events in the case of `Motion` or `Vibration` sensors.
 
@@ -67,7 +76,7 @@ RISING/FALLING events are when pin input have a current goes from 0v to 5v (risi
 | Event timeout in seconds | The time, sensor data is considered up to date. For example when set to 3sec and motion is not detected from motion sensor for 3sec, the state is considered `Off` or `no motion`. Only applicable for `Motion`/`Vibration` mode |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
-##### Cover with up and down button (optional sensor)
+#### Cover with up and down button (optional sensor)
 
 The type defines the home assistant entities **Cover** (_features:_ `OPEN`, `CLOSE`, `STOP`, and `SET POSITION `) and **Number** (for setting a position).
 
@@ -109,7 +118,7 @@ flowchart TB
 | Mode | Cover type [default `Blind`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
-##### Cover with toggle button (optional sensor)
+#### Cover with toggle button (optional sensor)
 
 The type defines the home assistant entities **Cover** (_features:_ `OPEN`, `CLOSE`).
 
@@ -146,7 +155,7 @@ flowchart TB
 | Mode | Cover type [default `Blind`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
-##### Switch
+#### Switch
 
 Creates a home assistant `Switch` entity, that sets a GPIO pin output.
 
@@ -156,12 +165,14 @@ Creates a home assistant `Switch` entity, that sets a GPIO pin output.
 ---
 title: Raspberry Pi 4 GPIO Example
 ---
-flowchart TB
+flowchart LR
   subgraph GPIO
     A[GPIO 13]
+    B["PIN (GRD)"]
   end
 
-  A --> B[Relay]
+  A --> C[Relay]
+  C ---- B
 ```
 
 ##### Options
@@ -173,3 +184,53 @@ flowchart TB
 | Invert logic | When checked, the pin output will be set to LOW (0v) when switch is `On` and HIGH (5v) when switch is `Off` [default `False`] |
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
+
+#### Light
+
+Creates a home assistant `Light` entity, that supports ordinary light and LED light output.
+
+##### Example
+
+```mermaid
+---
+title: GPIO Example
+---
+flowchart LR
+  subgraph GPIO
+    A[GPIO 18]
+    B["PIN (GRD)"]
+  end
+
+  A --> C[LED]
+  C ---- B
+```
+
+##### Options
+
+|  | |
+| - | - |
+| Name | The name of the entity |
+| GPIO pin | The GPIO pin number |
+| Frequency | The pulse-wide modulation PWM frequency used for LED lights, when set greater then 0 it's assumed it's a led light, when `None` or 0 it's assumed normal light bulb. [default `None`] |
+| Default state | The initial state of the switch [default `False`/`Off`] |
+| Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
+
+## Development
+
+The code is located at `custom_components/gpio_integration`
+
+```shell
+custom_components/gpio_integration
+  |- gpio/
+     |- __init__.py      #-> An abstract Pin class, for interface between the GPIO board and HA
+     |- pigpio.py        #-> `pigpio` implementation for Raspberry PI
+     |- rpigpio.py       #-> `rpigpio` implementation for Raspberry PI
+     |- pin_factory      #-> methods to auto-create the hardware interface
+  |- __init__.py         #-> home assistant initialization code
+  |- config_flow.py      #-> add/edit new entities, ConfigFlow, OptionsFlowHandler
+  |- config_schema.py    #-> the config schematics
+  |- hub.py              #-> classes shared between entities, like the Roller (Cover, Number)
+  |- switch.py, number.py, etc #-> Home assistant entities
+```
+
+To create a new hardware implementation create a new `Pin` child class and implement it for the hardware, then add it to `default_factories` at `pin_factory.py`.

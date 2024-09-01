@@ -1,5 +1,9 @@
+# cspell:ignore fromlist
+
 from typing import Callable, Type
+
 from custom_components.gpio_integration.const import get_logger
+
 from . import BounceType, EdgesType, ModeType, Pin, PullType
 
 _LOGGER = get_logger()

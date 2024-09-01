@@ -1,18 +1,17 @@
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
-import mocked_modules
 import mocked_models as mocked
 
 from custom_components.gpio_integration.config_schema import (
-    SensorConfig,
+    CONF_BOUNCE_TIME,
+    CONF_DEFAULT_STATE,
+    CONF_EDGE_EVENT_TIMEOUT,
+    CONF_INVERT_LOGIC,
+    CONF_MODE,
     CONF_NAME,
     CONF_PORT,
-    CONF_MODE,
-    CONF_BOUNCE_TIME,
-    CONF_EDGE_EVENT_TIMEOUT,
     CONF_PULL_MODE,
-    CONF_DEFAULT_STATE,
-    CONF_INVERT_LOGIC,
+    SensorConfig,
 )
 
 
@@ -40,8 +39,8 @@ def test__GpioMotionBinarySensor_should_init_default_sate():
     with patch.object(base, "create_pin", Mock()):
         gpio = base.GpioMotionBinarySensor(__create_config())
 
-        assert gpio.is_on == False
-        assert gpio.last_motion_event_timeout == False
+        assert gpio.is_on is False
+        assert gpio.last_motion_event_timeout is False
 
 
 @patch(
@@ -54,11 +53,11 @@ def test__GpioMotionBinarySensor_edge_events_should_update_state():
     with patch.object(base, "create_pin", proxy.mock):
         gpio = base.GpioMotionBinarySensor(__create_config())
 
-        assert gpio.is_on == False
+        assert gpio.is_on is False
 
         proxy.pin._call_when_changed(0)
-        assert gpio.is_on == True
-        assert gpio.ha_state_write == True
+        assert gpio.is_on is True
+        assert gpio.ha_state_write is True
 
 
 @patch("time.perf_counter")
@@ -75,18 +74,18 @@ def test__GpioMotionBinarySensor_should_update_not_update(counter: Mock):
 
         counter.return_value = 1
         gpio.update()
-        assert gpio.ha_state_write == False
-        assert gpio._state == False
+        assert gpio.ha_state_write is False
+        assert gpio._state is False
 
         counter.return_value = 20
         gpio.update()
-        assert gpio._state == False
-        assert gpio.ha_state_write == False
+        assert gpio._state is False
+        assert gpio.ha_state_write is False
 
         gpio.__event_time = 0
         gpio.update()
-        assert gpio._state == False
-        assert gpio.ha_state_write == False
+        assert gpio._state is False
+        assert gpio.ha_state_write is False
 
 
 @patch("time.perf_counter")
@@ -106,5 +105,5 @@ def test__GpioMotionBinarySensor_should_update_state_after_elapsed(counter: Mock
         counter.return_value = 6.01
 
         gpio.update()
-        assert gpio.ha_state_write == True
-        assert gpio._state == False
+        assert gpio.ha_state_write is True
+        assert gpio._state is False
