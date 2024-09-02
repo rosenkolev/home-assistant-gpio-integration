@@ -39,6 +39,10 @@ def test__GpioBinarySensor_should_init_default_state():
     pin = mocked.get_next_pin()
     create_pin = mocked.MockedCreatePin()
     with patch.object(base, "create_pin", create_pin.mock):
+        # with patch(
+        #     "custom_components.gpio_integration.gpio.pin_factory.create_pin",
+        #     create_pin.mock,
+        # ):
         gpio = base.GpioBinarySensor(__create_config(port=pin))
 
         assert gpio.is_on is False

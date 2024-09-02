@@ -1,16 +1,16 @@
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ColorMode,
     LightEntity,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .hub import Hub
-from .const import DOMAIN, get_logger
 from .config_schema import LightConfig
+from .const import DOMAIN, get_logger
 from .gpio.pin_factory import create_pin
+from .hub import Hub
 
 _LOGGER = get_logger()
 HIGH_BRIGHTNESS = 255

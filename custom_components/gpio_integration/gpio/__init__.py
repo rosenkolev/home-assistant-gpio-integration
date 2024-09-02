@@ -1,6 +1,6 @@
 from threading import RLock
 from types import MethodType
-from typing import Callable, Literal
+from typing import Callable, Literal, Type
 from weakref import WeakMethod, ref
 
 PullType = Literal["floating", "up", "down"]
@@ -16,7 +16,7 @@ class Pin:
     Abstract base class representing a pin attached to a controller.
 
     *must* override:
-    * :meth:`_connect`
+    * :meth:`_setup`
     * :meth:`_close`
     * :meth:`_read`
     * :meth:`_write`
@@ -53,11 +53,14 @@ class Pin:
         frequency: int | None = None,
         default_value: float | bool | None = None,
         when_changed: Callable[[int], None] = None,
+        factory=None,
     ):
         if pin is None:
             raise ValueError("pin is none")
         if pin in ALL_PINS:
             raise RuntimeError(f"pin {pin} is already setup")
+        if factory is None:
+            raise ValueError("factory is none")
 
         self._pin = pin
         self._frequency: int | None = None
@@ -70,7 +73,7 @@ class Pin:
         ALL_PINS[pin] = self
 
         # connect
-        self._connect()
+        self._setup()
 
         # Set default value if provided
         if default_value is not None and mode == "output":
@@ -254,7 +257,7 @@ class Pin:
 
     ### Abstract Members ###
 
-    def _connect(self):
+    def _setup(self):
         pass
 
     def _close(self):
@@ -364,7 +367,56 @@ class Pin:
             method(ticks)
 
 
+class PinFactory:
+    def __init__(self, **kwargs):
+        if not hasattr(self, "_pin_class"):
+            raise ValueError("PinClass is not defined")
+        if not hasattr(self, "_controller"):
+            raise ValueError("controller is not defined")
+
+    @property
+    def PinClass(self) -> Type[Pin]:
+        if self._pin_class is None:
+            raise ValueError("PinClass is none")
+        return self._pin_class
+
+    @PinClass.setter
+    def PinClass(self, value) -> None:
+        if value is None:
+            raise ValueError("PinClass is none")
+        if not issubclass(value, Pin):
+            raise ValueError("PinClass must be a subclass of Pin")
+
+        self._pin_class = value
+
+    @property
+    def controller(self):
+        return self._controller
+
+    @controller.setter
+    def controller(self, value):
+        self._controller = value
+
+    def cleanup(self):
+        pass
+
+
+DEFAULT_PIN_FACTORY: PinFactory | None = None
+
+
+def set_default_pin_factory(factory: PinFactory) -> None:
+    global DEFAULT_PIN_FACTORY
+    DEFAULT_PIN_FACTORY = factory
+
+
+def get_default_pin_factory() -> PinFactory:
+    return DEFAULT_PIN_FACTORY
+
+
 def close_all_pins():
     pins = ALL_PINS.values()
     for pin in pins:
         pin.close()
+
+    if DEFAULT_PIN_FACTORY is not None:
+        DEFAULT_PIN_FACTORY.cleanup()

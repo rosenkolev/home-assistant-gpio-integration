@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import mocked_modules  # noqa: F401, E402
+
 
 # Mock the Pin class
 class MockPin:
@@ -18,9 +20,9 @@ class MockPin:
 
 # Test the default pin factory
 def test__create_pin_default_factory():
-    with patch(
-        "custom_components.gpio_integration.gpio.pigpio.GpioPin", return_value=MockPin
-    ):
+    import custom_components.gpio_integration.gpio.pigpio as base
+
+    with patch.object(base, "GpioPin", MockPin):
         from custom_components.gpio_integration.gpio.pin_factory import create_pin
 
         pin = create_pin(

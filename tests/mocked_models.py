@@ -40,7 +40,7 @@ class MockedPin(Pin):
             "event_detect": False,
         }
         super().__init__(
-            pin, mode, pull, bounce, edge, frequency, default_value, when_changed
+            pin, mode, pull, bounce, edge, frequency, default_value, when_changed, True
         )
 
     def _connect(self):

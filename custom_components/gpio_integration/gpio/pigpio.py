@@ -1,7 +1,10 @@
+from typing import Type
+
 import pigpio
 
 from custom_components.gpio_integration.const import get_logger
-from . import Pin, PullType, EdgesType, BounceType, ModeType
+
+from . import BounceType, EdgesType, ModeType, Pin, PinFactory, PullType
 
 _LOGGER = get_logger()
 
@@ -23,43 +26,67 @@ GPIO_MODES = {
 }
 
 
+class GpioPinFactory(PinFactory):
+    def __init__(self) -> None:
+        self.PinClass = GpioPin
+        self.controller = pigpio.pi()
+
+        if self.controller is None:
+            raise IOError("failed to connect")
+
+        if not self.controller.connected:
+            raise IOError("failed to connect")
+
+        _LOGGER.debug("pigpio connected")
+        super().__init__()
+
+    def cleanup(self) -> None:
+        if self.controller is not None:
+            self.controller.stop()
+            self.controller = None
+
+
 class GpioPin(Pin):
     def __init__(
         self,
         pin=None,
-        pull: PullType = "floating",
         mode: ModeType = "input",
+        pull: PullType = "floating",
         bounce: BounceType = None,
         edge: EdgesType = "BOTH",
         frequency: int | None = None,
         default_value=None,
         when_changed=None,
+        factory: Type[GpioPinFactory] = None,
     ):
         self._callback = None
-        self._connection = None
+        self._connection = factory.controller
 
         # base class calls _connect
         super().__init__(
-            pin, mode, pull, bounce, edge, frequency, default_value, when_changed
+            pin,
+            mode,
+            pull,
+            bounce,
+            edge,
+            frequency,
+            default_value,
+            when_changed,
+            factory,
         )
 
-    def _connect(self):
-        if self._connection is not None:
-            self._close()
-
-        self._connection = pigpio.pi()
-        if self._connection is None:
-            raise IOError("failed to connect")
+    def _setup(self):
+        _LOGGER.debug(f"pin {self.pin} mode '{self._connection.get_mode(self.pin)}'")
 
         self._set_mode(self._mode)
         self._set_pull(self._pull)
         self._set_bounce(self._bounce)
-        _LOGGER.debug(f"pin {self.pin} connected")
+        _LOGGER.debug(f"pin {self.pin} set up")
 
     def _close(self):
-        if self._connection is not None:
-            self._connection.stop()
-            self._connection = None
+        self.when_changed = None
+        self.frequency = None
+        _LOGGER.debug(f"pin {self.pin} closed")
 
     def _get_pwm_range(self) -> float:
         return self._connection.get_PWM_range(self.pin)
@@ -74,7 +101,8 @@ class GpioPin(Pin):
                 self._connection.set_PWM_dutycycle(self.pin, value)
                 _LOGGER.debug(f"pin {self.pin} PWM write '{value}'")
         except pigpio.error:
-            raise RuntimeError(f'invalid state "{value}" for pin {self.pin}')
+            _LOGGER.error(f"pin {self.pin} invalid PWM value '{value}'")
+            raise RuntimeError("invalid state")
 
     def _read_pwm(self) -> float:
         return self._get_pwm_cycle() / self._get_pwm_range()
@@ -88,19 +116,21 @@ class GpioPin(Pin):
 
     def _set_mode(self, value: ModeType) -> None:
         if value not in GPIO_MODES:
-            raise ValueError(f"mode {value} not supported by pigpio")
+            _LOGGER.error(f"mode {value} not supported by pigpio")
+            raise ValueError("mode not supported")
 
-        self._connection.set_mode(
-            self.pin, pigpio.INPUT if value == "input" else pigpio.OUTPUT
-        )
-
-        _LOGGER.debug(f"pin {self.pin} mode set '{value}'")
+        _LOGGER.debug(f"pin {self.pin} set mode '{value}'")
+        try:
+            self._connection.set_mode(int(self.pin), GPIO_MODES[value])
+        except pigpio.error as e:
+            raise ValueError(e)
 
         super()._set_mode(value)
 
     def _set_pull(self, value: PullType) -> None:
         if value not in GPIO_PULL_UPS:
-            raise ValueError(f"Pull {value} not supported by pigpio")
+            _LOGGER.error(f"Pull {value} not supported by pigpio")
+            raise ValueError("pull not supported")
 
         self._connection.set_pull_up_down(self.pin, GPIO_PULL_UPS[value])
 
@@ -110,7 +140,8 @@ class GpioPin(Pin):
 
     def _set_bounce(self, value: float | None) -> None:
         if value is not None and value < 0 and value > 0.3:
-            raise ValueError(f"bounce {value} not supported by pigpio")
+            _LOGGER.error(f"bounce {value} not supported by pigpio")
+            raise ValueError("bounce not supported")
         elif value is None:
             value = 0
 
@@ -143,7 +174,8 @@ class GpioPin(Pin):
 
             _LOGGER.debug(f"pin {self.pin} edge detection enabled")
         else:
-            raise ValueError(f"Edges {value} value not supported by pigpio")
+            _LOGGER.error(f"edges {value} value not supported by pigpio")
+            raise ValueError("edges not supported")
 
     def _disable_event_detect(self):
         if self._callback is not None:

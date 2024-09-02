@@ -4,34 +4,48 @@ from typing import Callable, Type
 
 from custom_components.gpio_integration.const import get_logger
 
-from . import BounceType, EdgesType, ModeType, Pin, PullType
+from . import (
+    BounceType,
+    EdgesType,
+    ModeType,
+    Pin,
+    PinFactory,
+    PullType,
+    get_default_pin_factory,
+    set_default_pin_factory,
+)
 
 _LOGGER = get_logger()
 
 default_factories = {
-    "pigpio": ".pigpio:GpioPin",
-    "rpigpio": ".rpigpio:GpioPin",
+    "pigpio": ".pigpio:GpioPinFactory",
+    "rpigpio": ".rpigpio:GpioPinFactory",
 }
 
 
-def _get_pin_factory_class(name: str) -> Type[Pin]:
+def _get_pin_factory_class_by_name(name: str) -> Type[PinFactory]:
     mod_name, cls_name = default_factories[name].split(":", 1)
     path = f"{__package__}{mod_name}"
-    _LOGGER.warning(f"Loading {mod_name} {cls_name}: {path}")
-    module = __import__(path, fromlist=(cls_name))
-    pin_cls = getattr(module, cls_name)()
+    module = __import__(path, fromlist=(cls_name,))
+    pin_cls = getattr(module, cls_name)
     return pin_cls
 
 
-def _get_default_pin_factory_class() -> Type[Pin]:
+def _find_pin_factory() -> PinFactory:
     for name, _ in default_factories.items():
         try:
-            return _get_pin_factory_class(name)
+            pin_factory_class = _get_pin_factory_class_by_name(name)
+            return pin_factory_class()
         except Exception as e:
             _LOGGER.warn(f"Falling back from {name}: {e!s}")
 
+    raise RuntimeError("No default pin factory available")
 
-DEFAULT_PIN_CLASS: Type[Pin] | None = None
+
+def setup_default_pin_factory(name: str, **kwargs) -> None:
+    pin_factory_class = _get_pin_factory_class_by_name(name)
+    pin_factory = pin_factory_class(**kwargs)
+    set_default_pin_factory(pin_factory)
 
 
 def create_pin(
@@ -43,18 +57,23 @@ def create_pin(
     frequency: int | None = None,
     default_value: float | bool | None = None,
     when_changed: Callable[[int], None] = None,
-    interface: str | None = None,
 ) -> Pin:
-    global DEFAULT_PIN_CLASS
-    pin_cls: Type[Pin]
-    if interface is not None and interface in default_factories:
-        pin_cls = _get_pin_factory_class(interface)
-    else:
-        if DEFAULT_PIN_CLASS is None:
-            DEFAULT_PIN_CLASS = _get_default_pin_factory_class()
+    pin_factory = get_default_pin_factory()
+    if pin_factory is None:
+        pin_factory = _find_pin_factory()
+        set_default_pin_factory(pin_factory)
 
-        pin_cls = DEFAULT_PIN_CLASS
+    if pin_factory is None:
+        raise RuntimeError("No pin factory available")
 
-    return pin_cls(
-        pin, mode, pull, bounce, edges, frequency, default_value, when_changed
+    return pin_factory.PinClass(
+        pin,
+        mode,
+        pull,
+        bounce,
+        edges,
+        frequency,
+        default_value,
+        when_changed,
+        pin_factory,
     )

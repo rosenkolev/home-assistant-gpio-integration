@@ -6,10 +6,9 @@ from RPi import GPIO
 
 from custom_components.gpio_integration.const import get_logger
 
-from . import BounceType, EdgesType, ModeType, Pin, PullType
+from . import BounceType, EdgesType, ModeType, Pin, PinFactory, PullType
 
 _LOGGER = get_logger()
-_INITIALIZED = False
 
 GPIO_PULL_UPS = {
     "up": GPIO.PUD_UP,
@@ -29,6 +28,19 @@ GPIO_MODES = {
 }
 
 
+class GpioPinFactory(PinFactory):
+    def __init__(self) -> None:
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+
+        self.PinClass = GpioPin
+        self.controller = True
+        super().__init__()
+
+    def cleanup(self) -> None:
+        GPIO.cleanup()
+
+
 class GpioPin(Pin):
     def __init__(
         self,
@@ -40,20 +52,31 @@ class GpioPin(Pin):
         frequency: int | None = None,
         default_value: float | bool | None = None,
         when_changed: Callable[[int], None] = None,
+        factory: GpioPinFactory = None,
     ):
         self._frequency: int | None = None
         self._pwm = None
 
         super().__init__(
-            pin, mode, pull, bounce, edge, frequency, default_value, when_changed
+            pin,
+            mode,
+            pull,
+            bounce,
+            edge,
+            frequency,
+            default_value,
+            when_changed,
+            factory,
         )
 
-    def _connect(self):
-        if _INITIALIZED is False:
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setwarnings(False)
+    def _setup(self):
+        if self._mode not in GPIO_MODES:
+            raise ValueError(f"Mode {self._mode} not supported by RPi.GPIO")
+        if self._pull not in GPIO_PULL_UPS:
+            raise ValueError(f"Pull {self._pull} not supported by RPi.GPIO")
 
-        self._setup_pin()
+        GPIO.setup(self.pin, GPIO_MODES[self._mode], GPIO_PULL_UPS[self._pull])
+        _LOGGER.debug(f"pin {self.pin} mode '{self._mode}' pull '{self._pull}'")
 
     def _close(self):
         GPIO.cleanup(self.pin)
@@ -73,22 +96,13 @@ class GpioPin(Pin):
     def _read(self) -> bool:
         return GPIO.input(self.pin) == GPIO.HIGH
 
-    def _setup_pin(self) -> None:
-        if self._mode not in GPIO_MODES:
-            raise ValueError(f"Mode {self._mode} not supported by RPi.GPIO")
-        if self._pull not in GPIO_PULL_UPS:
-            raise ValueError(f"Pull {self._pull} not supported by RPi.GPIO")
-
-        GPIO.setup(self.pin, GPIO_MODES[self._mode], GPIO_PULL_UPS[self._pull])
-        _LOGGER.debug(f"pin {self.pin} mode '{self._mode}' pull '{self._pull}'")
-
     def _set_mode(self, value: ModeType) -> None:
         super()._set_mode(value)
-        self._setup_pin()
+        self._setup()
 
     def _set_pull(self, value: PullType) -> None:
         super()._set_pull(value)
-        self._setup_pin()
+        self._setup()
 
     def _set_bounce(self, value: float | None) -> None:
         self._bounce = -666 if value is None else value

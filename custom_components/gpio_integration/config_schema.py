@@ -2,9 +2,17 @@ from typing import Literal
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-from homeassistant.const import CONF_MODE, CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_MODE,
+    CONF_NAME,
+    CONF_PORT,
+    CONF_UNIQUE_ID,
+)
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import selector
+
+from .const import DOMAIN
 
 CONF_COVERS = "covers"
 CONF_RELAY_UP_PIN = "up_pin"
@@ -19,6 +27,21 @@ CONF_BOUNCE_TIME = "bounce_time_in_ms"
 CONF_DEFAULT_STATE = "default_state"
 CONF_EDGE_EVENT_TIMEOUT = "edge_event_timeout"
 CONF_FREQUENCY = "frequency"
+CONF_INTERFACE = "interface"
+
+## configuration.yaml schema
+
+DOMAIN_DEFAULT_CONFIG = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Optional(CONF_INTERFACE): cv.string,
+                vol.Optional(CONF_HOST): cv.string,
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 
 ## VALIDATORS
 
@@ -325,7 +348,7 @@ def create_light_schema(data: dict) -> vol.Schema:
                 CONF_FREQUENCY,
                 default=data[CONF_FREQUENCY],
                 description="The light pulse frequency (for LED)",
-            ): cv.nullable(cv.positive_int),
+            ): cv.positive_int,
             vol.Optional(
                 CONF_DEFAULT_STATE,
                 default=data[CONF_DEFAULT_STATE],
@@ -340,7 +363,7 @@ LIGHT_SCHEMA = create_light_schema(
     {
         CONF_NAME: None,
         CONF_PORT: None,
-        CONF_FREQUENCY: None,
+        CONF_FREQUENCY: 0,
         CONF_DEFAULT_STATE: False,
         CONF_UNIQUE_ID: "",
     }
