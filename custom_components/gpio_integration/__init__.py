@@ -3,17 +3,13 @@
 from multiprocessing import get_logger
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    EVENT_HOMEASSISTANT_STOP,
-    Platform,
-)
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
-from .config_schema import CONF_INTERFACE, DOMAIN_DEFAULT_CONFIG
+from .config_schema import DOMAIN_DEFAULT_CONFIG
 from .const import DOMAIN
-from .gpio import close_all_pins
-from .gpio.pin_factory import setup_default_pin_factory
+from .gpio import close_all_pins, set_config_options
 from .hub import Hub
 
 PLATFORMS = [
@@ -27,21 +23,15 @@ PLATFORMS = [
 # Schema to validate the configuration for this integration
 CONFIG_SCHEMA = DOMAIN_DEFAULT_CONFIG
 
-_LOGGER = get_logger()
-
-
 def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Raspberry PI GPIO component."""
 
-    if DOMAIN in config and CONF_INTERFACE in config[DOMAIN]:
-        interface = config[DOMAIN][CONF_INTERFACE]
-        if interface is not None and interface != "":
-            _LOGGER.debug(f"Setting up default pin factory to '{interface}'")
-            setup_default_pin_factory(interface)
+    if DOMAIN in config:
+        data = config[DOMAIN]
+        set_config_options(data)
 
     def cleanup_gpio(event):
         """Stuff to do before stopping."""
-        _LOGGER.debug("Cleaning up GPIO")
         close_all_pins()
 
     hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup_gpio)

@@ -368,34 +368,17 @@ class Pin:
 
 
 class PinFactory:
-    def __init__(self, **kwargs):
+    def __init__(self):
         if not hasattr(self, "_pin_class"):
             raise ValueError("PinClass is not defined")
-        if not hasattr(self, "_controller"):
-            raise ValueError("controller is not defined")
+        if not issubclass(self._pin_class, Pin):
+            raise ValueError("PinClass must be a subclass of Pin")
 
     @property
     def PinClass(self) -> Type[Pin]:
         if self._pin_class is None:
             raise ValueError("PinClass is none")
         return self._pin_class
-
-    @PinClass.setter
-    def PinClass(self, value) -> None:
-        if value is None:
-            raise ValueError("PinClass is none")
-        if not issubclass(value, Pin):
-            raise ValueError("PinClass must be a subclass of Pin")
-
-        self._pin_class = value
-
-    @property
-    def controller(self):
-        return self._controller
-
-    @controller.setter
-    def controller(self, value):
-        self._controller = value
 
     def cleanup(self):
         pass
@@ -411,6 +394,18 @@ def set_default_pin_factory(factory: PinFactory) -> None:
 
 def get_default_pin_factory() -> PinFactory:
     return DEFAULT_PIN_FACTORY
+
+
+PIN_FACTORY_OPTIONS = dict()
+
+
+def set_config_options(data: dict) -> None:
+    for key, value in data.items():
+        PIN_FACTORY_OPTIONS[key] = value
+
+
+def get_config_option(key: str):
+    return PIN_FACTORY_OPTIONS.get(key, None)
 
 
 def close_all_pins():

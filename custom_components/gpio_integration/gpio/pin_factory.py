@@ -2,6 +2,7 @@
 
 from typing import Callable, Type
 
+from custom_components.gpio_integration.config_schema import CONF_INTERFACE
 from custom_components.gpio_integration.const import get_logger
 
 from . import (
@@ -13,6 +14,7 @@ from . import (
     PullType,
     get_default_pin_factory,
     set_default_pin_factory,
+    get_config_option
 )
 
 _LOGGER = get_logger()
@@ -41,12 +43,18 @@ def _find_pin_factory() -> PinFactory:
 
     raise RuntimeError("No default pin factory available")
 
+def get_pin_factory() -> None:
+    name = get_config_option(CONF_INTERFACE)
+    if name is None or name == "":
+        _LOGGER.debug("No pin factory specified - automatically detecting")
+        pin_factory = _find_pin_factory()
+    else:
+        _LOGGER.debug(f"Using specified pin factory {name}")
+        pin_factory_class = _get_pin_factory_class_by_name(name)
+        pin_factory = pin_factory_class()
 
-def setup_default_pin_factory(name: str, **kwargs) -> None:
-    pin_factory_class = _get_pin_factory_class_by_name(name)
-    pin_factory = pin_factory_class(**kwargs)
     set_default_pin_factory(pin_factory)
-
+    return pin_factory
 
 def create_pin(
     pin: int | str,
@@ -60,7 +68,7 @@ def create_pin(
 ) -> Pin:
     pin_factory = get_default_pin_factory()
     if pin_factory is None:
-        pin_factory = _find_pin_factory()
+        pin_factory = get_pin_factory()
         set_default_pin_factory(pin_factory)
 
     if pin_factory is None:

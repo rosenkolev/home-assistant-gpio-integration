@@ -33,8 +33,7 @@ class GpioPinFactory(PinFactory):
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
 
-        self.PinClass = GpioPin
-        self.controller = True
+        self._pin_class = GpioPin
         super().__init__()
 
     def cleanup(self) -> None:

@@ -54,12 +54,12 @@ class GpioSwitch(SwitchEntity):
         self.__io.state = value
         self.__state = state
 
-    async def async_turn_on(self, **kwargs) -> None:
+    def turn_on(self, **kwargs) -> None:
         """Turn the device on."""
         self.set_state(True)
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **kwargs) -> None:
+    def turn_off(self, **kwargs) -> None:
         """Turn the device off."""
         self.set_state(False)
         self.async_write_ha_state()

@@ -116,13 +116,15 @@ class Roller:
 
         self.__cancel = threading.Event()
 
-        _LOGGER.debug(
-            "down pin %s set %s up pin %s set %s",
+        _LOGGER.debug("roller %s; down %s (%s); up %s (%s); closed %s",
+            self.name,
             self.__pin_down,
-            self.__pin_down_default_to_high,
+            "high" if self.__pin_down_default_to_high else "low",
             self.__pin_up,
-            self.__pin_up_default_to_high,
+            "high" if self.__pin_up_default_to_high else "low",
+            self.__pin_closed,
         )
+        
         self.__io_down = create_pin(
             self.__pin_down,
             mode="output",

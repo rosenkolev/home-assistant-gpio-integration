@@ -9,6 +9,10 @@ class MockedPi:
         self._callback = None
         self._callback_id = 0
 
+    @property
+    def connected(self):
+        return True
+
     def _pin(self, pin):
         return self.pins.setdefault(pin, dict())
 
@@ -51,7 +55,7 @@ def test__pigpio_connect():
     with patch("pigpio.pi", return_value=proxy):
         import custom_components.gpio_integration.gpio.pigpio as base
 
-        base.GpioPin(pin)
+        base.GpioPin(pin, factory=base.GpioPinFactory())
 
         assert proxy.pins[pin]["mode"] == base.pigpio.INPUT
         assert proxy.pins[pin]["pull"] == base.pigpio.PUD_OFF
@@ -64,7 +68,9 @@ def test__pigpio_set_default_value():
     with patch("pigpio.pi", return_value=proxy):
         import custom_components.gpio_integration.gpio.pigpio as base
 
-        base.GpioPin(pin, mode="output", default_value=True)
+        base.GpioPin(
+            pin, mode="output", default_value=True, factory=base.GpioPinFactory()
+        )
 
         assert proxy.pins[pin]["state"] == 1
 
@@ -75,7 +81,7 @@ def test__pigpio_set_frequency():
     with patch("pigpio.pi", return_value=proxy):
         import custom_components.gpio_integration.gpio.pigpio as base
 
-        base.GpioPin(pin, mode="output", frequency=100)
+        base.GpioPin(pin, mode="output", frequency=100, factory=base.GpioPinFactory())
 
         assert proxy.pins[pin]["state"] == 0
         assert proxy.pins[pin]["frequency"] == 100
@@ -90,7 +96,9 @@ def test__pigpio_edge_detection():
     with patch("pigpio.pi", return_value=proxy):
         import custom_components.gpio_integration.gpio.pigpio as base
 
-        base.GpioPin(pin, edge="rising", when_changed=callback)
+        base.GpioPin(
+            pin, edge="rising", when_changed=callback, factory=base.GpioPinFactory()
+        )
 
         assert proxy.pins[pin]["edge"] == base.pigpio.RISING_EDGE
 

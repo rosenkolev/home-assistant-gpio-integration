@@ -12,6 +12,16 @@ The `gpio_integration` integration supports the following platforms: Binary Sens
 
 **Note:** The `port` refers to the GPIO number, not the pin number. See the [Wikipedia article about the Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi#General_purpose_input-output_(GPIO)_connector) for more details about the GPIO layout.
 
+**Note:** The integration is for `Raspberry Pi`.
+
+## Supported Entities
+
+* [x] Binary Sensor
+* [x] Cover
+* [x] Number
+* [x] Switch
+* [x] Light
+
 ## Installation
 
 ### HACS
@@ -26,21 +36,38 @@ folder. If you are running Hass.io, use SAMBA to copy the folder over. You
 may need to create the `custom_components` folder and then copy the `gpio_integration` 
 folder and all of its contents into it.
 
-## Supported Entities
+## Interface
 
-* [x] Binary Sensor
-* [x] Cover
-* [x] Number
-* [x] Switch
-* [x] Light
+It uses `pigpio` package as default interface to access the GPIOs (should be in the HA OS already) and fallback to other options when `pigpio` is not found. You should ensure at least 1 of the packages are installed.
 
-## Dependencies
-
-The integration is for Home Assistant OS for `Raspberry Pi`.
-
-It uses `pigpio` package (should be in the HA OS already) and fallback to `rpigpio` package when 'pigpio' is not found. When using the extension outside HA OS you should ensure at least 1 of this python packages are installed.
+* pigpio
+* rpigpio (fallback)
 
 The integration is created in a way that can be extended for other hardware like 'Asus Tinker Board' or 'ODroid' but I don't have the hardware to implement it and anyone is welcome to do so (see Development section)
+
+### pigpiod
+
+`pigpio` connects to [`pigpio-daemon`](http://abyz.me.uk/rpi/pigpio/pigpiod.html), which **must be running**.
+
+* On `Home Assistant` this daemon can be installed as an add-on [Poeschl/Hassio-Addons](https://github.com/Poeschl/Hassio-Addons/tree/master/pigpio).
+* On `Raspbian` 2016-05-10 or newer the pigpio library is already included.
+* On other operating systems it needs to be installed first ([see installation instructions](https://abyz.me.uk/rpi/pigpio/download.html)).
+
+### Configure Interface (optional)
+
+You can force to use a specific underlying library by modifying the `configuration.yaml`.
+By default `pigpio` will be use with `localhost` as host (`gpio = pigpio.pi()`).
+
+```yaml
+gpio_integration:
+  interface: pigpio
+  host: remote.pc
+```
+
+| | |
+| - | - |
+| interface | `pigpio` or `rpigpio`
+| host | Host (only for pigpio) |
 
 ## Usage
 

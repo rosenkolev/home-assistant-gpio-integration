@@ -1,12 +1,23 @@
 from unittest.mock import patch
 
-import mocked_modules  # noqa: F401, E402
+import mocked_models as mocked
+
+from custom_components.gpio_integration.gpio import PinFactory
 
 
 # Mock the Pin class
 class MockPin:
     def __init__(
-        self, pin, mode, pull, bounce, edges, frequency, default_value, when_changed
+        self,
+        pin,
+        mode,
+        pull,
+        bounce,
+        edges,
+        frequency,
+        default_value,
+        when_changed,
+        factory,
     ):
         self.pin = pin
         self.mode = mode
@@ -16,29 +27,20 @@ class MockPin:
         self.frequency = frequency
         self.default_value = default_value
         self.when_changed = when_changed
+        self.factory = factory
 
 
-# Test the default pin factory
-def test__create_pin_default_factory():
-    import custom_components.gpio_integration.gpio.pigpio as base
+class MockedPinFactory(PinFactory):
+    def __init__(self) -> None:
+        self._pin_class = MockPin
+        super().__init__()
 
-    with patch.object(base, "GpioPin", MockPin):
-        from custom_components.gpio_integration.gpio.pin_factory import create_pin
 
-        pin = create_pin(
-            1,
-            mode="output",
-            pull="up",
-            bounce=0.1,
-            edges="rising",
-            frequency=50,
-            default_value=True,
-        )
-        assert isinstance(pin, MockPin)
-        assert pin.pin == 1
-        assert pin.mode == "output"
-        assert pin.pull == "up"
-        assert pin.bounce == 0.1
-        assert pin.edges == "rising"
-        assert pin.frequency == 50
-        assert pin.default_value is True
+def test__find_default_pin_factory_is_pigpio():
+    from custom_components.gpio_integration.gpio.pin_factory import get_pin_factory
+    from custom_components.gpio_integration.gpio.pigpio import GpioPinFactory
+
+    factory = get_pin_factory()
+
+    assert factory is not None
+    assert isinstance(factory, GpioPinFactory)

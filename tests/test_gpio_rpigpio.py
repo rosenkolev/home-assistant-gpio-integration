@@ -75,7 +75,7 @@ def test__rpigpio_connect():
     with patch("RPi.GPIO", proxy):
         import custom_components.gpio_integration.gpio.rpigpio as base
 
-        base.GpioPin(pin)
+        base.GpioPin(pin, factory=base.GpioPinFactory())
 
         assert proxy.pins[pin]["mode"] == proxy.IN
         assert proxy.pins[pin]["pull"] == proxy.PUD_OFF
@@ -87,7 +87,9 @@ def test__rpigpio_set_default_value():
     with patch("RPi.GPIO", proxy):
         import custom_components.gpio_integration.gpio.rpigpio as base
 
-        base.GpioPin(pin, mode="output", default_value=True)
+        base.GpioPin(
+            pin, mode="output", default_value=True, factory=base.GpioPinFactory()
+        )
 
         assert proxy.pins[pin]["state"] == "HIGH"
 
@@ -98,7 +100,7 @@ def test__rpigpio_set_frequency():
     with patch("RPi.GPIO", proxy):
         import custom_components.gpio_integration.gpio.rpigpio as base
 
-        base.GpioPin(pin, mode="output", frequency=100)
+        base.GpioPin(pin, mode="output", frequency=100, factory=base.GpioPinFactory())
 
         proxy.pins[pin]["pwm"].start.assert_called_once_with(0)
         assert proxy.pins[pin]["frequency"] == 100
@@ -111,7 +113,9 @@ def test__rpigpio_edge_detection():
     with patch("RPi.GPIO", proxy):
         import custom_components.gpio_integration.gpio.rpigpio as base
 
-        base.GpioPin(pin, edge="rising", when_changed=callback)
+        base.GpioPin(
+            pin, edge="rising", when_changed=callback, factory=base.GpioPinFactory()
+        )
 
         proxy.trigger_event(pin, 1)
 

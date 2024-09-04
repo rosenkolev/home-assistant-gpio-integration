@@ -85,17 +85,16 @@ def test__GpioSwitch_should_set_pin_invert():
         assert proxy.pin.data["write"]
 
 
-@pytest.mark.asyncio
 @patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
-async def test__GpioSwitch_on_off_should_write_ha():
+def test__GpioSwitch_on_off_should_write_ha():
     import custom_components.gpio_integration.switch as base
 
     gpio = base.GpioSwitch(__create_config())
 
     gpio.ha_state_write = False
-    await gpio.async_turn_on()
+    gpio.turn_on()
     assert gpio.ha_state_write
 
     gpio.ha_state_write = False
-    await gpio.async_turn_off()
+    gpio.turn_off()
     assert gpio.ha_state_write

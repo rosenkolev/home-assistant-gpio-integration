@@ -4,7 +4,15 @@ import pigpio
 
 from custom_components.gpio_integration.const import get_logger
 
-from . import BounceType, EdgesType, ModeType, Pin, PinFactory, PullType
+from . import (
+    BounceType,
+    EdgesType,
+    ModeType,
+    Pin,
+    PinFactory,
+    PullType,
+    get_config_option,
+)
 
 _LOGGER = get_logger()
 
@@ -28,17 +36,27 @@ GPIO_MODES = {
 
 class GpioPinFactory(PinFactory):
     def __init__(self) -> None:
-        self.PinClass = GpioPin
-        self.controller = pigpio.pi()
+        self._pin_class = GpioPin
+        self.gpio = None
+        super().__init__()
 
-        if self.controller is None:
-            raise IOError("failed to connect")
+    def connect(self) -> pigpio.pi:
+        if self.gpio is not None:
+            return self.gpio
 
-        if not self.controller.connected:
+        host = get_config_option("host")
+        if host is None:
+            self.gpio = pigpio.pi()
+        else:
+            _LOGGER.warning(f"pigpio.pi({host})")
+            self.gpio = pigpio.pi(host)
+
+        if self.gpio is None or not self.gpio.connected:
             raise IOError("failed to connect")
 
         _LOGGER.debug("pigpio connected")
-        super().__init__()
+
+        return self.gpio
 
     def cleanup(self) -> None:
         if self.controller is not None:
@@ -60,7 +78,7 @@ class GpioPin(Pin):
         factory: Type[GpioPinFactory] = None,
     ):
         self._callback = None
-        self._connection = factory.controller
+        self._connection = factory.connect()
 
         # base class calls _connect
         super().__init__(
@@ -76,12 +94,10 @@ class GpioPin(Pin):
         )
 
     def _setup(self):
-        _LOGGER.debug(f"pin {self.pin} mode '{self._connection.get_mode(self.pin)}'")
-
         self._set_mode(self._mode)
         self._set_pull(self._pull)
         self._set_bounce(self._bounce)
-        _LOGGER.debug(f"pin {self.pin} set up")
+        _LOGGER.debug(f"pin {self.pin} initialized")
 
     def _close(self):
         self.when_changed = None
