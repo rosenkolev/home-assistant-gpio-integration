@@ -80,7 +80,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         type = get_type(user_input)
         _LOGGER.debug("config user, type: {}".format(type))
         if type is None:
-            return self.async_show_form(step_id="user", data_schema=MAIN_SCHEMA)
+            return await self.async_show_form(step_id="user", data_schema=MAIN_SCHEMA)
         elif type == "cover_up_down":
             return await self.async_step_cover_up_down()
         elif type == "cover_toggle":
@@ -94,25 +94,25 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_cover_up_down(self, data_input=None):
         """Handle the initial step."""
-        return self.handle_config_data("cover_up_down", data_input)
+        return await self.handle_config_data("cover_up_down", data_input)
 
     async def async_step_binary_sensor(self, data_input=None):
         """Handle the initial step."""
-        return self.handle_config_data("binary_sensor", data_input)
+        return await self.handle_config_data("binary_sensor", data_input)
 
     async def async_step_switch(self, data_input=None):
         """Handle the initial step."""
-        return self.handle_config_data("switch", data_input)
+        return await self.handle_config_data("switch", data_input)
 
     async def async_step_cover_toggle(self, data_input=None):
         """Handle the initial step."""
-        return self.handle_config_data("cover_toggle", data_input)
+        return await self.handle_config_data("cover_toggle", data_input)
 
     async def async_step_light(self, data_input=None):
         """Handle the initial step."""
-        return self.handle_config_data("light", data_input)
+        return await self.handle_config_data("light", data_input)
 
-    def handle_config_data(self, id: str, data_input: dict | None):
+    async def handle_config_data(self, id: str, data_input: dict | None):
         schema = CONF_ENTITIES[id]["schema"]
         if data_input is None:
             return self.async_show_form(step_id=id, data_schema=schema)
@@ -120,8 +120,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = validate_config_data(id, data_input)
         if errors is None:
             data_input["type"] = id
-            self.async_set_unique_id(get_unique_id(data_input))
-            return self.async_create_entry(title=data_input[CONF_NAME], data=data_input)
+            await self.async_set_unique_id(get_unique_id(data_input))
+            return await self.async_create_entry(
+                title=data_input[CONF_NAME], data=data_input
+            )
 
         return self.async_show_form(step_id=id, data_schema=schema, errors=errors)
 

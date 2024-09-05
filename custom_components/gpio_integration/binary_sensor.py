@@ -64,7 +64,7 @@ class GpioBinarySensorBase(BinarySensorEntity):
             config.pin,
             mode="input",
             pull=config.pull_mode,
-            edges="BOTH",
+            edges="both",
             bounce=config.bounce_time_ms / 1000,
             default_value=config.default_state,
             when_changed=lambda _: self.edge_detection_callback(),
@@ -75,8 +75,8 @@ class GpioBinarySensorBase(BinarySensorEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """On entity remove release the GPIO resources."""
+        await self._io.async_close()
         await super().async_will_remove_from_hass()
-        self._io.close()
 
     @property
     def is_on(self) -> bool:
@@ -121,7 +121,7 @@ class GpioMotionBinarySensor(GpioBinarySensorBase):
         await super().async_added_to_hass()
         timer_cancel = async_track_time_interval(
             self.hass,
-            self.update,
+            lambda tick: self.update(),
             datetime.timedelta(seconds=self.__motion_timeout_sec),
             cancel_on_shutdown=True,
         )

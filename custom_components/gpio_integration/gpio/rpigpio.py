@@ -47,12 +47,13 @@ class GpioPin(Pin):
         mode: ModeType = "input",
         pull: PullType = "floating",
         bounce: BounceType = None,
-        edge: EdgesType = "BOTH",
+        edge: EdgesType = "both",
         frequency: int | None = None,
         default_value: float | bool | None = None,
         when_changed: Callable[[int], None] = None,
         factory: GpioPinFactory = None,
     ):
+        self.support_pwm = True
         self._frequency: int | None = None
         self._pwm = None
 

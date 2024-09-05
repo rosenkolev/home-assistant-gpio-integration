@@ -1,4 +1,4 @@
-<!-- cspell:ignore hassfest, Rosen, Kolev -->
+<!-- cspell:ignore hassfest, Rosen, Kolev, gpiod -->
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 [![](https://img.shields.io/github/release/rosenkolev/home-assistant-gpio-integration/all.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/releases)
 [![HACS Action](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hacs.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hacs.yml)
@@ -38,36 +38,15 @@ folder and all of its contents into it.
 
 ## Interface
 
-It uses `pigpio` package as default interface to access the GPIOs (should be in the HA OS already) and fallback to other options when `pigpio` is not found. You should ensure at least 1 of the packages are installed.
+It uses `pigpio` package as default interface to access the GPIOs and fallback to other options when `pigpio` is not found. You should ensure at least 1 of the packages are installed.
+
+See [Interface Advanced Configuration section](#interface-advanced-configuration).
 
 * pigpio
 * rpigpio (fallback)
+* gpiod (fallback)
 
-The integration is created in a way that can be extended for other hardware like 'Asus Tinker Board' or 'ODroid' but I don't have the hardware to implement it and anyone is welcome to do so (see Development section)
-
-### pigpiod
-
-`pigpio` connects to [`pigpio-daemon`](http://abyz.me.uk/rpi/pigpio/pigpiod.html), which **must be running**.
-
-* On `Home Assistant` this daemon can be installed as an add-on [Poeschl/Hassio-Addons](https://github.com/Poeschl/Hassio-Addons/tree/master/pigpio).
-* On `Raspbian` 2016-05-10 or newer the pigpio library is already included.
-* On other operating systems it needs to be installed first ([see installation instructions](https://abyz.me.uk/rpi/pigpio/download.html)).
-
-### Configure Interface (optional)
-
-You can force to use a specific underlying library by modifying the `configuration.yaml`.
-By default `pigpio` will be use with `localhost` as host (`gpio = pigpio.pi()`).
-
-```yaml
-gpio_integration:
-  interface: pigpio
-  host: remote.pc
-```
-
-| | |
-| - | - |
-| interface | `pigpio` or `rpigpio`
-| host | Host (only for pigpio) |
+The integration is created in a way that can be extended for other hardware like 'Asus Tinker Board' or 'ODroid' but I don't have the hardware to implement it and anyone is welcome to do so (see [Development section](#development))
 
 ## Usage
 
@@ -267,6 +246,38 @@ custom_components/gpio_integration
 ```
 
 To create a new hardware implementation create a new `Pin` child class and implement it for the hardware, then add it to `default_factories` at `pin_factory.py`.
+
+## Interface Advanced Configuration
+
+Interface known issues:
+
+* pigpio - supports all features (require `pigpiod` running)
+* rpigpio - `Home Assistant` OS uses [RPi.GPIO](https://pypi.org/project/RPi.GPIO/) python package that have [issue](https://github.com/raspberrypi/linux/issues/6037) preventing EDGE detection. When not using HA OS You must install alternative like [rpi-lgpio](https://pypi.org/project/rpi-lgpio/).
+* gpiod - don't support PWM (pulse-wide modulation).
+
+### pigpiod
+
+`pigpio` connects to [`pigpio-daemon`](http://abyz.me.uk/rpi/pigpio/pigpiod.html), which **must be running**.
+
+* On `Home Assistant` this daemon can be installed as an add-on [Poeschl/Hassio-Addons](https://github.com/Poeschl/Hassio-Addons/tree/master/pigpio).
+* On `Raspbian` 2016-05-10 or newer the pigpio library is already included.
+* On other operating systems it needs to be installed first ([see installation instructions](https://abyz.me.uk/rpi/pigpio/download.html)).
+
+### Configure
+
+You can force to use a specific underlying library by modifying the `configuration.yaml`.
+By default `pigpio` will be use with `localhost` as host (`gpio = pigpio.pi()`).
+
+```yaml
+gpio_integration:
+  interface: pigpio
+  host: remote.pc
+```
+
+| | |
+| - | - |
+| interface | `pigpio`, `rpigpio`, `gpiod` |
+| host | Host (only for pigpio) |
 
 ## Credits
 

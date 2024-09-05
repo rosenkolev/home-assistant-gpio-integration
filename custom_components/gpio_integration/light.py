@@ -36,18 +36,19 @@ class GpioLight(LightEntity):
         self._attr_unique_id = config.unique_id
         self._attr_should_poll = False
 
-        self._is_led = config.frequency is not None and config.frequency > 0
+        self._io = create_pin(
+            config.port,
+            mode="output",
+            frequency=config.frequency,
+        )
+
+        self._is_led = self._io.pwm
         mode = ColorMode.BRIGHTNESS if self._is_led else ColorMode.ONOFF
         self._attr_supported_color_modes = {mode}
         self._attr_color_mode = mode
 
         self._is_on = config.default_state
         self._brightness: int = HIGH_BRIGHTNESS if self._is_on else 0
-        self._io = create_pin(
-            config.port,
-            mode="output",
-            frequency=(config.frequency if self._is_led else None),
-        )
 
     @property
     def is_on(self):
@@ -58,6 +59,11 @@ class GpioLight(LightEntity):
     def brightness(self):
         """Return the brightness property."""
         return self._brightness
+
+    async def async_will_remove_from_hass(self) -> None:
+        """On entity remove release the GPIO resources."""
+        await self._io.async_close()
+        await super().async_will_remove_from_hass()
 
     def turn_on(self, **kwargs):
         """Turn on a led."""

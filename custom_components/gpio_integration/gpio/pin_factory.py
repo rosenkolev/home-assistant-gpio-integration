@@ -14,7 +14,7 @@ from . import (
     PullType,
     get_default_pin_factory,
     set_default_pin_factory,
-    get_config_option
+    get_config_option,
 )
 
 _LOGGER = get_logger()
@@ -22,6 +22,7 @@ _LOGGER = get_logger()
 default_factories = {
     "pigpio": ".pigpio:GpioPinFactory",
     "rpigpio": ".rpigpio:GpioPinFactory",
+    "gpiod": ".gpiod:GpioPinFactory",
 }
 
 
@@ -43,6 +44,7 @@ def _find_pin_factory() -> PinFactory:
 
     raise RuntimeError("No default pin factory available")
 
+
 def get_pin_factory() -> None:
     name = get_config_option(CONF_INTERFACE)
     if name is None or name == "":
@@ -56,12 +58,13 @@ def get_pin_factory() -> None:
     set_default_pin_factory(pin_factory)
     return pin_factory
 
+
 def create_pin(
     pin: int | str,
     mode: ModeType = "input",
     pull: PullType = "floating",
     bounce: BounceType = None,
-    edges: EdgesType = "BOTH",
+    edges: EdgesType = "both",
     frequency: int | None = None,
     default_value: float | bool | None = None,
     when_changed: Callable[[int], None] = None,

@@ -68,10 +68,10 @@ class BasicToggleRoller:
         """Return true if cover is closed."""
         return self.__state != self.__invert
 
-    def release(self):
-        self.__io.close()
+    async def async_release(self):
+        await self.__io.async_close()
         if self.__has_close_sensor:
-            self.__io_closed.close()
+            await self.__io_closed.async_close()
 
     def update(self):
         if self.__has_close_sensor:
@@ -116,7 +116,8 @@ class Roller:
 
         self.__cancel = threading.Event()
 
-        _LOGGER.debug("roller %s; down %s (%s); up %s (%s); closed %s",
+        _LOGGER.debug(
+            "roller %s; down %s (%s); up %s (%s); closed %s",
             self.name,
             self.__pin_down,
             "high" if self.__pin_down_default_to_high else "low",
@@ -124,7 +125,7 @@ class Roller:
             "high" if self.__pin_up_default_to_high else "low",
             self.__pin_closed,
         )
-        
+
         self.__io_down = create_pin(
             self.__pin_down,
             mode="output",
@@ -159,11 +160,11 @@ class Roller:
     def moving(self) -> int:
         return self.__moving
 
-    def release(self):
-        self.__io_down.close()
-        self.__io_up.close()
+    async def async_release(self):
+        await self.__io_down.async_close()
+        await self.__io_up.async_close()
         if self.__has_close_sensor:
-            self.__io_closed.close()
+            await self.__io_closed.async_close()
 
     def update_state(self):
         if self.__has_close_sensor:

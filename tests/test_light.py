@@ -28,14 +28,15 @@ def test__GpioLight_should_init_default_light():
     import custom_components.gpio_integration.light as base
 
     pin = mocked.get_next_pin()
-    with patch.object(base, "create_pin", Mock()) as create_pin:
+    create_pin = mocked.MockedCreatePin(False)
+    with patch.object(base, "create_pin", create_pin.mock):
         gpio = base.GpioLight(__create_config(port=pin, frequency=0))
 
         assert gpio.is_on is False
         assert gpio.brightness == 0
         assert base.ColorMode.ONOFF in gpio._attr_supported_color_modes
         assert gpio._attr_color_mode == base.ColorMode.ONOFF
-        create_pin.assert_called_once_with(pin, mode="output", frequency=None)
+        create_pin.mock.assert_called_once_with(pin, mode="output", frequency=0)
 
 
 @patch("custom_components.gpio_integration.gpio.pin_factory.create_pin", Mock())

@@ -49,7 +49,7 @@ class Pin:
         mode: ModeType = "input",
         pull: PullType = "floating",
         bounce: BounceType = None,
-        edge: EdgesType = "BOTH",
+        edge: EdgesType = "both",
         frequency: int | None = None,
         default_value: float | bool | None = None,
         when_changed: Callable[[int], None] = None,
@@ -61,6 +61,8 @@ class Pin:
             raise RuntimeError(f"pin {pin} is already setup")
         if factory is None:
             raise ValueError("factory is none")
+        if not hasattr(self, "support_pwm") or self.support_pwm is None:
+            self.support_pwm = False
 
         self._pin = pin
         self._frequency: int | None = None
@@ -74,6 +76,13 @@ class Pin:
 
         # connect
         self._setup()
+
+        # Set frequency if PWM is supported
+        frequency = (
+            None
+            if not self.support_pwm or frequency is None or frequency <= 0
+            else frequency
+        )
 
         # Set default value if provided
         if default_value is not None and mode == "output":
@@ -243,10 +252,14 @@ class Pin:
     def when_changed(self, value: Callable[[int], None] | None) -> None:
         self._set_when_changed(value)
 
-    def close(self):
+    async def async_close(self):
         """Close the connection to the pin"""
         if not self.closed:
-            self._close()
+            if hasattr(self, "_async_close"):
+                await self._async_close()
+            elif hasattr(self, "_close"):
+                self._close()
+
             self._clear_pin()
 
     def _clear_pin(self):
@@ -356,14 +369,13 @@ class Pin:
                     self._when_changed = WeakMethod(value)
                 else:
                     self._when_changed = ref(value)
+
                 if not enabled:
                     self._enable_event_detect()
 
     def _call_when_changed(self, ticks: int):
         method = self._when_changed()
-        if method is None:
-            self.when_changed = None
-        else:
+        if method is not None:
             method(ticks)
 
 

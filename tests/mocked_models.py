@@ -27,11 +27,13 @@ class MockedPin(Pin):
         mode: ModeType = "input",
         pull: PullType = "floating",
         bounce: BounceType = None,
-        edge: EdgesType = "BOTH",
+        edge: EdgesType = "both",
         frequency: int | None = None,
         default_value: float | bool | None = None,
         when_changed: Callable[[int], None] = None,
+        support_pwm=True,
     ):
+        self.support_pwm = support_pwm
         self.data = {
             "connect": False,
             "read": None,
@@ -76,7 +78,8 @@ class MockedPin(Pin):
 
 
 class MockedCreatePin:
-    def __init__(self):
+    def __init__(self, support_pwm=True):
+        self.support_pwm = support_pwm
         self.mock = Mock(side_effect=self.effect)
         self.pins = dict()
         self.pin = None
@@ -87,13 +90,21 @@ class MockedCreatePin:
         mode: ModeType = "input",
         pull: PullType = "floating",
         bounce: BounceType = None,
-        edges: EdgesType = "BOTH",
+        edges: EdgesType = "both",
         frequency: int | None = None,
         default_value: float | bool | None = None,
         when_changed: Callable[[int], None] = None,
     ):
         self.pin = MockedPin(
-            pin, mode, pull, bounce, edges, frequency, default_value, when_changed
+            pin,
+            mode,
+            pull,
+            bounce,
+            edges,
+            frequency,
+            default_value,
+            when_changed,
+            self.support_pwm,
         )
         self.pins[pin] = self.pin
         return self.pin

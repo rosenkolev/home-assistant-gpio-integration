@@ -71,12 +71,13 @@ class GpioPin(Pin):
         mode: ModeType = "input",
         pull: PullType = "floating",
         bounce: BounceType = None,
-        edge: EdgesType = "BOTH",
+        edge: EdgesType = "both",
         frequency: int | None = None,
         default_value=None,
         when_changed=None,
         factory: Type[GpioPinFactory] = None,
     ):
+        self.support_pwm = True
         self._callback = None
         self._connection = factory.connect()
 
@@ -179,13 +180,17 @@ class GpioPin(Pin):
     def _disable_pwm(self):
         self._connection.write(self.pin, 0)
 
+    def _call_when_changed(self, ticks):
+        _LOGGER.debug(f"{self!s} edge detected ")
+        super()._call_when_changed(ticks)
+
     def _enable_event_detect(self):
         value = self.edges
-        if value in GPIO_EDGES:
+        if self._callback is None and value in GPIO_EDGES:
             self._callback = self._connection.callback(
                 self.pin,
                 GPIO_EDGES[value],
-                self._call_when_changed,
+                lambda pin, level, tick: self._call_when_changed(tick),
             )
 
             _LOGGER.debug(f"pin {self.pin} edge detection enabled")

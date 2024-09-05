@@ -46,7 +46,7 @@ class GpioSwitch(SwitchEntity):
     async def async_will_remove_from_hass(self) -> None:
         """Cleanup before removing from hass."""
         await super().async_will_remove_from_hass()
-        self.__io.close()
+        await self.__io.async_close()
 
     def set_state(self, state) -> None:
         value = self.__invert_logic != state
