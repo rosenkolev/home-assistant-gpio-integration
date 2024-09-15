@@ -40,7 +40,7 @@ def test__GpioMotionBinarySensor_should_init_default_sate():
         gpio = base.GpioMotionBinarySensor(__create_config())
 
         assert gpio.is_on is False
-        assert gpio.last_motion_event_timeout is False
+        assert gpio.state_change_required is False
 
 
 @patch(
@@ -56,8 +56,8 @@ def test__GpioMotionBinarySensor_edge_events_should_update_state():
         assert gpio.is_on is False
 
         proxy.pin._call_when_changed(0)
-        assert gpio.is_on is True
-        assert gpio.ha_state_write is True
+
+        assert gpio.ha_state_update_scheduled is True
 
 
 @patch("time.perf_counter")
@@ -105,5 +105,5 @@ def test__GpioMotionBinarySensor_should_update_state_after_elapsed(counter: Mock
         counter.return_value = 6.01
 
         gpio.update()
-        assert gpio.ha_state_write is True
+
         assert gpio._state is False

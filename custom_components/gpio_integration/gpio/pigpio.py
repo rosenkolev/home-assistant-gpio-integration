@@ -180,9 +180,9 @@ class GpioPin(Pin):
     def _disable_pwm(self):
         self._connection.write(self.pin, 0)
 
-    def _call_when_changed(self, ticks):
-        _LOGGER.debug(f"{self!s} edge detected ")
-        super()._call_when_changed(ticks)
+    def _call_when_changed(self, pin, level, tick):
+        _LOGGER.debug(f"{self!s} edge detected {level} {tick}")
+        super()._call_when_changed(tick)
 
     def _enable_event_detect(self):
         value = self.edges
@@ -190,7 +190,7 @@ class GpioPin(Pin):
             self._callback = self._connection.callback(
                 self.pin,
                 GPIO_EDGES[value],
-                lambda pin, level, tick: self._call_when_changed(tick),
+                self._call_when_changed,
             )
 
             _LOGGER.debug(f"pin {self.pin} edge detection enabled")

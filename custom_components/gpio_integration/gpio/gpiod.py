@@ -1,11 +1,10 @@
-from typing import Callable
-import datetime
 import asyncio
+import datetime
+from typing import Callable
 
 import gpiod
-from gpiod.line import Direction, Bias, Edge, Value
+from gpiod.line import Bias, Direction, Edge
 from gpiod.line_settings import LineSettings
-
 
 from custom_components.gpio_integration.const import DOMAIN, get_logger
 

@@ -374,7 +374,7 @@ class Pin:
                     self._enable_event_detect()
 
     def _call_when_changed(self, ticks: int):
-        method = self._when_changed()
+        method = self._get_when_changed()
         if method is not None:
             method(ticks)
 

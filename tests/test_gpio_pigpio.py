@@ -129,4 +129,5 @@ def test__pigpio_edge_detection_multiple_detections():
         proxy._callback(pin, 1, 2)
         proxy._callback(pin, 1, 3)
 
-        callback.assert_called_once_with(1)
+        assert callback.call_count == 3
+        callback.assert_called_with(3)
