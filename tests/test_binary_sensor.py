@@ -1,28 +1,25 @@
-import sys
-from unittest.mock import patch, Mock, ANY
-
-import pytest
+from unittest.mock import patch
 
 import mocked_models as mocked
 
 from custom_components.gpio_integration.config_schema import (
-    SensorConfig,
+    CONF_BOUNCE_TIME,
+    CONF_DEFAULT_STATE,
+    CONF_EDGE_EVENT_TIMEOUT,
+    CONF_INVERT_LOGIC,
+    CONF_MODE,
     CONF_NAME,
     CONF_PORT,
-    CONF_MODE,
-    CONF_BOUNCE_TIME,
-    CONF_EDGE_EVENT_TIMEOUT,
     CONF_PULL_MODE,
-    CONF_DEFAULT_STATE,
-    CONF_INVERT_LOGIC,
+    SensorConfig,
 )
 
 
-def __create_config(port=1, default_state=False, invert_logic=False):
+def __create_config(port=None, default_state=False, invert_logic=False):
     return SensorConfig(
         {
             CONF_NAME: "Test Name",
-            CONF_PORT: port,
+            CONF_PORT: mocked.get_next_pin() if port is None else port,
             CONF_PULL_MODE: "up",
             CONF_MODE: "read",
             CONF_BOUNCE_TIME: 5,
@@ -36,12 +33,20 @@ def __create_config(port=1, default_state=False, invert_logic=False):
 @patch(
     "homeassistant.components.binary_sensor.BinarySensorEntity", mocked.MockedBaseEntity
 )
-def test__GpioBinarySensor_should_init_default_sate():
-    from custom_components.gpio_integration.binary_sensor import GpioBinarySensor
+def test__GpioBinarySensor_should_init_default_state():
+    import custom_components.gpio_integration.binary_sensor as base
 
-    gpio = GpioBinarySensor(__create_config(port=5))
+    pin = mocked.get_next_pin()
+    create_pin = mocked.MockedCreatePin()
+    with patch.object(base, "create_pin", create_pin.mock):
+        # with patch(
+        #     "custom_components.gpio_integration.gpio.pin_factory.create_pin",
+        #     create_pin.mock,
+        # ):
+        gpio = base.GpioBinarySensor(__create_config(port=pin))
 
-    assert gpio.is_on == False
+        assert gpio.is_on is False
+        assert create_pin.pin.pin == pin
 
 
 @patch(
@@ -50,16 +55,17 @@ def test__GpioBinarySensor_should_init_default_sate():
 def test__GpioBinarySensor_update_should_set_state_not_inverted():
     import custom_components.gpio_integration.binary_sensor as base
 
-    with patch.object(base, "Gpio", mocked.MockedGpio):
-        gpio = base.GpioBinarySensor(__create_config(port=6))
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "create_pin", proxy.mock):
+        gpio = base.GpioBinarySensor(__create_config())
 
-        mocked.mocked_gpio[6]["read_value"] = True
+        proxy.pin.data["read"] = True
         gpio.update()
-        assert gpio.is_on == True
+        assert gpio.is_on is True
 
-        mocked.mocked_gpio[6]["read_value"] = False
+        proxy.pin.data["read"] = False
         gpio.update()
-        assert gpio.is_on == False
+        assert gpio.is_on is False
 
 
 @patch(
@@ -68,32 +74,28 @@ def test__GpioBinarySensor_update_should_set_state_not_inverted():
 def test__GpioBinarySensor_update_should_set_state_inverted():
     import custom_components.gpio_integration.binary_sensor as base
 
-    with patch.object(base, "Gpio", mocked.MockedGpio):
-        gpio = base.GpioBinarySensor(__create_config(port=7, invert_logic=True))
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "create_pin", proxy.mock):
+        gpio = base.GpioBinarySensor(__create_config(invert_logic=True))
 
-        mocked.mocked_gpio[7]["read_value"] = True
+        proxy.pin.data["read"] = True
         gpio.update()
-        assert gpio.is_on == False
+        assert gpio.is_on is False
 
-        mocked.mocked_gpio[7]["read_value"] = False
+        proxy.pin.data["read"] = False
         gpio.update()
-        assert gpio.is_on == True
+        assert gpio.is_on is True
 
 
-@pytest.mark.asyncio
 @patch(
     "homeassistant.components.binary_sensor.BinarySensorEntity", mocked.MockedBaseEntity
 )
-async def test__GpioBinarySensor_edge_events_should_trigger_update():
+def test__GpioBinarySensor_edge_events_should_trigger_update():
     import custom_components.gpio_integration.binary_sensor as base
 
-    with patch.object(base, "Gpio", mocked.MockedGpio):
-        gpio = base.GpioBinarySensor(__create_config(port=8))
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "create_pin", proxy.mock):
+        gpio = base.GpioBinarySensor(__create_config())
 
-        mocked.mocked_gpio[8]["read_events"] = []
-        await gpio._detect_edges()
-        assert gpio.ha_state_update_scheduled == False
-
-        mocked.mocked_gpio[8]["read_events"] = ["event"]
-        await gpio._detect_edges()
-        assert gpio.ha_state_update_scheduled == True
+        proxy.pin._call_when_changed(0)
+        assert gpio.ha_state_update_scheduled is True

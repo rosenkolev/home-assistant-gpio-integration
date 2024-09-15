@@ -1,21 +1,20 @@
-from unittest.mock import patch, Mock, ANY
+from unittest.mock import patch
 
 import mocked_models as mocked
 
 import custom_components.gpio_integration.hub as hub
-
 from custom_components.gpio_integration.config_schema import (
-    ToggleRollerConfig,
-    CONF_NAME,
-    CONF_PORT,
-    CONF_MODE,
-    CONF_RELAY_TIME,
     CONF_INVERT_LOGIC,
+    CONF_MODE,
+    CONF_NAME,
     CONF_PIN_CLOSED_SENSOR,
+    CONF_PORT,
+    CONF_RELAY_TIME,
+    ToggleRollerConfig,
 )
 
 
-def __create_config(port=1, invert_logic=False, closed_sensor=0):
+def __create_config(port=None, invert_logic=False, closed_sensor=0):
     return ToggleRollerConfig(
         {
             CONF_NAME: "Test Name",
@@ -29,20 +28,23 @@ def __create_config(port=1, invert_logic=False, closed_sensor=0):
 
 
 def test__Roller_should_init_default_sate():
-    with patch.object(hub, "Gpio", mocked.MockedGpio):
+    proxy = mocked.MockedCreatePin()
+    pin_in = mocked.get_next_pin()
+    pin_out = mocked.get_next_pin()
+    with patch.object(hub, "create_pin", proxy.mock):
+        hub.BasicToggleRoller(__create_config(port=pin_out, closed_sensor=pin_in))
 
-        roller = hub.BasicToggleRoller(__create_config(port=10, closed_sensor=11))
-
-        assert mocked.mocked_gpio[10]["mode"] == "write"
-        assert mocked.mocked_gpio[10]["default_value"] == None
-        assert mocked.mocked_gpio[11]["mode"] == "read"
+        assert proxy.pins[pin_out].mode == "output"
+        assert proxy.pins[pin_out].state is None
+        assert proxy.pins[pin_in].mode == "input"
 
 
 def test__Roller_should_open():
-    with patch.object(hub, "Gpio", mocked.MockedGpio):
-
-        roller = hub.BasicToggleRoller(__create_config(port=20))
+    proxy = mocked.MockedCreatePin()
+    pin = mocked.get_next_pin()
+    with patch.object(hub, "create_pin", proxy.mock):
+        roller = hub.BasicToggleRoller(__create_config(port=pin))
 
         roller.toggle()
 
-        assert mocked.mocked_gpio[20]["write_value"] == True
+        assert proxy.pin.data["write"] == 1

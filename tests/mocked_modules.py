@@ -1,0 +1,22 @@
+import sys
+from unittest.mock import Mock
+
+sys.modules["voluptuous"] = Mock()
+sys.modules["homeassistant"] = Mock()
+sys.modules["homeassistant.const"] = Mock()
+sys.modules["homeassistant.core"] = Mock()
+sys.modules["homeassistant.config_entries"] = Mock()
+sys.modules["homeassistant.helpers"] = Mock()
+sys.modules["homeassistant.helpers.event"] = Mock()
+sys.modules["homeassistant.helpers.config_validation"] = Mock()
+sys.modules["homeassistant.helpers.typing"] = Mock()
+sys.modules["homeassistant.helpers.entity_platform"] = Mock()
+sys.modules["homeassistant.helpers.selector"] = Mock()
+sys.modules["homeassistant.exceptions"] = Mock()
+sys.modules["homeassistant.components"] = Mock()
+sys.modules["homeassistant.components.cover"] = Mock()
+sys.modules["homeassistant.components.binary_sensor"] = Mock()
+sys.modules["homeassistant.components.switch"] = Mock()
+sys.modules["homeassistant.components.light"] = Mock()
+sys.modules["pigpio"] = Mock()
+sys.modules["RPi"] = Mock()

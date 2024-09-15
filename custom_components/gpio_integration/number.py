@@ -35,7 +35,7 @@ class GpioPosition(NumberEntity):
     async def async_will_remove_from_hass(self) -> None:
         """Cleanup before removing from hass."""
         await super().async_will_remove_from_hass()
-        self.__roller.release()
+        await self.__roller.async_release()
 
     def set_native_value(self, value: float) -> None:
         """Update the current value."""

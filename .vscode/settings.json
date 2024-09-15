@@ -10,12 +10,6 @@
         },
         "editor.formatOnSave": true
     },
-    "cSpell.words": [
-        "ruff",
-        "hass",
-        "homeassistant",
-        "gpio"
-    ],
     "python.testing.pytestArgs": [
         "tests"
     ],

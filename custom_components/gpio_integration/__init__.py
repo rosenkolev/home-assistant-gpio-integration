@@ -1,29 +1,39 @@
 """Load Platform integration."""
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.helpers.config_validation import config_entry_only_config_schema
-from homeassistant.const import Platform
 
-from .hub import Hub
+from .config_schema import DOMAIN_DEFAULT_CONFIG
 from .const import DOMAIN
+from .gpio import close_all_pins, set_config_options
+from .hub import Hub
 
-PLATFORMS = [Platform.COVER, Platform.NUMBER, Platform.BINARY_SENSOR, Platform.SWITCH]
-CONFIG_SCHEMA = config_entry_only_config_schema(DOMAIN)
+PLATFORMS = [
+    Platform.COVER,
+    Platform.NUMBER,
+    Platform.BINARY_SENSOR,
+    Platform.SWITCH,
+    Platform.LIGHT,
+]
+
+# Schema to validate the configuration for this integration
+CONFIG_SCHEMA = DOMAIN_DEFAULT_CONFIG
 
 
 def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Raspberry PI GPIO component."""
 
+    if DOMAIN in config:
+        data = config[DOMAIN]
+        set_config_options(data)
+
     def cleanup_gpio(event):
         """Stuff to do before stopping."""
+        close_all_pins()
 
-    def prepare_gpio(event):
-        """Stuff to do when Home Assistant starts."""
-
-    # hass.bus.listen_once(EVENT_HOMEASSISTANT_START, prepare_gpio)
-    # hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup_gpio)
+    hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup_gpio)
     return True
 
 

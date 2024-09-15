@@ -1,59 +1,113 @@
-import sys
+from typing import Callable
 from unittest.mock import Mock
 
-sys.modules["voluptuous"] = Mock()
-sys.modules["homeassistant"] = Mock()
-sys.modules["homeassistant.const"] = Mock()
-sys.modules["homeassistant.core"] = Mock()
-sys.modules["homeassistant.config_entries"] = Mock()
-sys.modules["homeassistant.helpers"] = Mock()
-sys.modules["homeassistant.helpers.event"] = Mock()
-sys.modules["homeassistant.helpers.config_validation"] = Mock()
-sys.modules["homeassistant.helpers.typing"] = Mock()
-sys.modules["homeassistant.helpers.entity_platform"] = Mock()
-sys.modules["homeassistant.helpers.selector"] = Mock()
-sys.modules["homeassistant.exceptions"] = Mock()
-sys.modules["homeassistant.components"] = Mock()
-sys.modules["homeassistant.components.cover"] = Mock()
-sys.modules["homeassistant.components.binary_sensor"] = Mock()
-sys.modules["homeassistant.components.switch"] = Mock()
-sys.modules["gpiod"] = Mock()
-sys.modules["gpiod.line"] = Mock()
-sys.modules["gpiod.line_settings"] = Mock()
+import mocked_modules  # noqa: F401
 
-mocked_gpio = dict()
+from custom_components.gpio_integration.gpio import (
+    BounceType,
+    EdgesType,
+    ModeType,
+    Pin,
+    PullType,
+)
+
+PIN_NUMBER = 0
 
 
-class MockedGpio:
+def get_next_pin() -> int:
+    global PIN_NUMBER
+    PIN_NUMBER += 1
+    return PIN_NUMBER
+
+
+class MockedPin(Pin):
     def __init__(
         self,
-        port,
-        mode=None,
-        pull_mode=None,
-        edge_detect=None,
-        debounce_ms=None,
-        default_value=None,
+        pin: int | str,
+        mode: ModeType = "input",
+        pull: PullType = "floating",
+        bounce: BounceType = None,
+        edge: EdgesType = "both",
+        frequency: int | None = None,
+        default_value: float | bool | None = None,
+        when_changed: Callable[[int], None] = None,
+        support_pwm=True,
     ):
-        self.data = mocked_gpio.setdefault(port, dict())
+        self.support_pwm = support_pwm
+        self.data = {
+            "connect": False,
+            "read": None,
+            "write": None,
+            "close": False,
+            "event_detect": False,
+        }
+        super().__init__(
+            pin, mode, pull, bounce, edge, frequency, default_value, when_changed, True
+        )
 
-        self.data.clear()
-        self.data.setdefault("read_value", False)
-        self.data.setdefault("read_events", [])
+    def _connect(self):
+        self.data["connect"] = True
 
-        self.data["mode"] = mode
-        self.data["default_value"] = pull_mode
-        self.data["edge_detect"] = edge_detect
-        self.data["debounce_ms"] = debounce_ms
-        self.data["default_value"] = default_value
+    def _close(self):
+        self.data["close"] = True
 
-    def read(self):
-        return self.data.get("read_value")
+    def _read(self):
+        return self.data.get("read")
 
-    def write(self, value):
-        self.data["write_value"] = value
+    def _read_pwm(self):
+        return self.data.get("read_pwm")
 
-    def read_edge_events(self):
-        return self.data.get("read_events")
+    def _enable_pwm(self, frequency: int):
+        self.data["enable_pwm"] = True
+        self.data["frequency"] = frequency
+
+    def _disable_pwm(self):
+        self.data["disable_pwm"] = True
+
+    def _write(self, value):
+        self.data["write"] = value
+
+    def _write_pwm(self, value: float) -> None:
+        self.data["write_pwm"] = value
+
+    def _enable_event_detect(self):
+        self.data["event_detect"] = True
+
+    def _disable_event_detect(self):
+        self.data["event_detect"] = True
+
+
+class MockedCreatePin:
+    def __init__(self, support_pwm=True):
+        self.support_pwm = support_pwm
+        self.mock = Mock(side_effect=self.effect)
+        self.pins = dict()
+        self.pin = None
+
+    def effect(
+        self,
+        pin: int | str,
+        mode: ModeType = "input",
+        pull: PullType = "floating",
+        bounce: BounceType = None,
+        edges: EdgesType = "both",
+        frequency: int | None = None,
+        default_value: float | bool | None = None,
+        when_changed: Callable[[int], None] = None,
+    ):
+        self.pin = MockedPin(
+            pin,
+            mode,
+            pull,
+            bounce,
+            edges,
+            frequency,
+            default_value,
+            when_changed,
+            self.support_pwm,
+        )
+        self.pins[pin] = self.pin
+        return self.pin
 
 
 class MockedBaseEntity:
@@ -64,6 +118,10 @@ class MockedBaseEntity:
     def async_write_ha_state(self):
         self.ha_state_write = True
 
-    def async_schedule_update_ha_state(self, force_refresh):
+    def async_schedule_update_ha_state(self, force_refresh=False):
         self.ha_state_update_scheduled = True
         self.ha_state_update_scheduled_force_refresh = force_refresh
+
+    def schedule_update_ha_state(self, force_refresh=False):
+        self.ha_state_update_scheduled = True
+        self.ha_state_update_scheduled_force_refresh = False

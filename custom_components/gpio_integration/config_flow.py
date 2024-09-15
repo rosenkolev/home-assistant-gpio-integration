@@ -1,30 +1,31 @@
 from __future__ import annotations
 
-from typing import Any
-
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 
-from .const import DOMAIN, get_logger
 from .config_schema import (
-    InvalidPin,
-    get_type,
-    MAIN_SCHEMA,
-    COVER_UP_DOWN_SCHEMA,
-    create_cover_up_down_schema,
-    get_unique_id,
-    validate_cover_up_down_data,
     BINARY_SENSOR_SCHEMA,
-    create_binary_sensor_schema,
-    validate_binary_sensor_data,
     COVER_TOGGLE_SCHEMA,
-    create_toggle_cover_schema,
-    validate_toggle_cover_data,
+    COVER_UP_DOWN_SCHEMA,
+    LIGHT_SCHEMA,
+    MAIN_SCHEMA,
     SWITCH_SCHEMA,
+    InvalidPin,
+    create_binary_sensor_schema,
+    create_cover_up_down_schema,
+    create_light_schema,
     create_switch_schema,
+    create_toggle_cover_schema,
+    get_type,
+    get_unique_id,
+    validate_binary_sensor_data,
+    validate_cover_up_down_data,
+    validate_light_data,
     validate_switch_data,
+    validate_toggle_cover_data,
 )
+from .const import DOMAIN, get_logger
 
 _LOGGER = get_logger()
 
@@ -48,6 +49,11 @@ CONF_ENTITIES: dict = {
         "schema": SWITCH_SCHEMA,
         "validate": validate_switch_data,
         "schema_builder": create_switch_schema,
+    },
+    "light": {
+        "schema": LIGHT_SCHEMA,
+        "validate": validate_light_data,
+        "schema_builder": create_light_schema,
     },
 }
 
@@ -82,24 +88,30 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_binary_sensor()
         elif type == "switch":
             return await self.async_step_switch()
+        elif type == "light":
+            return await self.async_step_light()
 
     async def async_step_cover_up_down(self, data_input=None):
         """Handle the initial step."""
-        return self.handle_config_data("cover_up_down", data_input)
+        return await self.handle_config_data("cover_up_down", data_input)
 
     async def async_step_binary_sensor(self, data_input=None):
         """Handle the initial step."""
-        return self.handle_config_data("binary_sensor", data_input)
+        return await self.handle_config_data("binary_sensor", data_input)
 
     async def async_step_switch(self, data_input=None):
         """Handle the initial step."""
-        return self.handle_config_data("switch", data_input)
+        return await self.handle_config_data("switch", data_input)
 
     async def async_step_cover_toggle(self, data_input=None):
         """Handle the initial step."""
-        return self.handle_config_data("cover_toggle", data_input)
+        return await self.handle_config_data("cover_toggle", data_input)
 
-    def handle_config_data(self, id: str, data_input: dict | None):
+    async def async_step_light(self, data_input=None):
+        """Handle the initial step."""
+        return await self.handle_config_data("light", data_input)
+
+    async def handle_config_data(self, id: str, data_input: dict | None):
         schema = CONF_ENTITIES[id]["schema"]
         if data_input is None:
             return self.async_show_form(step_id=id, data_schema=schema)
@@ -107,7 +119,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = validate_config_data(id, data_input)
         if errors is None:
             data_input["type"] = id
-            self.async_set_unique_id(get_unique_id(data_input))
+            await self.async_set_unique_id(get_unique_id(data_input))
             return self.async_create_entry(title=data_input[CONF_NAME], data=data_input)
 
         return self.async_show_form(step_id=id, data_schema=schema, errors=errors)

@@ -1,12 +1,17 @@
-from typing import Callable, Literal
+import threading
 from time import sleep
 
 from homeassistant.const import Platform
 
-import threading
-from .config_schema import RollerConfig, SensorConfig, SwitchConfig, ToggleRollerConfig
+from .config_schema import (
+    LightConfig,
+    RollerConfig,
+    SensorConfig,
+    SwitchConfig,
+    ToggleRollerConfig,
+)
 from .const import get_logger
-from .gpio import Gpio
+from .gpio.pin_factory import create_pin
 
 _LOGGER = get_logger()
 
@@ -32,6 +37,9 @@ class Hub:
         elif self.type == "switch":
             self.config = SwitchConfig(configs)
             self.platforms = [Platform.SWITCH]
+        elif self.type == "light":
+            self.config = LightConfig(configs)
+            self.platforms = [Platform.LIGHT]
 
     @property
     def is_cover(self) -> bool:
@@ -46,34 +54,34 @@ class BasicToggleRoller:
     def __init__(self, config: ToggleRollerConfig) -> None:
         self.name = config.name
         self.id = config.unique_id
-        self.__has_close_sensor = config.pin_closed != None
-        self.__state = False
+        self.__has_close_sensor = config.pin_closed is not None
+        self.__state: bool = False
         self.__invert = config.invert_logic
         self.__relay_time = config.relay_time
-        self.__io = Gpio(config.port, mode="write")
+        self.__io = create_pin(config.port, mode="output")
 
         if self.__has_close_sensor:
-            self.__io_closed = Gpio(config.pin_closed, mode="read")
+            self.__io_closed = create_pin(config.pin_closed, mode="input", pull="up")
 
     @property
     def is_closed(self):
         """Return true if cover is closed."""
         return self.__state != self.__invert
 
-    def release(self):
-        self.__io.release()
+    async def async_release(self):
+        await self.__io.async_close()
         if self.__has_close_sensor:
-            self.__io_closed.release()
+            await self.__io_closed.async_close()
 
     def update(self):
         if self.__has_close_sensor:
-            self.__state = self.__io_closed.read()
+            self.__state = self.__io_closed.state
 
     def toggle(self):
         """Trigger the cover."""
-        self.__io.write(1 if self.__invert else 0)
+        self.__io.state = 1 if self.__invert else 0
         sleep(self.__relay_time)
-        self.__io.write(0 if self.__invert else 1)
+        self.__io.state = 0 if self.__invert else 1
         if not self.__has_close_sensor:
             self.__state = not self.__state
 
@@ -102,33 +110,38 @@ class Roller:
         self.__pin_up_default_to_high = config.pin_up_on_state == "high"
         self.__pin_closed = config.pin_closed
         self.__pin_closed_on_state = config.pin_closed_on_state == "high"
-        self.__has_close_sensor = config.pin_closed != None
+        self.__has_close_sensor = config.pin_closed is not None
         self.__step_time = (config.relay_time / 100.0) * 5.0
         self.__direction = -1
 
         self.__cancel = threading.Event()
 
         _LOGGER.debug(
-            "down pin %s set %s up pin %s set %s",
+            "roller %s; down %s (%s); up %s (%s); closed %s",
+            self.name,
             self.__pin_down,
-            self.__pin_down_default_to_high,
+            "high" if self.__pin_down_default_to_high else "low",
             self.__pin_up,
-            self.__pin_up_default_to_high,
+            "high" if self.__pin_up_default_to_high else "low",
+            self.__pin_closed,
         )
-        self.__io_down = Gpio(
-            self.__pin_down, mode="write", default_value=self.__pin_down_default_to_high
+
+        self.__io_down = create_pin(
+            self.__pin_down,
+            mode="output",
+            default_value=self.__pin_down_default_to_high,
         )
-        self.__io_up = Gpio(
-            self.__pin_up, mode="write", default_value=self.__pin_up_default_to_high
+        self.__io_up = create_pin(
+            self.__pin_up, mode="output", default_value=self.__pin_up_default_to_high
         )
 
         if self.__has_close_sensor:
-            self.__io_closed = Gpio(self.__pin_closed, mode="read")
-            self.__position = 0 if self.__io_closed.read() else 100
+            self.__io_closed = create_pin(self.__pin_closed, mode="input", pull="up")
+            self.__position = 0 if self.__io_closed.state else 100
 
     @property
     def sensor_closed(self) -> bool:
-        return self.__io_closed.read() == self.__pin_closed_on_state
+        return self.__io_closed.state == self.__pin_closed_on_state
 
     @property
     def position(self) -> int:
@@ -147,11 +160,11 @@ class Roller:
     def moving(self) -> int:
         return self.__moving
 
-    def release(self):
-        self.__io_down.release()
-        self.__io_up.release()
+    async def async_release(self):
+        await self.__io_down.async_close()
+        await self.__io_up.async_close()
         if self.__has_close_sensor:
-            self.__io_closed.release()
+            await self.__io_closed.async_close()
 
     def update_state(self):
         if self.__has_close_sensor:
@@ -218,7 +231,7 @@ class Roller:
         )
 
     def __move(self, steps, closing=False, full_close=False):
-        """toggle a state to GRIO"""
+        """Move the roller at the given position."""
 
         pin = self.__io_down if closing else self.__io_up
         pin_off = (
@@ -242,7 +255,7 @@ class Roller:
             self.__position,
         )
 
-        pin.write(pin_on)
+        pin.state = pin_on
         for x in range(steps):
             cancelled = self.__cancel.wait(self.__step_time)
             time += self.__step_time
@@ -261,7 +274,7 @@ class Roller:
         _LOGGER.debug('move "%s" time %s', self.name, time)
         self.__moving = 0
         self.__cancel.clear()
-        pin.write(pin_off)
+        pin.state = pin_off
 
         if self.__position < 0 and closing:
             self.__position = 0
