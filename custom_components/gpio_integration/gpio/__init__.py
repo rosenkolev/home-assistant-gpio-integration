@@ -264,9 +264,10 @@ class Pin:
 
     def _clear_pin(self):
         """Clear pins"""
-        self._pin = None
         if self.pin in ALL_PINS:
             ALL_PINS.pop(self.pin)
+
+        self._pin = None
 
     ### Abstract Members ###
 

@@ -272,11 +272,11 @@ BINARY_SENSOR_SCHEMA = create_binary_sensor_schema(
         CONF_NAME: None,
         CONF_PORT: None,
         CONF_PULL_MODE: "up",
-        CONF_BOUNCE_TIME: 500,
+        CONF_BOUNCE_TIME: 200,
         CONF_INVERT_LOGIC: False,
         CONF_MODE: "Door",
         CONF_DEFAULT_STATE: False,
-        CONF_EDGE_EVENT_TIMEOUT: 5,
+        CONF_EDGE_EVENT_TIMEOUT: 10,
         CONF_UNIQUE_ID: "",
     }
 )

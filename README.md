@@ -76,6 +76,40 @@ Binary sensor set state based on GPIO pin input (ON = 5v, OFF = 0v) or based on 
 
 RISING/FALLING events are when pin input have a current goes from 0v to 5v (rising) or goes down from 5v to 0 (falling).
 
+##### Examples
+
+```mermaid
+---
+title: Raspberry Pi 4 On/Off Sensor
+---
+flowchart LR
+  subgraph GPIO
+    A["PIN (+3.3v)"]
+    B[GPIO 17]
+  end
+
+  A --- C["Sensor __/ __"]
+  C --- B
+```
+
+```mermaid
+---
+title: Raspberry Pi 4 Motion Sensor
+---
+flowchart LR
+  subgraph GPIO
+    A["PIN (+5v)"]
+    B["PIN (GDN)"]
+    C[GPIO 26]
+  end
+
+  A --- D[Motion Sensor]
+  D --- B
+  D === |Motion|C
+```
+
+##### Options
+
 |  | |
 | - | - |
 | Name | The name of the entity |
@@ -223,7 +257,7 @@ flowchart LR
 | - | - |
 | Name | The name of the entity |
 | GPIO pin | The GPIO pin number |
-| Frequency | The pulse-wide modulation PWM frequency used for LED lights, when set greater then 0 it's assumed it's a led light, when `None` or 0 it's assumed normal light bulb. [default `None`] |
+| Frequency | The pulse-wide modulation PWM frequency used for LED lights, when set greater then 0 it's assumed it's a led light, when `None` or 0 it's assumed normal light bulb. [default `0`] |
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 

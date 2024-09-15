@@ -1,32 +1,31 @@
 from __future__ import annotations
 
-
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 
-from .const import DOMAIN, get_logger
 from .config_schema import (
-    InvalidPin,
-    get_type,
-    MAIN_SCHEMA,
-    COVER_UP_DOWN_SCHEMA,
-    create_cover_up_down_schema,
-    get_unique_id,
-    validate_cover_up_down_data,
     BINARY_SENSOR_SCHEMA,
-    create_binary_sensor_schema,
-    validate_binary_sensor_data,
     COVER_TOGGLE_SCHEMA,
-    create_toggle_cover_schema,
-    validate_toggle_cover_data,
-    SWITCH_SCHEMA,
-    create_switch_schema,
-    validate_switch_data,
+    COVER_UP_DOWN_SCHEMA,
     LIGHT_SCHEMA,
+    MAIN_SCHEMA,
+    SWITCH_SCHEMA,
+    InvalidPin,
+    create_binary_sensor_schema,
+    create_cover_up_down_schema,
     create_light_schema,
+    create_switch_schema,
+    create_toggle_cover_schema,
+    get_type,
+    get_unique_id,
+    validate_binary_sensor_data,
+    validate_cover_up_down_data,
     validate_light_data,
+    validate_switch_data,
+    validate_toggle_cover_data,
 )
+from .const import DOMAIN, get_logger
 
 _LOGGER = get_logger()
 
@@ -80,7 +79,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         type = get_type(user_input)
         _LOGGER.debug("config user, type: {}".format(type))
         if type is None:
-            return await self.async_show_form(step_id="user", data_schema=MAIN_SCHEMA)
+            return self.async_show_form(step_id="user", data_schema=MAIN_SCHEMA)
         elif type == "cover_up_down":
             return await self.async_step_cover_up_down()
         elif type == "cover_toggle":
@@ -121,9 +120,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if errors is None:
             data_input["type"] = id
             await self.async_set_unique_id(get_unique_id(data_input))
-            return await self.async_create_entry(
-                title=data_input[CONF_NAME], data=data_input
-            )
+            return self.async_create_entry(title=data_input[CONF_NAME], data=data_input)
 
         return self.async_show_form(step_id=id, data_schema=schema, errors=errors)
 
