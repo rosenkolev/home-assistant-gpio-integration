@@ -1,7 +1,3 @@
-from unittest.mock import patch
-
-import mocked_models as mocked
-
 from custom_components.gpio_integration.gpio import PinFactory
 
 
@@ -37,8 +33,8 @@ class MockedPinFactory(PinFactory):
 
 
 def test__find_default_pin_factory_is_pigpio():
-    from custom_components.gpio_integration.gpio.pin_factory import get_pin_factory
     from custom_components.gpio_integration.gpio.pigpio import GpioPinFactory
+    from custom_components.gpio_integration.gpio.pin_factory import get_pin_factory
 
     factory = get_pin_factory()
 

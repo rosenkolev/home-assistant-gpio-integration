@@ -1,7 +1,6 @@
 from unittest.mock import Mock, patch
 
 import mocked_models as mocked
-import pytest
 
 from custom_components.gpio_integration.config_schema import (
     CONF_DEFAULT_STATE,

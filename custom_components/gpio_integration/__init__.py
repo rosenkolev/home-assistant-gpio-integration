@@ -1,7 +1,5 @@
 """Load Platform integration."""
 
-from multiprocessing import get_logger
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import HomeAssistant
@@ -22,6 +20,7 @@ PLATFORMS = [
 
 # Schema to validate the configuration for this integration
 CONFIG_SCHEMA = DOMAIN_DEFAULT_CONFIG
+
 
 def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Raspberry PI GPIO component."""
