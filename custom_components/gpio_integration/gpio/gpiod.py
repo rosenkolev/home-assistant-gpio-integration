@@ -1,3 +1,4 @@
+# cspell:ignore gpiod, gpiochip, devicetree
 import asyncio
 import datetime
 from typing import Callable

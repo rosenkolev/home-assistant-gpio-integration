@@ -2,14 +2,16 @@
     "version": "0.2",
     "language": "en",
     "ignorePaths": [
-        "reports/",
+        ".gitignore",
         ".pytest_cache/",
+        "reports/",
         "LICENSE",
         "manifest.json",
         "extensions.json"
     ],
     "words": [
         "gpio",
+        "gpiod",
         "GPIO",
         "hass",
         "homeassistant",
