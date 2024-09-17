@@ -8,12 +8,14 @@ from .config_schema import (
     BINARY_SENSOR_SCHEMA,
     COVER_TOGGLE_SCHEMA,
     COVER_UP_DOWN_SCHEMA,
+    FAN_SCHEMA,
     LIGHT_SCHEMA,
     MAIN_SCHEMA,
     SWITCH_SCHEMA,
     InvalidPin,
     create_binary_sensor_schema,
     create_cover_up_down_schema,
+    create_fan_schema,
     create_light_schema,
     create_switch_schema,
     create_toggle_cover_schema,
@@ -21,6 +23,7 @@ from .config_schema import (
     get_unique_id,
     validate_binary_sensor_data,
     validate_cover_up_down_data,
+    validate_fan_data,
     validate_light_data,
     validate_switch_data,
     validate_toggle_cover_data,
@@ -54,6 +57,11 @@ CONF_ENTITIES: dict = {
         "schema": LIGHT_SCHEMA,
         "validate": validate_light_data,
         "schema_builder": create_light_schema,
+    },
+    "fan": {
+        "schema": FAN_SCHEMA,
+        "validate": validate_fan_data,
+        "schema_builder": create_fan_schema,
     },
 }
 
@@ -90,6 +98,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_switch()
         elif type == "light":
             return await self.async_step_light()
+        elif type == "fan":
+            return await self.async_step_light()
 
     async def async_step_cover_up_down(self, data_input=None):
         """Handle the initial step."""
@@ -110,6 +120,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_light(self, data_input=None):
         """Handle the initial step."""
         return await self.handle_config_data("light", data_input)
+
+    async def async_step_fan(self, data_input=None):
+        """Handle the initial step."""
+        return await self.handle_config_data("fan", data_input)
 
     async def handle_config_data(self, id: str, data_input: dict | None):
         schema = CONF_ENTITIES[id]["schema"]

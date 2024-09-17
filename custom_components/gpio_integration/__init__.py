@@ -16,6 +16,7 @@ PLATFORMS = [
     Platform.BINARY_SENSOR,
     Platform.SWITCH,
     Platform.LIGHT,
+    Platform.FAN,
 ]
 
 # Schema to validate the configuration for this integration

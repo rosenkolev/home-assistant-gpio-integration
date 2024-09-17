@@ -7,12 +7,12 @@ from custom_components.gpio_integration.config_schema import (
     CONF_FREQUENCY,
     CONF_NAME,
     CONF_PORT,
-    LightConfig,
+    PwmConfig,
 )
 
 
 def __create_config(port=None, default_state=False, frequency=50):
-    return LightConfig(
+    return PwmConfig(
         {
             CONF_NAME: "Test Name",
             CONF_PORT: mocked.get_next_pin() if port is None else port,
@@ -67,7 +67,7 @@ def test__GpioLight_LED_should_init_default_state():
 
 
 @patch("homeassistant.components.light.LightEntity", mocked.MockedBaseEntity)
-def test__GpioLight_LED_should_turn_on_off():
+def test__GpioLight_LED_should_turn_led_on_off():
     import custom_components.gpio_integration.light as base
 
     proxy = mocked.MockedCreatePin()
@@ -86,6 +86,25 @@ def test__GpioLight_LED_should_turn_on_off():
 
 
 @patch("homeassistant.components.light.LightEntity", mocked.MockedBaseEntity)
+def test__GpioLight_LED_should_turn_bulb_on_off():
+    import custom_components.gpio_integration.light as base
+
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "create_pin", proxy.mock):
+        gpio = base.GpioLight(__create_config(frequency=0))
+
+        gpio.turn_on()
+        assert proxy.pin.data["write"] is True
+        assert gpio.brightness == 255
+        assert gpio.is_on is True
+
+        gpio.turn_off()
+        assert proxy.pin.data["write"] is False
+        assert gpio.brightness == 0
+        assert gpio.is_on is False
+
+
+@patch("homeassistant.components.light.LightEntity", mocked.MockedBaseEntity)
 def test__GpioLight_LED_on_off_should_write_ha():
     import custom_components.gpio_integration.light as base
 
@@ -98,3 +117,25 @@ def test__GpioLight_LED_on_off_should_write_ha():
     gpio.ha_state_write = False
     gpio.turn_off()
     assert gpio.ha_state_update_scheduled is True
+
+
+@patch("homeassistant.components.light.LightEntity", mocked.MockedBaseEntity)
+def test__GpioLight_LED_should_set_brightness():
+    import custom_components.gpio_integration.light as base
+
+    base.ATTR_BRIGHTNESS = "BRIGHTNESS"
+
+    proxy = mocked.MockedCreatePin()
+    pin = mocked.get_next_pin()
+    with patch.object(base, "create_pin", proxy.mock):
+        gpio = base.GpioLight(__create_config(port=pin, frequency=100))
+
+        gpio.turn_on(**{"BRIGHTNESS": 130})
+        assert proxy.pin.data["write_pwm"] == 0.5098
+        assert gpio.brightness == 130
+        assert gpio.is_on is True
+
+        gpio.turn_off(**{"BRIGHTNESS": 0})
+        assert proxy.pin.data["write_pwm"] == 0
+        assert gpio.brightness == 0
+        assert gpio.is_on is False

@@ -79,6 +79,7 @@ CONF_TYPES: dict = {
     "Binary sensor": "binary_sensor",
     "Switch": "switch",
     "Light": "light",
+    "Fan": "fan",
 }
 
 MAIN_SCHEMA = vol.Schema(
@@ -374,6 +375,28 @@ def validate_light_data(data):
     return v_name(data[CONF_NAME]) and v_pin(data[CONF_PORT])
 
 
+## FAN SCHEMA
+
+
+def create_fan_schema(data: dict) -> vol.Schema:
+    return create_light_schema(data)
+
+
+FAN_SCHEMA = create_fan_schema(
+    {
+        CONF_NAME: None,
+        CONF_PORT: None,
+        CONF_FREQUENCY: 100,
+        CONF_DEFAULT_STATE: False,
+        CONF_UNIQUE_ID: "",
+    }
+)
+
+
+def validate_fan_data(data):
+    return v_name(data[CONF_NAME]) and v_pin(data[CONF_PORT])
+
+
 ## CONFIG CLASSES
 
 
@@ -439,7 +462,7 @@ class SwitchConfig:
         self.unique_id: str = get_unique_id(data)
 
 
-class LightConfig:
+class PwmConfig:
     def __init__(self, data: dict):
         self.name: str = data[CONF_NAME]
         self.port: int = data[CONF_PORT]

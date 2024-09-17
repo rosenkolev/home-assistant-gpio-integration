@@ -4,7 +4,7 @@ from time import sleep
 from homeassistant.const import Platform
 
 from .config_schema import (
-    LightConfig,
+    PwmConfig,
     RollerConfig,
     SensorConfig,
     SwitchConfig,
@@ -38,8 +38,11 @@ class Hub:
             self.config = SwitchConfig(configs)
             self.platforms = [Platform.SWITCH]
         elif self.type == "light":
-            self.config = LightConfig(configs)
+            self.config = PwmConfig(configs)
             self.platforms = [Platform.LIGHT]
+        elif self.type == "fan":
+            self.config = PwmConfig(configs)
+            self.platforms = [Platform.FAN]
 
     @property
     def is_cover(self) -> bool:

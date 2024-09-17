@@ -70,6 +70,17 @@
           "default_state": "Default state (unchecked = off, checked = on)",
           "unique_id": "Unique ID"
         }
+      },
+      "fen": {
+        "title": "Setup Fen",
+        "description": "Enter your GPIO data for the fen",
+        "data": {
+          "name": "Name",
+          "port": "GPIO pin",
+          "frequency": "The frequency of the PWM signal or 0/None",
+          "default_state": "Default state (unchecked = off, checked = on)",
+          "unique_id": "Unique ID"
+        }
       }
     },
     "error": {

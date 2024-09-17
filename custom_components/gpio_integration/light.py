@@ -7,7 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .config_schema import LightConfig
+from .config_schema import PwmConfig
 from .const import DOMAIN, get_logger
 from .gpio.pin_factory import create_pin
 from .hub import Hub
@@ -29,7 +29,7 @@ async def async_setup_entry(
 class GpioLight(LightEntity):
     """Representation of a Raspberry Pi GPIO."""
 
-    def __init__(self, config: LightConfig) -> None:
+    def __init__(self, config: PwmConfig) -> None:
         """Initialize the pin."""
 
         self._attr_name = config.name
@@ -42,23 +42,39 @@ class GpioLight(LightEntity):
             frequency=config.frequency,
         )
 
-        self._is_led = self._io.pwm
-        mode = ColorMode.BRIGHTNESS if self._is_led else ColorMode.ONOFF
+        mode = ColorMode.BRIGHTNESS if self._io.pwm else ColorMode.ONOFF
         self._attr_supported_color_modes = {mode}
         self._attr_color_mode = mode
+        self._brightness: int = -1
 
-        self._is_on = config.default_state
-        self._brightness: int = HIGH_BRIGHTNESS if self._is_on else 0
+        self.brightness = HIGH_BRIGHTNESS if config.default_state else 0
+
+    @property
+    def led(self) -> bool:
+        """Return if light is LED."""
+        return self._io.pwm
 
     @property
     def is_on(self):
         """Return true if device is on."""
-        return self._is_on
+        return self._brightness > 0
 
     @property
     def brightness(self):
         """Return the brightness property."""
         return self._brightness
+
+    @brightness.setter
+    def brightness(self, value):
+        """Set the brightness property."""
+        if value != self._brightness:
+            self._brightness = value
+            self._io.state = self._to_state(value) if self.led else self.is_on
+            self.schedule_update_ha_state()
+            _LOGGER.debug(f"{self._io!s} light set to {self._io.state}")
+
+    def _to_state(self, value):
+        return round(float(value / HIGH_BRIGHTNESS), 4)
 
     async def async_will_remove_from_hass(self) -> None:
         """On entity remove release the GPIO resources."""
@@ -66,30 +82,11 @@ class GpioLight(LightEntity):
         await super().async_will_remove_from_hass()
 
     def turn_on(self, **kwargs):
-        """Turn on a led."""
-        state: float | bool | None = None
-        brightness = None
-        if self._is_led:
-            brightness = kwargs.get(ATTR_BRIGHTNESS, HIGH_BRIGHTNESS)
-            if brightness != self._brightness:
-                self._brightness = brightness
-                state = float(brightness / HIGH_BRIGHTNESS)
-        elif not self._is_on:
-            state = True
-            brightness = 255
-
-        if state is not None:
-            self._brightness = brightness
-            self._io.state = state
-            self._is_on = True
-            self.schedule_update_ha_state()
-            _LOGGER.debug(f"light on pin {self._io.pin} set to {brightness}")
+        """Turn on."""
+        self.brightness = kwargs.get(ATTR_BRIGHTNESS, HIGH_BRIGHTNESS)
 
     def turn_off(self, **kwargs):
-        """Turn off a LED."""
+        """Turn off."""
         if self.is_on:
-            self._brightness = 0
-            self._io.state = 0
-            self._is_on = False
-            self.schedule_update_ha_state()
-            _LOGGER.debug(f"light on pin {self._io.pin} turn off")
+            self.brightness = 0
+            _LOGGER.debug(f"{self._io!s} light turn off")
