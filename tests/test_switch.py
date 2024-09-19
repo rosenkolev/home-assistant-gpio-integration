@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import mocked_models as mocked
+import pytest
 
 from custom_components.gpio_integration.config_schema import (
     CONF_DEFAULT_STATE,
@@ -97,3 +98,16 @@ def test__GpioSwitch_on_off_should_write_ha():
     gpio.ha_state_write = False
     gpio.turn_off()
     assert gpio.ha_state_write
+
+
+@pytest.mark.asyncio
+@patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
+async def test__GpioSwitch_will_close_pin():
+    import custom_components.gpio_integration.switch as base
+
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "create_pin", proxy.mock):
+        gpio = base.GpioSwitch(__create_config())
+
+        await gpio.async_will_remove_from_hass()
+        assert proxy.pin.data["close"] is True

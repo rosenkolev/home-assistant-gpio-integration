@@ -28,7 +28,7 @@ from .config_schema import (
     validate_switch_data,
     validate_toggle_cover_data,
 )
-from .const import DOMAIN, get_logger
+from .core import DOMAIN, get_logger
 
 _LOGGER = get_logger()
 

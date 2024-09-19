@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .config_schema import PwmConfig
-from .const import DOMAIN, get_logger
+from .core import DOMAIN, get_logger
 from .gpio.pin_factory import create_pin
 from .hub import Hub
 
@@ -82,3 +82,8 @@ class GpioFan(FanEntity):
             self._io.state = percentage / 100
             self.schedule_update_ha_state()
             _LOGGER.debug(f"{self._io!s} set to {percentage}")
+
+    async def async_will_remove_from_hass(self) -> None:
+        """On entity remove release the GPIO resources."""
+        await self._io.async_close()
+        await super().async_will_remove_from_hass()

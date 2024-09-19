@@ -12,7 +12,7 @@ from homeassistant.const import (
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import selector
 
-from .const import DOMAIN
+from .core import DOMAIN
 
 CONF_COVERS = "covers"
 CONF_RELAY_UP_PIN = "up_pin"

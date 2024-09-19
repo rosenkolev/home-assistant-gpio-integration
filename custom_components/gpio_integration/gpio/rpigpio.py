@@ -4,7 +4,7 @@ from typing import Callable
 
 from RPi import GPIO
 
-from custom_components.gpio_integration.const import get_logger
+from custom_components.gpio_integration.core import get_logger
 
 from . import BounceType, EdgesType, ModeType, Pin, PinFactory, PullType
 

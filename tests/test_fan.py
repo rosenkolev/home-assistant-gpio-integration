@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import mocked_models as mocked
+import pytest
 
 from custom_components.gpio_integration.config_schema import (
     CONF_DEFAULT_STATE,
@@ -22,15 +23,8 @@ def __create_config(port=None, default_state=False, frequency=100):
     )
 
 
-class FanEntityFeature:
-    SET_SPEED = 1
-    TURN_ON = 2
-    TURN_OFF = 4
-
-
 @patch("custom_components.gpio_integration.gpio.pin_factory.create_pin", Mock())
 @patch("homeassistant.components.fan.FanEntity", mocked.MockedBaseEntity)
-@patch("homeassistant.components.fan.FanEntityFeature", FanEntityFeature())
 def test__GpioFan_should_init_default():
     import custom_components.gpio_integration.fan as base
 
@@ -46,7 +40,6 @@ def test__GpioFan_should_init_default():
 
 @patch("custom_components.gpio_integration.gpio.pin_factory.create_pin", Mock())
 @patch("homeassistant.components.fan.FanEntity", mocked.MockedBaseEntity)
-@patch("homeassistant.components.fan.FanEntityFeature", FanEntityFeature())
 def test__GpioFan_should_init_pwm():
     import custom_components.gpio_integration.fan as base
 
@@ -61,7 +54,6 @@ def test__GpioFan_should_init_pwm():
 
 @patch("custom_components.gpio_integration.gpio.pin_factory.create_pin", Mock())
 @patch("homeassistant.components.fan.FanEntity", mocked.MockedBaseEntity)
-@patch("homeassistant.components.fan.FanEntityFeature", FanEntityFeature())
 def test__GpioFan_should_init_default_state():
     from custom_components.gpio_integration.fan import GpioFan
 
@@ -72,7 +64,6 @@ def test__GpioFan_should_init_default_state():
 
 
 @patch("homeassistant.components.fan.FanEntity", mocked.MockedBaseEntity)
-@patch("homeassistant.components.fan.FanEntityFeature", FanEntityFeature())
 def test__GpioFan_should_turn_on_off():
     import custom_components.gpio_integration.fan as base
 
@@ -92,7 +83,6 @@ def test__GpioFan_should_turn_on_off():
 
 
 @patch("homeassistant.components.fan.FanEntity", mocked.MockedBaseEntity)
-@patch("homeassistant.components.fan.FanEntityFeature", FanEntityFeature())
 def test__GpioFan_should_turn_set_percentage():
     import custom_components.gpio_integration.fan as base
 
@@ -112,7 +102,6 @@ def test__GpioFan_should_turn_set_percentage():
 
 
 @patch("homeassistant.components.fan.FanEntity", mocked.MockedBaseEntity)
-@patch("homeassistant.components.fan.FanEntityFeature", FanEntityFeature())
 def test__GpioFan_should_turn_set_attr_percentage():
     import custom_components.gpio_integration.fan as base
 
@@ -126,3 +115,16 @@ def test__GpioFan_should_turn_set_attr_percentage():
         assert proxy.pin.data["write_pwm"] == 0.75
         assert gpio.percentage == 75
         assert gpio.is_on is True
+
+
+@pytest.mark.asyncio
+@patch("homeassistant.components.fan.FanEntity", mocked.MockedBaseEntity)
+async def test__GpioFan_will_close_pin():
+    import custom_components.gpio_integration.fan as base
+
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "create_pin", proxy.mock):
+        gpio = base.GpioFan(__create_config())
+
+        await gpio.async_will_remove_from_hass()
+        assert proxy.pin.data["close"] is True

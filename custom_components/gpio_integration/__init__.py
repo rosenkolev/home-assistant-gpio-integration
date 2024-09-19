@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
 from .config_schema import DOMAIN_DEFAULT_CONFIG
-from .const import DOMAIN
+from .core import DOMAIN
 from .gpio import close_all_pins, set_config_options
 from .hub import Hub
 

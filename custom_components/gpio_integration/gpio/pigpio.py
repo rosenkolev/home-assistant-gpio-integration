@@ -2,7 +2,7 @@ from typing import Type
 
 import pigpio
 
-from custom_components.gpio_integration.const import get_logger
+from custom_components.gpio_integration.core import get_logger
 
 from . import (
     BounceType,

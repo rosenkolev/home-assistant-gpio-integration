@@ -2,15 +2,15 @@
 
 from homeassistant.components.cover import (
     ATTR_POSITION,
-    CoverEntity,
     CoverDeviceClass,
+    CoverEntity,
     CoverEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .core import DOMAIN
 from .hub import BasicToggleRoller, Hub, Roller
 
 

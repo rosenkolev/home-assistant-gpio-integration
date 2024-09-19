@@ -10,7 +10,7 @@ from .config_schema import (
     SwitchConfig,
     ToggleRollerConfig,
 )
-from .const import get_logger
+from .core import get_logger
 from .gpio.pin_factory import create_pin
 
 _LOGGER = get_logger()

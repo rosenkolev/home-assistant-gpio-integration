@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import mocked_models as mocked
+import pytest
 
 from custom_components.gpio_integration.config_schema import (
     CONF_DEFAULT_STATE,
@@ -36,6 +37,7 @@ def test__GpioLight_should_init_default_light():
         assert gpio.brightness == 0
         assert base.ColorMode.ONOFF in gpio._attr_supported_color_modes
         assert gpio._attr_color_mode == base.ColorMode.ONOFF
+        assert gpio
         create_pin.mock.assert_called_once_with(pin, mode="output", frequency=0)
 
 
@@ -123,19 +125,101 @@ def test__GpioLight_LED_on_off_should_write_ha():
 def test__GpioLight_LED_should_set_brightness():
     import custom_components.gpio_integration.light as base
 
-    base.ATTR_BRIGHTNESS = "BRIGHTNESS"
-
     proxy = mocked.MockedCreatePin()
     pin = mocked.get_next_pin()
     with patch.object(base, "create_pin", proxy.mock):
         gpio = base.GpioLight(__create_config(port=pin, frequency=100))
 
-        gpio.turn_on(**{"BRIGHTNESS": 130})
+        gpio.turn_on(**{"A_BRIGHTNESS": 130})
         assert proxy.pin.data["write_pwm"] == 0.5098
         assert gpio.brightness == 130
         assert gpio.is_on is True
 
-        gpio.turn_off(**{"BRIGHTNESS": 0})
+        gpio.turn_off(**{"A_BRIGHTNESS": 0})
         assert proxy.pin.data["write_pwm"] == 0
         assert gpio.brightness == 0
         assert gpio.is_on is False
+
+
+def __check_blink(gpio, pin, writes, times):
+    assert pin.data["write"] is False
+    assert gpio._blink_thread is not None
+    assert gpio._blink_thread.started is True
+
+    thread: mocked.MockedStoppableThread = gpio._blink_thread
+
+    assert thread is not None
+    assert thread.started is True
+
+    pin.writes.clear()
+    gpio._blinker(thread.args[0])
+    assert writes == pin.writes
+    assert thread.waits == times
+
+
+@patch("homeassistant.components.light.LightEntity", mocked.MockedBaseEntity)
+def test__GpioLight_should_pulse_slow():
+    import custom_components.gpio_integration.light as base
+
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "StoppableThread", mocked.MockedStoppableThread):
+        with patch.object(base, "create_pin", proxy.mock):
+            gpio = base.GpioLight(__create_config(frequency=0))
+
+            gpio.turn_on(**{"A_FLASH": "F_SHORT"})
+
+            assert gpio.brightness == 0
+            assert gpio.is_on is False
+
+            __check_blink(gpio, proxy.pin, [True, False] * 2, [0.5] * 4)
+
+
+@patch("homeassistant.components.light.LightEntity", mocked.MockedBaseEntity)
+def test__GpioLight_should_pulse_fast():
+    import custom_components.gpio_integration.light as base
+
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "StoppableThread", mocked.MockedStoppableThread):
+        with patch.object(base, "create_pin", proxy.mock):
+            gpio = base.GpioLight(__create_config(frequency=0))
+
+            gpio.turn_on(**{"A_FLASH": "F_FAST"})
+
+            assert gpio.brightness == 0
+            assert gpio.is_on is False
+
+            __check_blink(
+                gpio,
+                proxy.pin,
+                [True, False] * 4,
+                [1.2] * 8,
+            )
+
+
+@pytest.mark.asyncio
+@patch("homeassistant.components.light.LightEntity", mocked.MockedBaseEntity)
+async def test__GpioLight_will_close_pin():
+    import custom_components.gpio_integration.light as base
+
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "create_pin", proxy.mock):
+        gpio = base.GpioLight(__create_config())
+
+        await gpio.async_will_remove_from_hass()
+        assert proxy.pin.data["close"] is True
+
+
+@pytest.mark.asyncio
+@patch("homeassistant.components.light.LightEntity", mocked.MockedBaseEntity)
+async def test__GpioLight_will_stop_blinking():
+    import custom_components.gpio_integration.light as base
+
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "StoppableThread", mocked.MockedStoppableThread):
+        with patch.object(base, "create_pin", proxy.mock):
+            gpio = base.GpioLight(__create_config())
+
+            gpio.turn_on(**{"A_FLASH": "F_FAST"})
+
+            await gpio.async_will_remove_from_hass()
+            assert gpio._blink_thread is None
