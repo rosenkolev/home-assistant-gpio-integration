@@ -37,7 +37,6 @@ def test__GpioLight_should_init_default_light():
         assert gpio.brightness == 0
         assert base.ColorMode.ONOFF in gpio._attr_supported_color_modes
         assert gpio._attr_color_mode == base.ColorMode.ONOFF
-        assert gpio
         create_pin.mock.assert_called_once_with(pin, mode="output", frequency=0)
 
 
@@ -66,6 +65,7 @@ def test__GpioLight_LED_should_init_default_state():
 
     assert gpio.is_on is True
     assert gpio.brightness == 255
+    assert gpio.ha_state_update_scheduled is False
 
 
 @patch("homeassistant.components.light.LightEntity", mocked.MockedBaseEntity)

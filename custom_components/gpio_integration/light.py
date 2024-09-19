@@ -77,7 +77,7 @@ class GpioLight(LightEntity):
         self._attr_unique_id = config.unique_id
         self._attr_should_poll = False
         self._attr_effect = EFFECT_OFF
-        self._attr_effect_list = ["blink"]
+        self._attr_effect_list = [EFFECT_OFF, "Blink"]
         self._attr_supported_features = (
             LightEntityFeature.FLASH | LightEntityFeature.EFFECT
         )
@@ -94,8 +94,7 @@ class GpioLight(LightEntity):
         self._brightness: int = -1
         self._blink_thread: StoppableThread | None = None
         self._effect = BlinkEffect()
-
-        self.brightness = HIGH_BRIGHTNESS if config.default_state else 0
+        self._set_brightness(HIGH_BRIGHTNESS if config.default_state else 0, False)
 
     @property
     def led(self) -> bool:
@@ -115,10 +114,15 @@ class GpioLight(LightEntity):
     @brightness.setter
     def brightness(self, value):
         """Set the brightness property."""
+        self._set_brightness(value)
+
+    def _set_brightness(self, value, schedule_update=True):
+        """Set the brightness property."""
         if value != self._brightness:
             self._brightness = value
             self._io.state = self._to_state(value) if self.led else self.is_on
-            self.schedule_update_ha_state()
+            if schedule_update:
+                self.schedule_update_ha_state()
             _LOGGER.debug(f"{self._io!s} light set to {self._io.state}")
 
     def _to_state(self, value):

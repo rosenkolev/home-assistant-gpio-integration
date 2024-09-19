@@ -18,7 +18,8 @@ def get_logger():
 class StoppableThread(Thread):
     def __init__(self, target, name: str | None = None, args=(), kwargs=None):
         self.stopping = Event()
-        super().__init__(None, target, name, args, kwargs, demon=True)
+        super().__init__(None, target, name, args, kwargs)
+        self.daemon = True
 
     def start(self):
         self.stopping.clear()

@@ -14,7 +14,7 @@
         {
             "label": "lint",
             "type": "shell",
-            "command": "ruff check ."
+            "command": "python -m ruff check ."
         },
         {
             "label": "test",

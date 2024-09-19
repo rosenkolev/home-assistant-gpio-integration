@@ -290,7 +290,7 @@ The Fen entity is similar to `Light` because it relays on PWM and have the same 
 
 ##### Options
 
-See `Light` entity.
+See `Light` (_features:_ `FLASH` and `Effect`) entity.
 
 ## Development
 

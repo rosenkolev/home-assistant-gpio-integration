@@ -1,4 +1,3 @@
-from threading import Event
 from typing import Callable
 from unittest.mock import Mock
 
