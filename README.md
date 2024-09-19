@@ -21,6 +21,7 @@ The `gpio_integration` integration supports the following platforms: Binary Sens
 * [x] Number
 * [x] Switch
 * [x] Light
+* [x] Fen
 
 ## Installation
 
@@ -72,9 +73,9 @@ To configure the integration use the UI
 
 #### Binary Sensor
 
-Binary sensor set state based on GPIO pin input (ON = 5v, OFF = 0v) or based on RISING/FALLING events in the case of `Motion` or `Vibration` sensors.
+Binary sensor set state based on GPIO pin input (ON = 3.3v, OFF = 0v) or based on RISING/FALLING events in the case of `Motion` or `Vibration` sensors.
 
-RISING/FALLING events are when pin input have a current goes from 0v to 5v (rising) or goes down from 5v to 0 (falling).
+RISING/FALLING events are when pin input have a current goes from 0v to 3.3v (rising) or goes down from 3.3v to 0 (falling).
 
 ##### Examples
 
@@ -98,7 +99,7 @@ title: Raspberry Pi 4 Motion Sensor
 ---
 flowchart LR
   subgraph GPIO
-    A["PIN (+5v)"]
+    A["PIN (+3.3v)"]
     B["PIN (GDN)"]
     C[GPIO 26]
   end
@@ -116,7 +117,7 @@ flowchart LR
 | GPIO pin | The number of the input pin |
 | Pull mode | The default input mode (up/down) [default `up`]. |
 | Bounce time (in milliseconds) | A time between GPIO input updates |
-| Invert logic | A invert logic. When checked, and the GPIO input is HIGH (5v) the state of the sensor will be `Off` (0v = `On`). Only apply for non motion/vibration sensors, because this sensors rely on edge events [default `False`]. |
+| Invert logic | A invert logic. When checked, and the GPIO input is HIGH (3.3v) the state of the sensor will be `Off` (0v = `On`). Only apply for non motion/vibration sensors, because this sensors rely on edge events [default `False`]. |
 | Mode | Sensor type [default `Door`] |
 | Default state | The initial state of the sensor, before the GPIO input is read [default `False`/`Off`] |
 | Event timeout in seconds | The time, sensor data is considered up to date. For example when set to 3sec and motion is not detected from motion sensor for 3sec, the state is considered `Off` or `no motion`. Only applicable for `Motion`/`Vibration` mode |
@@ -136,7 +137,7 @@ title: Raspberry Pi 4 GPIO Example
 ---
 flowchart TB
   subgraph GPIO
-    A["PIN (+5v)"]
+    A["PIN (+3.3v)"]
     C[GPIO 23]
     E[GPIO 25]
     D[GPIO 24]
@@ -156,9 +157,9 @@ flowchart TB
 | - | - |
 | Name | The name of the entity |
 | Up pin | The GPIO pin number for the up relay/button |
-| GPIO up pin invert(default 5v) | When checked, the up pin output will be set to LOW (0v) when button is pressed and HIGH (5v) when not pressed [default `False`] |
+| GPIO up pin invert(default 3.3v) | When checked, the up pin output will be set to LOW (0v) when button is pressed and HIGH (3.3v) when not pressed [default `False`] |
 | Down pin | The GPIO pin number for the down relay/button |
-| GPIO down pin invert(default 5v) | The same as the up invert [default `False`] |
+| GPIO down pin invert(default 3.3v) | The same as the up invert [default `False`] |
 | Relay time in seconds | The time in seconds a relay is active for the shade/cover/blind to be fully open/closed. Example, when set to 10 sec it's considered that to open a shade 50% we need to hold the UP button for 5sec [default `15`]  |
 | Pin closed sensor | OPTIONAL, Input GPIO pin for a door closed sensor. When provided the state is set based on the sensor, otherwise it's assumed to be closed on initialization. [default `0`] |
 | Mode | Cover type [default `Blind`] |
@@ -178,7 +179,7 @@ title: Raspberry Pi 4 GPIO Example
 ---
 flowchart TB
   subgraph GPIO
-    A["PIN (+5v)"]
+    A["PIN (+3.3v)"]
     C[GPIO 23]
     E[GPIO 25]
   end
@@ -195,7 +196,7 @@ flowchart TB
 | - | - |
 | Name | The name of the entity |
 | GPIO pin | The GPIO pin number for the relay/button |
-| Invert logic | When checked, the pin output will be set to LOW (0v) when button is pressed and HIGH (5v) when not pressed [default `False`] |
+| Invert logic | When checked, the pin output will be set to LOW (0v) when button is pressed and HIGH (3.3v) when not pressed [default `False`] |
 | relay time in seconds | The time the button is being pressed [default `0.4s`] |
 | Pin closed sensor | OPTIONAL, Input GPIO pin for a door closed sensor. When provided the state is set based on the sensor, otherwise it's assumed to be closed on initialization. [default `0`] |
 | Mode | Cover type [default `Blind`] |
@@ -227,7 +228,7 @@ flowchart LR
 | - | - |
 | Name | The name of the entity |
 | GPIO pin | The GPIO pin number |
-| Invert logic | When checked, the pin output will be set to LOW (0v) when switch is `On` and HIGH (5v) when switch is `Off` [default `False`] |
+| Invert logic | When checked, the pin output will be set to LOW (0v) when switch is `On` and HIGH (3.3v) when switch is `Off` [default `False`] |
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
@@ -251,6 +252,27 @@ flowchart LR
   C ---- B
 ```
 
+##### PWM
+
+The LED lights support different brightness levels based on Pulse-Wide Modulation. This means setting brightness based on impulses and not voltage:
+
+```text
+
+frequency |===================||==============|
+cycle     |======|
+
+HIGH - >  ,--.   ,--.   ,--.   ,--.   ,--.
+          |  |   |  |   |  |   |  |   |  |
+LOW  -----'  `---'  `---'  `---'  `---'  `---
+
+```
+
+Frequency 1Hz means 1 cycle per second.
+
+Cycle is a combination from a HIGH and LOW state.
+In the example above We have 2 time units HIGH and 3 units LOW.
+This should indicate LED is at 40% brightness (2/5 every cycle).
+
 ##### Options
 
 |  | |
@@ -260,6 +282,15 @@ flowchart LR
 | Frequency | The pulse-wide modulation PWM frequency used for LED lights, when set greater then 0 it's assumed it's a led light, when `None` or 0 it's assumed normal light bulb. [default `0`] |
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
+
+#### Fen
+
+Creates a home assistant `Fen` entity, that supports percentage and on/off state.
+The Fen entity is similar to `Light` because it relays on PWM and have the same options.
+
+##### Options
+
+See `Light` (_features:_ `FLASH` and `Effect`) entity.
 
 ## Development
 

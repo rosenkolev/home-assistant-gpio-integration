@@ -7,7 +7,7 @@ import gpiod
 from gpiod.line import Bias, Direction, Edge
 from gpiod.line_settings import LineSettings
 
-from custom_components.gpio_integration.const import DOMAIN, get_logger
+from custom_components.gpio_integration.core import DOMAIN, get_logger
 
 from . import BounceType, EdgesType, ModeType, Pin, PinFactory, PullType
 

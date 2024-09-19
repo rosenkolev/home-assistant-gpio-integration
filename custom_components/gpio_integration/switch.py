@@ -3,10 +3,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .hub import Hub
-from .const import DOMAIN, get_logger
 from .config_schema import SwitchConfig
+from .core import DOMAIN, get_logger
 from .gpio.pin_factory import create_pin
+from .hub import Hub
 
 _LOGGER = get_logger()
 

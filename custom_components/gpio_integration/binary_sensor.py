@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
 from .config_schema import SensorConfig
-from .const import DOMAIN, get_logger
+from .core import DOMAIN, get_logger
 from .gpio.pin_factory import create_pin
 from .hub import Hub
 

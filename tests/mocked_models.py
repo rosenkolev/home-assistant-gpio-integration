@@ -34,6 +34,7 @@ class MockedPin(Pin):
         support_pwm=True,
     ):
         self.support_pwm = support_pwm
+        self.writes = []
         self.data = {
             "connect": False,
             "read": None,
@@ -65,6 +66,7 @@ class MockedPin(Pin):
         self.data["disable_pwm"] = True
 
     def _write(self, value):
+        self.writes.append(value)
         self.data["write"] = value
 
     def _write_pwm(self, value: float) -> None:
@@ -125,3 +127,22 @@ class MockedBaseEntity:
     def schedule_update_ha_state(self, force_refresh=False):
         self.ha_state_update_scheduled = True
         self.ha_state_update_scheduled_force_refresh = False
+
+    async def async_will_remove_from_hass(self) -> None:
+        pass
+
+
+class MockedStoppableThread:
+    def __init__(self, target, name: str | None = None, args=(), kwargs=None):
+        self.args: tuple[dict,] = args
+        self.waits = []
+        self.started = False
+
+    def start(self):
+        self.started = True
+
+    def stop(self):
+        self.started = False
+
+    def wait(self, timeout: int):
+        self.waits.append(timeout)

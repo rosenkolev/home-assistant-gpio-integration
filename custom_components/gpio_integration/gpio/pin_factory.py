@@ -3,7 +3,7 @@
 from typing import Callable, Type
 
 from custom_components.gpio_integration.config_schema import CONF_INTERFACE
-from custom_components.gpio_integration.const import get_logger
+from custom_components.gpio_integration.core import get_logger
 
 from . import (
     BounceType,
@@ -12,9 +12,9 @@ from . import (
     Pin,
     PinFactory,
     PullType,
+    get_config_option,
     get_default_pin_factory,
     set_default_pin_factory,
-    get_config_option,
 )
 
 _LOGGER = get_logger()

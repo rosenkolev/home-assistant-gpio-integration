@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import mocked_models as mocked
+import pytest
 
 from custom_components.gpio_integration.config_schema import (
     CONF_BOUNCE_TIME,
@@ -99,3 +100,18 @@ def test__GpioBinarySensor_edge_events_should_trigger_update():
 
         proxy.pin._call_when_changed(0)
         assert gpio.ha_state_update_scheduled is True
+
+
+@pytest.mark.asyncio
+@patch(
+    "homeassistant.components.binary_sensor.BinarySensorEntity", mocked.MockedBaseEntity
+)
+async def test__GpioBinarySensor_will_close_pin():
+    import custom_components.gpio_integration.binary_sensor as base
+
+    proxy = mocked.MockedCreatePin()
+    with patch.object(base, "create_pin", proxy.mock):
+        gpio = base.GpioBinarySensor(__create_config())
+
+        await gpio.async_will_remove_from_hass()
+        assert proxy.pin.data["close"] is True

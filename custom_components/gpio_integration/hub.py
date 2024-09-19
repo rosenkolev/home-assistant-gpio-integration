@@ -4,13 +4,13 @@ from time import sleep
 from homeassistant.const import Platform
 
 from .config_schema import (
-    LightConfig,
+    PwmConfig,
     RollerConfig,
     SensorConfig,
     SwitchConfig,
     ToggleRollerConfig,
 )
-from .const import get_logger
+from .core import get_logger
 from .gpio.pin_factory import create_pin
 
 _LOGGER = get_logger()
@@ -38,8 +38,11 @@ class Hub:
             self.config = SwitchConfig(configs)
             self.platforms = [Platform.SWITCH]
         elif self.type == "light":
-            self.config = LightConfig(configs)
+            self.config = PwmConfig(configs)
             self.platforms = [Platform.LIGHT]
+        elif self.type == "fan":
+            self.config = PwmConfig(configs)
+            self.platforms = [Platform.FAN]
 
     @property
     def is_cover(self) -> bool:
