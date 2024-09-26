@@ -2,14 +2,14 @@ from unittest.mock import Mock, patch
 
 import mocked_models as mocked
 import pytest
+from homeassistant.const import CONF_PORT
 
-from custom_components.gpio_integration.config_schema import (
+from custom_components.gpio_integration.schemas import (
     CONF_DEFAULT_STATE,
     CONF_FREQUENCY,
     CONF_NAME,
-    CONF_PORT,
-    PwmConfig,
 )
+from custom_components.gpio_integration.schemas.pwm import PwmConfig
 
 
 def __create_config(port=None, default_state=False, frequency=50):

@@ -3,15 +3,14 @@ from time import sleep
 
 from homeassistant.const import Platform
 
-from .config_schema import (
-    PwmConfig,
-    RollerConfig,
-    SensorConfig,
-    SwitchConfig,
-    ToggleRollerConfig,
-)
+from .controllers.sensor import SensorsHub
 from .core import get_logger
 from .gpio.pin_factory import create_pin
+from .schemas.binary_sensor import BinarySensorConfig
+from .schemas.cover import RollerConfig, ToggleRollerConfig
+from .schemas.pwm import PwmConfig
+from .schemas.sensor import AnalogSensorConfig
+from .schemas.switch import SwitchConfig
 
 _LOGGER = get_logger()
 
@@ -32,7 +31,7 @@ class Hub:
             self.controller = BasicToggleRoller(self.config)
             self.platforms = [Platform.COVER]
         elif self.type == "binary_sensor":
-            self.config = SensorConfig(configs)
+            self.config = BinarySensorConfig(configs)
             self.platforms = [Platform.BINARY_SENSOR]
         elif self.type == "switch":
             self.config = SwitchConfig(configs)
@@ -43,6 +42,10 @@ class Hub:
         elif self.type == "fan":
             self.config = PwmConfig(configs)
             self.platforms = [Platform.FAN]
+        elif self.type == "analog_sensor":
+            self.config = AnalogSensorConfig(configs)
+            self.controller = SensorsHub(self.config)
+            self.platforms = [Platform.SENSOR]
 
     @property
     def is_cover(self) -> bool:

@@ -1,17 +1,16 @@
 from unittest.mock import patch
 
 import mocked_models as mocked
+from homeassistant.const import CONF_MODE, CONF_PORT
 
 import custom_components.gpio_integration.hub as hub
-from custom_components.gpio_integration.config_schema import (
+from custom_components.gpio_integration.schemas import (
     CONF_INVERT_LOGIC,
-    CONF_MODE,
     CONF_NAME,
     CONF_PIN_CLOSED_SENSOR,
-    CONF_PORT,
     CONF_RELAY_TIME,
-    ToggleRollerConfig,
 )
+from custom_components.gpio_integration.schemas.cover import ToggleRollerConfig
 
 
 def __create_config(port=None, invert_logic=False, closed_sensor=0):

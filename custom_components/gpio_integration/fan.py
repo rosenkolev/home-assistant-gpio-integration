@@ -7,10 +7,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .config_schema import PwmConfig
 from .core import DOMAIN, get_logger
 from .gpio.pin_factory import create_pin
 from .hub import Hub
+from .schemas.pwm import PwmConfig
 
 _LOGGER = get_logger()
 

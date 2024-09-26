@@ -2,22 +2,21 @@ from unittest.mock import patch
 
 import mocked_models as mocked
 import pytest
+from homeassistant.const import CONF_MODE, CONF_PORT
 
-from custom_components.gpio_integration.config_schema import (
+from custom_components.gpio_integration.schemas import (
     CONF_BOUNCE_TIME,
     CONF_DEFAULT_STATE,
     CONF_EDGE_EVENT_TIMEOUT,
     CONF_INVERT_LOGIC,
-    CONF_MODE,
     CONF_NAME,
-    CONF_PORT,
     CONF_PULL_MODE,
-    SensorConfig,
 )
+from custom_components.gpio_integration.schemas.binary_sensor import BinarySensorConfig
 
 
 def __create_config(port=None, default_state=False, invert_logic=False):
-    return SensorConfig(
+    return BinarySensorConfig(
         {
             CONF_NAME: "Test Name",
             CONF_PORT: mocked.get_next_pin() if port is None else port,

@@ -2,8 +2,8 @@
 
 from typing import Callable, Type
 
-from custom_components.gpio_integration.config_schema import CONF_INTERFACE
 from custom_components.gpio_integration.core import get_logger
+from custom_components.gpio_integration.schemas import CONF_INTERFACE
 
 from . import (
     BounceType,

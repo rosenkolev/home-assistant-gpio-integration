@@ -2,14 +2,14 @@ from unittest.mock import Mock, patch
 
 import mocked_models as mocked
 import pytest
+from homeassistant.const import CONF_PORT
 
-from custom_components.gpio_integration.config_schema import (
+from custom_components.gpio_integration.schemas import (
     CONF_DEFAULT_STATE,
     CONF_INVERT_LOGIC,
     CONF_NAME,
-    CONF_PORT,
-    SwitchConfig,
 )
+from custom_components.gpio_integration.schemas.switch import SwitchConfig
 
 
 def __create_config(port=None, default_state=False, invert_logic=False):

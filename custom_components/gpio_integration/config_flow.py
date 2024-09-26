@@ -4,31 +4,31 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 
-from .config_schema import (
+from .core import DOMAIN, get_logger
+from .schemas import InvalidPin, get_unique_id
+from .schemas.binary_sensor import (
     BINARY_SENSOR_SCHEMA,
+    create_binary_sensor_schema,
+    validate_binary_sensor_data,
+)
+from .schemas.cover import (
     COVER_TOGGLE_SCHEMA,
     COVER_UP_DOWN_SCHEMA,
-    FAN_SCHEMA,
-    LIGHT_SCHEMA,
-    MAIN_SCHEMA,
-    SWITCH_SCHEMA,
-    InvalidPin,
-    create_binary_sensor_schema,
     create_cover_up_down_schema,
-    create_fan_schema,
-    create_light_schema,
-    create_switch_schema,
     create_toggle_cover_schema,
-    get_type,
-    get_unique_id,
-    validate_binary_sensor_data,
     validate_cover_up_down_data,
-    validate_fan_data,
-    validate_light_data,
-    validate_switch_data,
     validate_toggle_cover_data,
 )
-from .core import DOMAIN, get_logger
+from .schemas.fan import FAN_SCHEMA
+from .schemas.light import LIGHT_SCHEMA
+from .schemas.main import MAIN_SCHEMA, get_type
+from .schemas.pwm import create_pwm_schema, validate_pwm_data
+from .schemas.sensor import (
+    ANALOG_SENSOR_SCHEMA,
+    create_analog_sensor_schema,
+    validate_analog_sensor_data,
+)
+from .schemas.switch import SWITCH_SCHEMA, create_switch_schema, validate_switch_data
 
 _LOGGER = get_logger()
 
@@ -55,13 +55,18 @@ CONF_ENTITIES: dict = {
     },
     "light": {
         "schema": LIGHT_SCHEMA,
-        "validate": validate_light_data,
-        "schema_builder": create_light_schema,
+        "validate": validate_pwm_data,
+        "schema_builder": create_pwm_schema,
     },
     "fan": {
         "schema": FAN_SCHEMA,
-        "validate": validate_fan_data,
-        "schema_builder": create_fan_schema,
+        "validate": validate_pwm_data,
+        "schema_builder": create_pwm_schema,
+    },
+    "analog_sensor": {
+        "schema": ANALOG_SENSOR_SCHEMA,
+        "validate": validate_analog_sensor_data,
+        "schema_builder": create_analog_sensor_schema,
     },
 }
 
@@ -100,6 +105,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_light()
         elif type == "fan":
             return await self.async_step_light()
+        elif type == "analog_sensor":
+            return await self.async_step_analog_sensor()
 
     async def async_step_cover_up_down(self, data_input=None):
         """Handle the initial step."""
@@ -124,6 +131,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_fan(self, data_input=None):
         """Handle the initial step."""
         return await self.handle_config_data("fan", data_input)
+
+    async def async_step_analog_sensor(self, data_input=None):
+        """Handle the initial step."""
+        return await self.handle_config_data("analog_sensor", data_input)
 
     async def handle_config_data(self, id: str, data_input: dict | None):
         schema = CONF_ENTITIES[id]["schema"]

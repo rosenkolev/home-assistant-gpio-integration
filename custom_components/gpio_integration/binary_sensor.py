@@ -10,10 +10,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
-from .config_schema import SensorConfig
 from .core import DOMAIN, get_logger
 from .gpio.pin_factory import create_pin
 from .hub import Hub
+from .schemas.binary_sensor import BinarySensorConfig
 
 _LOGGER = get_logger()
 
@@ -28,7 +28,7 @@ async def async_setup_entry(
     async_add_entities([create_binary_sensor(hub.config)])
 
 
-def create_binary_sensor(config: SensorConfig):
+def create_binary_sensor(config: BinarySensorConfig):
     """Create binary sensor based on config."""
     if config.mode == "Motion" or config.mode == "Vibration":
         return GpioMotionBinarySensor(config)
@@ -53,7 +53,7 @@ def get_device_class(mode: str) -> BinarySensorDeviceClass:
 class GpioBinarySensorBase(BinarySensorEntity):
     """Represent a binary sensor that uses Raspberry Pi GPIO."""
 
-    def __init__(self, config: SensorConfig) -> None:
+    def __init__(self, config: BinarySensorConfig) -> None:
         """Initialize the RPi binary sensor."""
         self._attr_name = config.name
         self._attr_unique_id = config.unique_id
@@ -87,7 +87,7 @@ class GpioBinarySensorBase(BinarySensorEntity):
 class GpioBinarySensor(GpioBinarySensorBase):
     """Represent a binary sensor that uses Raspberry Pi GPIO."""
 
-    def __init__(self, config: SensorConfig) -> None:
+    def __init__(self, config: BinarySensorConfig) -> None:
         """Initialize the RPi binary sensor."""
         super().__init__(config)
         self.__invert_logic = config.invert_logic
@@ -107,7 +107,7 @@ LAST_MOTION_TIME: dict[int, float | None] = dict()
 class GpioMotionBinarySensor(GpioBinarySensorBase):
     """Represent a motion time of binary sensor that uses Raspberry Pi GPIO."""
 
-    def __init__(self, config: SensorConfig) -> None:
+    def __init__(self, config: BinarySensorConfig) -> None:
         super().__init__(config)
         self.__motion_timeout_sec = config.edge_event_timeout_sec
         self.event_time = None

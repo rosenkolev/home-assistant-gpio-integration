@@ -5,10 +5,10 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
-from .config_schema import DOMAIN_DEFAULT_CONFIG
 from .core import DOMAIN
 from .gpio import close_all_pins, set_config_options
 from .hub import Hub
+from .schemas import DOMAIN_DEFAULT_CONFIG
 
 PLATFORMS = [
     Platform.COVER,
@@ -17,6 +17,7 @@ PLATFORMS = [
     Platform.SWITCH,
     Platform.LIGHT,
     Platform.FAN,
+    Platform.SENSOR,
 ]
 
 # Schema to validate the configuration for this integration
