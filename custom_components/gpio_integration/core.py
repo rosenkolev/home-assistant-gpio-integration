@@ -35,5 +35,9 @@ class StoppableThread(Thread):
 
 
 class GpioEffect:
+    def check_config_value(self, key: str, config: dict) -> None:
+        if key not in config:
+            raise ValueError(f"Effect requires '{key}' parameter")
+
     def compute_state(self, config: dict) -> Iterable[tuple[bool | float, float]]:
         raise NotImplementedError

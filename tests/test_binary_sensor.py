@@ -12,7 +12,10 @@ from custom_components.gpio_integration.schemas import (
     CONF_NAME,
     CONF_PULL_MODE,
 )
-from custom_components.gpio_integration.schemas.binary_sensor import BinarySensorConfig
+from custom_components.gpio_integration.schemas.binary_sensor import (
+    CONF_RELY_ON_EDGE_EVENTS,
+    BinarySensorConfig,
+)
 
 
 def __create_config(port=None, default_state=False, invert_logic=False):
@@ -24,6 +27,7 @@ def __create_config(port=None, default_state=False, invert_logic=False):
             CONF_MODE: "read",
             CONF_BOUNCE_TIME: 5,
             CONF_EDGE_EVENT_TIMEOUT: 10,
+            CONF_RELY_ON_EDGE_EVENTS: False,
             CONF_DEFAULT_STATE: default_state,
             CONF_INVERT_LOGIC: invert_logic,
         }

@@ -3,7 +3,7 @@ from unittest.mock import patch
 import mocked_models as mocked
 from homeassistant.const import CONF_MODE, CONF_PORT
 
-import custom_components.gpio_integration.hub as hub
+import custom_components.gpio_integration.controllers.cover as hub
 from custom_components.gpio_integration.schemas import (
     CONF_INVERT_LOGIC,
     CONF_NAME,
