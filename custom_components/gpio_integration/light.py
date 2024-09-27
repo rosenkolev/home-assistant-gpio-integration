@@ -67,6 +67,26 @@ class BlinkEffect(GpioEffect):
             yield False, config["off_time"]
 
 
+# class PWMLed:
+#     def __init__(self, pin, frequency):
+#         self._io = create_pin(pin, mode="output", frequency=frequency)
+#         self._brightness = 0
+
+#     @property
+#     def brightness(self):
+#         return self._brightness
+
+#     @brightness.setter
+#     def brightness(self, value):
+#         if value != self._brightness:
+#             self._brightness = value
+#             self._io.state = self._to_state(value)
+#             _LOGGER.debug(f"{self._io!s} light set to {self._io.state}")
+
+#     def _to_state(self, value):
+#         return round(float(value / HIGH_BRIGHTNESS), 4)
+
+
 class GpioLight(LightEntity):
     """Representation of a Raspberry Pi GPIO."""
 

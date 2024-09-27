@@ -24,9 +24,12 @@ from .schemas.light import LIGHT_SCHEMA
 from .schemas.main import MAIN_SCHEMA, get_type
 from .schemas.pwm import create_pwm_schema, validate_pwm_data
 from .schemas.sensor import (
-    ANALOG_SENSOR_SCHEMA,
-    create_analog_sensor_schema,
-    validate_analog_sensor_data,
+    ANALOG_LINEAR_SENSOR_SCHEMA,
+    ANALOG_RANGE_SENSOR_SCHEMA,
+    create_analog_linear_sensor_schema,
+    create_analog_range_sensor_schema,
+    validate_analog_liner_sensor_data,
+    validate_analog_range_sensor_data,
 )
 from .schemas.switch import SWITCH_SCHEMA, create_switch_schema, validate_switch_data
 
@@ -64,9 +67,14 @@ CONF_ENTITIES: dict = {
         "schema_builder": create_pwm_schema,
     },
     "analog_sensor": {
-        "schema": ANALOG_SENSOR_SCHEMA,
-        "validate": validate_analog_sensor_data,
-        "schema_builder": create_analog_sensor_schema,
+        "schema": ANALOG_LINEAR_SENSOR_SCHEMA,
+        "validate": validate_analog_liner_sensor_data,
+        "schema_builder": create_analog_linear_sensor_schema,
+    },
+    "analog_range_sensor": {
+        "schema": ANALOG_RANGE_SENSOR_SCHEMA,
+        "validate": validate_analog_range_sensor_data,
+        "schema_builder": create_analog_range_sensor_schema,
     },
 }
 
@@ -107,6 +115,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_light()
         elif type == "analog_sensor":
             return await self.async_step_analog_sensor()
+        elif type == "analog_range_sensor":
+            return await self.async_step_analog_range_sensor()
 
     async def async_step_cover_up_down(self, data_input=None):
         """Handle the initial step."""
@@ -135,6 +145,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_analog_sensor(self, data_input=None):
         """Handle the initial step."""
         return await self.handle_config_data("analog_sensor", data_input)
+
+    async def async_step_analog_range_sensor(self, data_input=None):
+        """Handle the initial step."""
+        return await self.handle_config_data("analog_range_sensor", data_input)
 
     async def handle_config_data(self, id: str, data_input: dict | None):
         schema = CONF_ENTITIES[id]["schema"]

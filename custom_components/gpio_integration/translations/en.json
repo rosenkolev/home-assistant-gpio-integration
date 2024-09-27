@@ -30,7 +30,8 @@
           "bounce_time_in_ms": "Bounce time in milliseconds (default is 50ms)",
           "invert_logic": "Invert logic (normally 3.3v = on, 0v = off)",
           "default_state": "Default state (unchecked = off, checked = on)",
-          "edge_event_timeout": "Event timeout in seconds (only for motion/vibration sensors)",
+          "rely_on_edge_events": "Rely only on edge events (e.g. motion/vibration sensor)",
+          "edge_event_timeout": "Event timeout in seconds",
           "unique_id": "Unique ID"
         }
       },

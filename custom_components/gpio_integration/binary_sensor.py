@@ -16,6 +16,7 @@ from .hub import Hub
 from .schemas.binary_sensor import BinarySensorConfig
 
 _LOGGER = get_logger()
+_LAST_EVENT_TIME: dict[int, float | None] = dict()
 
 
 async def async_setup_entry(
@@ -25,14 +26,7 @@ async def async_setup_entry(
 ) -> None:
     """Add binary sensor for passed config_entry in HA."""
     hub: Hub = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([create_binary_sensor(hub.config)])
-
-
-def create_binary_sensor(config: BinarySensorConfig):
-    """Create binary sensor based on config."""
-    if config.mode == "Motion" or config.mode == "Vibration":
-        return GpioMotionBinarySensor(config)
-    return GpioBinarySensor(config)
+    async_add_entities([GpioBinarySensor(hub.config)])
 
 
 def get_device_class(mode: str) -> BinarySensorDeviceClass:
@@ -50,7 +44,7 @@ def get_device_class(mode: str) -> BinarySensorDeviceClass:
     return BinarySensorDeviceClass.DOOR
 
 
-class GpioBinarySensorBase(BinarySensorEntity):
+class GpioBinarySensor(BinarySensorEntity):
     """Represent a binary sensor that uses Raspberry Pi GPIO."""
 
     def __init__(self, config: BinarySensorConfig) -> None:
@@ -59,7 +53,13 @@ class GpioBinarySensorBase(BinarySensorEntity):
         self._attr_unique_id = config.unique_id
         self._attr_should_poll = False
         self._attr_device_class = get_device_class(config.mode)
+
         self._state = config.default_state
+        self._invert_logic = config.invert_logic
+        self._rely_on_edge_events = config.rely_on_edge_events
+        self._edge_event_timeout_sec = config.edge_event_timeout_sec
+        self._auto_update_interval_sec = config.edge_event_timeout_sec
+
         self._io = create_pin(
             config.pin,
             mode="input",
@@ -70,93 +70,81 @@ class GpioBinarySensorBase(BinarySensorEntity):
             when_changed=self.edge_detection_callback,
         )
 
-    def edge_detection_callback(self, tick=None) -> None:
-        pass
-
-    async def async_will_remove_from_hass(self) -> None:
-        """On entity remove release the GPIO resources."""
-        await self._io.async_close()
-        await super().async_will_remove_from_hass()
+        # reset event time
+        self.event_time = None
 
     @property
     def is_on(self) -> bool:
         """Return the state of the entity."""
         return self._state
 
-
-class GpioBinarySensor(GpioBinarySensorBase):
-    """Represent a binary sensor that uses Raspberry Pi GPIO."""
-
-    def __init__(self, config: BinarySensorConfig) -> None:
-        """Initialize the RPi binary sensor."""
-        super().__init__(config)
-        self.__invert_logic = config.invert_logic
-
-    def edge_detection_callback(self, tick=None) -> None:
-        self.async_schedule_update_ha_state(force_refresh=True)
-
-    def update(self):
-        """Update the GPIO state."""
-        self._state = self._io.state != self.__invert_logic
-        _LOGGER.debug("%s update %s", self._attr_name, self._state)
-
-
-LAST_MOTION_TIME: dict[int, float | None] = dict()
-
-
-class GpioMotionBinarySensor(GpioBinarySensorBase):
-    """Represent a motion time of binary sensor that uses Raspberry Pi GPIO."""
-
-    def __init__(self, config: BinarySensorConfig) -> None:
-        super().__init__(config)
-        self.__motion_timeout_sec = config.edge_event_timeout_sec
-        self.event_time = None
-
-    @property
-    def state_change_required(self) -> bool:
-        event_time = self.event_time
-        if event_time is not None:
-            timeout = self.__motion_timeout_sec
-            expired = (time.perf_counter() - event_time) > timeout
-            return (expired and self._state) or (not expired and not self._state)
-
-        return False
-
     @property
     def event_time(self) -> float | None:
-        global LAST_MOTION_TIME
-        return LAST_MOTION_TIME[self._io.pin]
+        global _LAST_EVENT_TIME
+        return _LAST_EVENT_TIME[self._io.pin]
 
     @event_time.setter
     def event_time(self, time: float | None):
-        global LAST_MOTION_TIME
-        LAST_MOTION_TIME[self._io.pin] = time
+        global _LAST_EVENT_TIME
+        _LAST_EVENT_TIME[self._io.pin] = time
+
+    @property
+    def state_change_is_required(self) -> bool:
+        event_time = self.event_time
+        if event_time is None:
+            return False
+
+        timeout = self._edge_event_timeout_sec
+        expired = (time.perf_counter() - event_time) > timeout
+        return (expired and self._state) or (not expired and not self._state)
+
+    def edge_detection_callback(self, _=None) -> None:
+        self.event_time = time.perf_counter()
+        if self._rely_on_edge_events:
+            if not self._state:
+                _LOGGER.debug(f"{self._io!s} schedule state update")
+                self.schedule_update_ha_state(force_refresh=True)
+        else:
+            _LOGGER.debug(f"{self._io!s} schedule state update")
+            self.async_schedule_update_ha_state(force_refresh=True)
+
+    def update(self):
+        """Update the GPIO state."""
+        if self._rely_on_edge_events:
+            if self.state_change_is_required:
+                self._state = not self._state
+                _LOGGER.debug(f"{self._io!s} state updated to {self._state}")
+        else:
+            self._state = self._io.state != self._invert_logic
+            _LOGGER.debug("%s update %s", self._attr_name, self._state)
+
+    ### HASS lifecycle hooks ###
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added."""
         await super().async_added_to_hass()
+        if self._auto_update_interval_sec > 0:
+            self._enable_state_auto_update()
+
+    async def async_will_remove_from_hass(self) -> None:
+        """On entity remove release the GPIO resources."""
+        await self._io.async_close()
+        await super().async_will_remove_from_hass()
+
+    ### state auto-update logic ###
+
+    def _enable_state_auto_update(self):
+        _LOGGER.debug(f"{self._io!s} auto-update activated")
         timer_cancel = async_track_time_interval(
             self.hass,
-            self._check_state_update,
-            datetime.timedelta(seconds=self.__motion_timeout_sec),
+            self._auto_update_callback,
+            datetime.timedelta(seconds=self._auto_update_interval_sec),
             cancel_on_shutdown=True,
         )
 
         self.async_on_remove(timer_cancel)
 
-    def edge_detection_callback(self, tick=None) -> None:
-        _LOGGER.debug(f"{self._io!s} motion detected")
-        self.event_time = time.perf_counter()
-        self._check_state_update(tick)
-
-    def update(self):
-        if self.state_change_required:
-            self._state = not self._state
-            _LOGGER.debug(f"{self._io!s} state updated to {self._state}")
-        else:
-            _LOGGER.debug(f"{self._io!s} state not updated")
-
-    def _check_state_update(self, tick=None) -> bool:
-        if self.state_change_required:
-            _LOGGER.debug(f"{self._io!s} schedule state [{self._state}] update")
+    def _auto_update_callback(self):
+        if self.state_change_is_required:
+            _LOGGER.debug(f"{self._io!s} auto-update scheduled")
             self.schedule_update_ha_state(force_refresh=True)

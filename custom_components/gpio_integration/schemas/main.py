@@ -9,7 +9,8 @@ CONF_TYPES: dict = {
     "Switch": "switch",
     "Light": "light",
     "Fan": "fan",
-    "Analog Sensor": "analog_sensor",
+    "Analog Liner Sensor": "analog_sensor",
+    "Analog Range Sensor": "analog_range_sensor",
 }
 
 MAIN_SCHEMA = vol.Schema(

@@ -17,6 +17,8 @@ from . import (
 )
 from ._validators import v_name, v_pin, v_time
 
+CONF_RELY_ON_EDGE_EVENTS = "rely_on_edge_events"
+
 
 def create_binary_sensor_schema(data: dict) -> vol.Schema:
     return vol.Schema(
@@ -54,6 +56,11 @@ def create_binary_sensor_schema(data: dict) -> vol.Schema:
                 CONF_DEFAULT_STATE, default=data[CONF_DEFAULT_STATE]
             ): cv.boolean,
             vol.Optional(
+                CONF_RELY_ON_EDGE_EVENTS,
+                default=data[CONF_RELY_ON_EDGE_EVENTS],
+                description="Sensor rely only on edge events and don't use state",
+            ): cv.boolean,
+            vol.Optional(
                 CONF_EDGE_EVENT_TIMEOUT, default=data[CONF_EDGE_EVENT_TIMEOUT]
             ): cv.positive_int,
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
@@ -70,6 +77,7 @@ BINARY_SENSOR_SCHEMA = create_binary_sensor_schema(
         CONF_INVERT_LOGIC: False,
         CONF_MODE: "Door",
         CONF_DEFAULT_STATE: False,
+        CONF_RELY_ON_EDGE_EVENTS: False,
         CONF_EDGE_EVENT_TIMEOUT: 10,
         CONF_UNIQUE_ID: "",
     }
@@ -93,5 +101,6 @@ class BinarySensorConfig:
         self.bounce_time_ms: int = data[CONF_BOUNCE_TIME]
         self.invert_logic: bool = data[CONF_INVERT_LOGIC]
         self.default_state: bool = data[CONF_DEFAULT_STATE]
+        self.rely_on_edge_events: bool = data[CONF_RELY_ON_EDGE_EVENTS]
         self.edge_event_timeout_sec: int = data[CONF_EDGE_EVENT_TIMEOUT]
         self.unique_id: str = get_unique_id(data)

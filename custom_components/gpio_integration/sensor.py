@@ -31,7 +31,7 @@ class GpioSensor(SensorEntity):
         self._attr_unique_id = sensor.id
         self._attr_should_poll = False
         self._sensor = sensor
-        # self._attr_native_unit_of_measurement = sensor.unit
+        self._attr_native_unit_of_measurement = sensor.unit
         # self._attr_device_class = ??
 
     @property
