@@ -1,16 +1,31 @@
 """Main schema for the GPIO Integration."""
 
+from enum import Enum
+
 import voluptuous as vol
 
+
+class EntityTypes(Enum):
+    COVER = "cover"
+    COVER_UP_DOWN = "cover_up_down"
+    COVER_TOGGLE = "cover_toggle"
+    BINARY_SENSOR = "binary_sensor"
+    SWITCH = "switch"
+    LIGHT = "light"
+    LIGHT_PWM_LED = "light_pwm_led"
+    LIGHT_RGB_LED = "light_rgb_led"
+    FAN = "fan"
+    SENSOR = "sensor"
+    SENSOR_SERIAL_DATA = "sensor_serial_data"
+
+
 CONF_TYPES: dict = {
-    "Cover with up and down button (optional sensor)": "cover_up_down",
-    "Cover with toggle button (optional sensor)": "cover_toggle",
-    "Binary sensor": "binary_sensor",
-    "Switch": "switch",
-    "Light": "light",
-    "Fan": "fan",
-    "Analog Liner Sensor": "analog_sensor",
-    "Analog Range Sensor": "analog_range_sensor",
+    "Cover": EntityTypes.COVER.value,
+    "Binary sensor": EntityTypes.BINARY_SENSOR.value,
+    "Switch": EntityTypes.SWITCH.value,
+    "Light": EntityTypes.LIGHT.value,
+    "Fan": EntityTypes.FAN.value,
+    "Sensor": EntityTypes.SENSOR.value,
 }
 
 MAIN_SCHEMA = vol.Schema(

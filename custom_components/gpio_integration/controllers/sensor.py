@@ -1,18 +1,27 @@
+from collections import deque
+from time import sleep
 from typing import Literal
 
+from .._devices import SerialDataInputDevice
 from ..core import get_logger
-from ..gpio.pin_factory import create_pin
-from ..schemas.sensor import (
-    AnalogRangeSensorConfig,
-    AnalogSensorConfig,
-    SpiSensorConfig,
-)
+from ..schemas.main import EntityTypes
+from ..schemas.sensor import SensorSerialConfig
 
 _LOGGER = get_logger()
 
 
+class StateProvider:
+    def get_state(self, id: str) -> float:
+        raise NotImplementedError()
+
+    def release(self) -> None:
+        raise NotImplementedError()
+
+
 class SensorRef:
-    def __init__(self, controller, name: str, id: str, unit: str) -> None:
+    def __init__(
+        self, controller: StateProvider, name: str, id: str, unit: str
+    ) -> None:
         self._controller = controller
         self.name = name
         self.id = id
@@ -20,99 +29,73 @@ class SensorRef:
 
     @property
     def state(self):
-        return self.controller.get_state(self.id)
+        return self._controller.get_state(self.id)
 
-    async def async_close(self):
+    def release(self):
         if self._controller is not None:
-            await self._controller.async_close(self.id)
+            self._controller.release()
             self._controller = None
 
 
-class SensorsHub:
-    def __init__(self, type: Literal["analog_sensor", "spi"], config) -> None:
-        if type == "analog_sensor":
-            _LOGGER.debug("Creating analog sensor controller")
-            self.controller = AnalogSensorController(config)
-        elif type == "analog_range_sensor":
-            _LOGGER.debug("Creating analog range sensor controller")
-            self.controller = AnalogRangeSensorController(config)
-        elif type == "spi_sensor":
-            _LOGGER.debug("Creating SPI sensor controller")
-            self.controller = SPISensorController
-        else:
-            raise ValueError(f"Unknown sensor type: {type}")
-
-        self.sensors = self.controller.get_sensors()
-
-
-class BaseController:
+class ControllerBase(StateProvider):
     def get_sensors(self) -> list[SensorRef]:
         raise NotImplementedError
 
-    def get_state(self):
-        raise NotImplementedError
-
-    async def async_close(self) -> None:
-        if self._io is not None:
-            await self._io.async_close()
+    def release(self) -> None:
+        if hasattr(self, "_io") and self._io is not None:
+            self._io.close()
             self._io = None
 
 
-class AnalogSensorController(BaseController):
-    def __init__(self, config: AnalogSensorConfig) -> None:
+class SensorsHub:
+    def __init__(self, type: EntityTypes, config: dict) -> None:
+        if type == EntityTypes.SENSOR_SERIAL_DATA:
+            _LOGGER.debug("Creating serial data sensor controller")
+            controller = SerialDataSensorController(SensorSerialConfig(config))
+        else:
+            raise ValueError(f"Unknown sensor type: {type}")
+
+        self.sensors = controller.get_sensors()
+
+
+class SerialDataSensorController(ControllerBase):
+    def __init__(self, config: SensorSerialConfig) -> None:
         self.name = config.name
         self.id = config.unique_id
-        self._min_voltage = config.min_voltage_mv
-        self._min_value = config.min_value
-        self._voltage_step = config.voltage_step_mv
-        self._io = create_pin(config.port)
+        self._temperature_id = f"{self.id}_T"
+        self._humidity_id = f"{self.id}_H"
+        self._signal_activate_ms = [(False, 18.0), (True, 0.04)]
+        self._zero_high_ms = (True, 0.026)
+        self._one_high_ms = (True, 0.07)
+        self._interval_ms = 0.05
+        self._state = (0, 0)
+        self._io = SerialDataInputDevice(
+            config.port,
+            pull_up=True,
+            max_bits=40,
+            package_initial_bits=[(False, 0.08), (True, 0.08)],
+        )
+        self._io.when_filled = self.read
 
     def get_sensors(self):
-        return [SensorRef(self, self.name, self.id, "C")]
+        return [
+            SensorRef(self, self.name, self._temperature_id, "C"),
+            SensorRef(self, self.name, self._humidity_id, "%"),
+        ]
 
-    def get_state(self) -> float:
-        val: float = self._io.read()
-        mV = (val * 3300) / 1024.0
-        base_mV = mV - self._min_voltage
-        if base_mV < 0:
-            return self._min_value
+    def get_state(self, id: str) -> float:
+        if id == self._temperature_id:
+            return self._state[0]
+        elif id == self._humidity_id:
+            return self._state[1]
+        else:
+            raise ValueError(f"Unknown sensor id: {id}")
 
-        return self._min_value + (base_mV / self._voltage_step)
+    def activate(self):
+        for state, duration in self._signal_activate_ms:
+            self._io.value = state
+            sleep(duration / 1000)
 
-
-class AnalogRangeSensorController(BaseController):
-    def __init__(self, config: AnalogRangeSensorConfig) -> None:
-        self.name = config.name
-        self.id = config.unique_id
-        self.default_state = config.default_state
-        self.ranges: dict[str, tuple[int, int]] = dict()
-
-        # example "2300|GAS|2600|SMOKE|3300"
-        list = config.ranges.split("|")
-        for i in range(1, len(list), 2):
-            self.ranges[list[i]] = (int(list[i - 1]), int(list[i + 1]))
-
-        self._io = create_pin(config.port)
-
-    def get_sensors(self):
-        return [SensorRef(self, self.name, self.id, None)]
-
-    def get_state(self) -> str:
-        val: float = self._io.read()
-        mV = (val * 3300) / 1024.0
-        for key, value in self.ranges.items():
-            if value[0] <= mV <= value[1]:
-                return key
-
-        return self.default_state
-
-
-class SPISensorController(BaseController):
-    def __init__(self, config: SpiSensorConfig) -> None:
-        """Initialize the SPI sensor."""
-
-    def get_sensors(self):
-        return []
-
-    def get_state(self):
-        return None
+    def read(self, bits: deque[(bool, float)]):
+        # convert first 8 bits as temperature
+        temperature = 0

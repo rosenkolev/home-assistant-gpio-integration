@@ -5,8 +5,8 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
+from ._pin_factory import cleanup_default_factory, set_config_options
 from .core import DOMAIN
-from .gpio import close_all_pins, set_config_options
 from .hub import Hub
 from .schemas import DOMAIN_DEFAULT_CONFIG
 
@@ -33,7 +33,7 @@ def setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     def cleanup_gpio(event):
         """Stuff to do before stopping."""
-        close_all_pins()
+        cleanup_default_factory()
 
     hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup_gpio)
     return True

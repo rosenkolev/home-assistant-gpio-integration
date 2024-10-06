@@ -1,11 +1,11 @@
-from __future__ import annotations
+"""Config flow for GPIO integration."""
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 
 from .core import DOMAIN, get_logger
-from .schemas import InvalidPin, get_unique_id
+from .schemas import CONF_VARIATION, InvalidPin, get_unique_id
 from .schemas.binary_sensor import (
     BINARY_SENSOR_SCHEMA,
     create_binary_sensor_schema,
@@ -14,28 +14,44 @@ from .schemas.binary_sensor import (
 from .schemas.cover import (
     COVER_TOGGLE_SCHEMA,
     COVER_UP_DOWN_SCHEMA,
+    COVER_VARIATION_SCHEMA,
     create_cover_up_down_schema,
+    create_cover_variation_schema,
     create_toggle_cover_schema,
     validate_cover_up_down_data,
+    validate_cover_variation_data,
     validate_toggle_cover_data,
 )
 from .schemas.fan import FAN_SCHEMA
-from .schemas.light import LIGHT_SCHEMA
+from .schemas.light import (
+    LIGHT_SCHEMA,
+    LIGHT_VARIATION_SCHEMA,
+    RGB_LIGHT_SCHEMA,
+    create_light_variation_schema,
+    create_rgb_light_schema,
+    validate_light_variation_data,
+    validate_rgb_light_data,
+)
 from .schemas.main import MAIN_SCHEMA, get_type
 from .schemas.pwm import create_pwm_schema, validate_pwm_data
 from .schemas.sensor import (
-    ANALOG_LINEAR_SENSOR_SCHEMA,
-    ANALOG_RANGE_SENSOR_SCHEMA,
-    create_analog_linear_sensor_schema,
-    create_analog_range_sensor_schema,
-    validate_analog_liner_sensor_data,
-    validate_analog_range_sensor_data,
+    SENSOR_SERIAL_SCHEMA,
+    SENSOR_VARIATION_SCHEMA,
+    create_sensor_serial_schema,
+    create_sensor_variation_schema,
+    validate_sensor_serial_data,
+    validate_sensor_variation_data,
 )
 from .schemas.switch import SWITCH_SCHEMA, create_switch_schema, validate_switch_data
 
 _LOGGER = get_logger()
 
 CONF_ENTITIES: dict = {
+    "cover": {
+        "schema": COVER_VARIATION_SCHEMA,
+        "validate": validate_cover_variation_data,
+        "schema_builder": create_cover_variation_schema,
+    },
     "cover_up_down": {
         "schema": COVER_UP_DOWN_SCHEMA,
         "validate": validate_cover_up_down_data,
@@ -57,24 +73,34 @@ CONF_ENTITIES: dict = {
         "schema_builder": create_switch_schema,
     },
     "light": {
+        "schema": LIGHT_VARIATION_SCHEMA,
+        "validate": validate_light_variation_data,
+        "schema_builder": create_light_variation_schema,
+    },
+    "light_pwm_led": {
         "schema": LIGHT_SCHEMA,
         "validate": validate_pwm_data,
         "schema_builder": create_pwm_schema,
+    },
+    "light_rgb_led": {
+        "schema": RGB_LIGHT_SCHEMA,
+        "validate": validate_rgb_light_data,
+        "schema_builder": create_rgb_light_schema,
     },
     "fan": {
         "schema": FAN_SCHEMA,
         "validate": validate_pwm_data,
         "schema_builder": create_pwm_schema,
     },
-    "analog_sensor": {
-        "schema": ANALOG_LINEAR_SENSOR_SCHEMA,
-        "validate": validate_analog_liner_sensor_data,
-        "schema_builder": create_analog_linear_sensor_schema,
+    "sensor": {
+        "schema": SENSOR_VARIATION_SCHEMA,
+        "validate": validate_sensor_variation_data,
+        "schema_builder": create_sensor_variation_schema,
     },
-    "analog_range_sensor": {
-        "schema": ANALOG_RANGE_SENSOR_SCHEMA,
-        "validate": validate_analog_range_sensor_data,
-        "schema_builder": create_analog_range_sensor_schema,
+    "sensor_serial_data": {
+        "schema": SENSOR_SERIAL_SCHEMA,
+        "validate": validate_sensor_serial_data,
+        "schema_builder": create_sensor_serial_schema,
     },
 }
 
@@ -90,6 +116,18 @@ def validate_config_data(entity_type: str, data_input: dict):
     return None
 
 
+VARIATION_STEP_ENTITIES = [
+    "cover",
+    "light",
+    "sensor",
+]
+SINGLE_STEP_ENTITIES = [
+    "binary_sensor",
+    "switch",
+    "fan",
+]
+
+
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow."""
 
@@ -101,67 +139,50 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("config user, type: {}".format(type))
         if type is None:
             return self.async_show_form(step_id="user", data_schema=MAIN_SCHEMA)
-        elif type == "cover_up_down":
-            return await self.async_step_cover_up_down()
-        elif type == "cover_toggle":
-            return await self.async_step_cover_toggle()
-        elif type == "binary_sensor":
-            return await self.async_step_binary_sensor()
-        elif type == "switch":
-            return await self.async_step_switch()
-        elif type == "light":
-            return await self.async_step_light()
-        elif type == "fan":
-            return await self.async_step_light()
-        elif type == "analog_sensor":
-            return await self.async_step_analog_sensor()
-        elif type == "analog_range_sensor":
-            return await self.async_step_analog_range_sensor()
+        elif type in SINGLE_STEP_ENTITIES:
+            return await self.async_step_common_setup(data_input=None, schema_id=type)
+        elif type in VARIATION_STEP_ENTITIES:
+            return await self.async_step_select_variation(
+                data_input=None, schema_id=type
+            )
 
-    async def async_step_cover_up_down(self, data_input=None):
-        """Handle the initial step."""
-        return await self.handle_config_data("cover_up_down", data_input)
+        return self.async_abort(reason="unknown_type")
 
-    async def async_step_binary_sensor(self, data_input=None):
-        """Handle the initial step."""
-        return await self.handle_config_data("binary_sensor", data_input)
-
-    async def async_step_switch(self, data_input=None):
-        """Handle the initial step."""
-        return await self.handle_config_data("switch", data_input)
-
-    async def async_step_cover_toggle(self, data_input=None):
-        """Handle the initial step."""
-        return await self.handle_config_data("cover_toggle", data_input)
-
-    async def async_step_light(self, data_input=None):
-        """Handle the initial step."""
-        return await self.handle_config_data("light", data_input)
-
-    async def async_step_fan(self, data_input=None):
-        """Handle the initial step."""
-        return await self.handle_config_data("fan", data_input)
-
-    async def async_step_analog_sensor(self, data_input=None):
-        """Handle the initial step."""
-        return await self.handle_config_data("analog_sensor", data_input)
-
-    async def async_step_analog_range_sensor(self, data_input=None):
-        """Handle the initial step."""
-        return await self.handle_config_data("analog_range_sensor", data_input)
-
-    async def handle_config_data(self, id: str, data_input: dict | None):
-        schema = CONF_ENTITIES[id]["schema"]
+    async def async_step_common_setup(
+        self, data_input=None, errors=None, schema_id: str | None = None
+    ):
+        """Handle the generic setup step."""
+        schema = CONF_ENTITIES[schema_id]["schema"]
         if data_input is None:
-            return self.async_show_form(step_id=id, data_schema=schema)
+            return self.async_show_form(step_id="common_setup", data_schema=schema)
 
-        errors = validate_config_data(id, data_input)
+        errors = validate_config_data(schema_id, data_input)
         if errors is None:
-            data_input["type"] = id
+            data_input["type"] = schema_id
             await self.async_set_unique_id(get_unique_id(data_input))
             return self.async_create_entry(title=data_input[CONF_NAME], data=data_input)
 
-        return self.async_show_form(step_id=id, data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="common_setup", data_schema=schema, errors=errors
+        )
+
+    async def async_step_select_variation(
+        self, data_input=None, schema_id: str | None = None
+    ):
+        """Handle the generic setup step."""
+        schema = CONF_ENTITIES[schema_id]["schema"]
+        if data_input is None:
+            return self.async_show_form(step_id="select_variation", data_schema=schema)
+
+        errors = validate_config_data(schema_id, data_input)
+        if errors is not None:
+            return self.async_show_form(
+                step_id="select_variation", data_schema=schema, errors=errors
+            )
+
+        variation = data_input[CONF_VARIATION]
+        _LOGGER.debug(f"config type: {schema_id}, variation: {variation}")
+        return await self.async_step_common_setup(data_input=None, schema_id=variation)
 
     @staticmethod
     @callback

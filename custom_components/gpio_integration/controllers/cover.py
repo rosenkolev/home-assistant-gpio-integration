@@ -1,47 +1,11 @@
 import threading
 from time import sleep
 
+from .._devices import BinarySensor, Switch
 from ..core import get_logger
-from ..gpio.pin_factory import create_pin
-from ..schemas.cover import RollerConfig, ToggleRollerConfig
+from ..schemas.cover import RollerConfig
 
 _LOGGER = get_logger()
-
-
-class BasicToggleRoller:
-    def __init__(self, config: ToggleRollerConfig) -> None:
-        self.name = config.name
-        self.id = config.unique_id
-        self.__has_close_sensor = config.pin_closed is not None
-        self.__state: bool = False
-        self.__invert = config.invert_logic
-        self.__relay_time = config.relay_time
-        self.__io = create_pin(config.port, mode="output")
-
-        if self.__has_close_sensor:
-            self.__io_closed = create_pin(config.pin_closed, mode="input", pull="up")
-
-    @property
-    def is_closed(self):
-        """Return true if cover is closed."""
-        return self.__state != self.__invert
-
-    async def async_release(self):
-        await self.__io.async_close()
-        if self.__has_close_sensor:
-            await self.__io_closed.async_close()
-
-    def update(self):
-        if self.__has_close_sensor:
-            self.__state = self.__io_closed.state
-
-    def toggle(self):
-        """Trigger the cover."""
-        self.__io.state = 1 if self.__invert else 0
-        sleep(self.__relay_time)
-        self.__io.state = 0 if self.__invert else 1
-        if not self.__has_close_sensor:
-            self.__state = not self.__state
 
 
 class Roller:
@@ -57,87 +21,81 @@ class Roller:
         self.id = config.unique_id
         self.step: int = 5
 
-        self.__position = 0
+        self._position = 0
         # Reports if the roller is moving up or down.
         # >0 is up, <0 is down. This very much just for demonstration.
-        self.__moving = 0
+        self._moving = 0
 
-        self.__pin_down = config.pin_down
-        self.__pin_up = config.pin_up
-        self.__pin_down_default_to_high = config.pin_down_on_state == "high"
-        self.__pin_up_default_to_high = config.pin_up_on_state == "high"
-        self.__pin_closed = config.pin_closed
-        self.__pin_closed_on_state = config.pin_closed_on_state == "high"
-        self.__has_close_sensor = config.pin_closed is not None
-        self.__step_time = (config.relay_time / 100.0) * 5.0
-        self.__direction = -1
+        self._pin_down = config.pin_down
+        self._pin_up = config.pin_up
+        self._pin_closed = config.pin_closed
+        self._step_time = (config.relay_time / 100.0) * 5.0
+        self._direction = -1
+        self._has_sensor = config.pin_closed is not None
 
-        self.__cancel = threading.Event()
+        self._cancel = threading.Event()
 
         _LOGGER.debug(
-            "roller %s; down %s (%s); up %s (%s); closed %s",
+            "roller %s; down %s; up %s; closed %s",
             self.name,
-            self.__pin_down,
-            "high" if self.__pin_down_default_to_high else "low",
-            self.__pin_up,
-            "high" if self.__pin_up_default_to_high else "low",
-            self.__pin_closed,
+            self._pin_down,
+            self._pin_up,
+            self._pin_closed,
         )
 
-        self.__io_down = create_pin(
-            self.__pin_down,
-            mode="output",
-            default_value=self.__pin_down_default_to_high,
+        self._io_down = Switch(
+            self._pin_down,
+            active_high=config.pin_down_on_state == "high",
         )
-        self.__io_up = create_pin(
-            self.__pin_up, mode="output", default_value=self.__pin_up_default_to_high
+        self._io_up = Switch(self._pin_up, active_high=config.pin_up_on_state == "high")
+
+        self._io_sensor = (
+            BinarySensor(
+                self._pin_closed,
+                active_state=config.pin_closed_on_state == "high",
+                pull_up=True,
+            )
+            if self._has_sensor
+            else None
         )
-
-        if self.__has_close_sensor:
-            self.__io_closed = create_pin(self.__pin_closed, mode="input", pull="up")
-            self.__position = 0 if self.__io_closed.state else 100
-
-    @property
-    def sensor_closed(self) -> bool:
-        return self.__io_closed.state == self.__pin_closed_on_state
+        self._position = 0 if not self._has_sensor or self._io_sensor.value else 100
 
     @property
     def position(self) -> int:
         """Return position for roller."""
-        return self.__position
+        return self._position
+
+    @property
+    def is_sensor_closed(self) -> bool:
+        return self._has_sensor and self._io_sensor.value
 
     @property
     def is_closed(self) -> bool:
-        return self.sensor_closed if self.__has_close_sensor else (self.__position == 0)
+        return self._io_sensor.value if self._has_sensor else (self._position == 0)
 
     @property
     def is_moving(self) -> bool:
-        return self.__moving != 0
+        return self._moving != 0
 
     @property
     def moving(self) -> int:
-        return self.__moving
-
-    async def async_release(self):
-        await self.__io_down.async_close()
-        await self.__io_up.async_close()
-        if self.__has_close_sensor:
-            await self.__io_closed.async_close()
+        return self._moving
 
     def update_state(self):
-        if self.__has_close_sensor:
-            if self.sensor_closed:
-                self.__position = 0
+        if self.is_sensor_closed:
+            self._position = 0
 
     def close(self):
         """Close the cover."""
         _LOGGER.debug('closing "%s"', self.name)
+
         # When close sensor show closed, do nothing
-        if self.__has_close_sensor and self.sensor_closed:
+        if self.is_sensor_closed:
             return
+
         # When no close sensor and it's position 0 reset
-        elif not self.__has_close_sensor and self.__position == 0:
-            self.__position = 100
+        elif not self._has_sensor and self._position == 0:
+            self._position = 100
 
         self.set_position(0)
 
@@ -145,103 +103,105 @@ class Roller:
         """Open the cover."""
         _LOGGER.debug('opening "%s"', self.name)
         # if last position is fully open reset so we can try to open again
-        if self.__position == 100:
-            self.__position = 0
+        if self._position == 100:
+            self._position = 0
 
         self.set_position(100)
 
     def stop(self):
         """Stop the cover."""
         if self.is_moving:
-            self.__cancel.set()
+            self._cancel.set()
 
     def set_position(self, position: int) -> None:
         """set the roller position"""
         if self.is_moving:
-            _LOGGER.warn('roller "%s" can not be set when moving', self.name)
+            _LOGGER.warning('roller "%s" can not be set when moving', self.name)
             return
 
         if position < 0 or position > 100:
-            _LOGGER.warn(
+            _LOGGER.warning(
                 'roller "%s" can not be set to position %s', self.name, position
             )
             return
 
-        if (self.__position % self.step) != 0:
-            _LOGGER.error('roller "%s" position is %s', self.name, self.__position)
+        if (self._position % self.step) != 0:
+            _LOGGER.error('roller "%s" position is %s', self.name, self._position)
             return
 
         # round to closest step (e.g. 92 with step 5 will be 90 and 93 -> 95)
         target_position = int(self.step * round(float(position) / self.step))
 
         # move from position 50 to 75 eq 25 or -25 in reverse
-        distance = target_position - self.__position
+        distance = target_position - self._position
         closing = distance < 0
 
         steps = int(abs(distance / 5))
         if steps == 0:
             return
 
-        self.__move(steps, closing, target_position == 0)
+        self._move(steps, closing, target_position == 0)
 
         _LOGGER.debug(
-            '"%s" target %s current %s', self.name, target_position, self.__position
+            '"%s" target %s current %s', self.name, target_position, self._position
         )
 
-    def __move(self, steps, closing=False, full_close=False):
+    def release(self):
+        if self._io_sensor is not None:
+            self._io_sensor.close()
+            self._io_sensor = None
+        if self._io_down is not None:
+            self._io_down.close()
+            self._io_down = None
+        if self._io_up is not None:
+            self._io_up.close()
+            self._io_up = None
+
+    def _move(self, steps, closing=False, full_close=False):
         """Move the roller at the given position."""
 
-        pin = self.__io_down if closing else self.__io_up
-        pin_off = (
-            self.__pin_down_default_to_high
-            if closing
-            else self.__pin_up_default_to_high
-        )
-        pin_on = not pin_off
+        pin = self._io_down if closing else self._io_up
         time = 0
 
-        self.__direction = -1 if closing else 1
-        self.__moving = self.step * self.__direction
+        self._direction = -1 if closing else 1
+        self._moving = self.step * self._direction
 
         _LOGGER.debug(
-            'move "%s" pin "%s"; on "%s"; steps %s; move %s; pos %s',
+            'move "%s" pin "%s"; steps %s; move %s; pos %s',
             self.name,
             pin,
-            pin_on,
             steps,
-            self.__moving,
-            self.__position,
+            self._moving,
+            self._position,
         )
 
-        pin.state = pin_on
+        pin.value = True
         for x in range(steps):
-            cancelled = self.__cancel.wait(self.__step_time)
-            time += self.__step_time
-            self.__position += self.__moving
+            cancelled = self._cancel.wait(self._step_time)
+            time += self._step_time
+            self._position += self._moving
             if cancelled:
                 _LOGGER.debug('"%s" move cancelled', self.name)
                 break
 
-        is_sensor_show_closed = self.__has_close_sensor and self.sensor_closed
-
         # wait extra second to make sure it's fully closed
-        if not is_sensor_show_closed and full_close:
+        if not self.is_sensor_closed and full_close:
             sleep(1)
             time += 1
 
         _LOGGER.debug('move "%s" time %s', self.name, time)
-        self.__moving = 0
-        self.__cancel.clear()
-        pin.state = pin_off
+        self._moving = 0
+        self._cancel.clear()
+        pin.value = False
 
-        if self.__position < 0 and closing:
-            self.__position = 0
-        elif self.__position > 100 and not closing:
-            self.__position = 100
-        elif self.__position < 0 or self.__position > 100:
+        if self._position < 0 and closing:
+            self._position = 0
+        elif self._position > 100 and not closing:
+            self._position = 100
+        elif self._position < 0 or self._position > 100:
             _LOGGER.error(
                 'move "%s" was %s but position %s',
                 self.name,
                 "closing" if closing else "opening",
-                self.__position,
+                self._position,
             )

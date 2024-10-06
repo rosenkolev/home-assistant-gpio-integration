@@ -2,6 +2,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_UNIQUE_ID
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.selector import selector
 
 from ..core import DOMAIN
 
@@ -19,6 +20,7 @@ CONF_DEFAULT_STATE = "default_state"
 CONF_EDGE_EVENT_TIMEOUT = "edge_event_timeout"
 CONF_FREQUENCY = "frequency"
 CONF_INTERFACE = "interface"
+CONF_VARIATION = "variation"
 
 ## configuration.yaml schema
 
@@ -47,3 +49,39 @@ def get_unique_id(data: dict) -> str | None:
 
 class InvalidPin(HomeAssistantError):
     """Error to indicate invalid pin."""
+
+
+### Variations ###
+
+
+def create_variation_list_schema(
+    data: dict[str], variations: dict[str, str]
+) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_VARIATION,
+                default=data[CONF_VARIATION],
+            ): selector(
+                {
+                    "select": {
+                        "options": [
+                            {
+                                "label": label,
+                                "value": key,
+                            }
+                            for key, label in variations.items()
+                        ],
+                        "mode": "list",
+                    }
+                }
+            )
+        }
+    )
+
+
+VARIATION_SCHEMA = create_variation_list_schema({CONF_VARIATION: None})
+
+
+def validate_variation_data(data: dict, variations: dict) -> bool:
+    return data is not None and data[CONF_VARIATION] in variations.keys()

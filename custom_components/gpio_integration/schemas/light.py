@@ -7,10 +7,34 @@ from homeassistant.const import CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
 from . import (
     CONF_DEFAULT_STATE,
     CONF_FREQUENCY,
+    VARIATION_SCHEMA,
+    create_variation_list_schema,
     get_unique_id,
+    validate_variation_data,
 )
 from ._validators import v_name, v_pin
 from .pwm import create_pwm_schema
+
+### Light Variations ###
+
+LIGHT_VARIATIONS = {
+    "light_pwm_led": "LED (PWM)",
+    "light_rgb_led": "RGB LED",
+}
+
+
+def create_light_variation_schema(data: dict) -> vol.Schema:
+    return create_variation_list_schema(data, LIGHT_VARIATIONS)
+
+
+LIGHT_VARIATION_SCHEMA = VARIATION_SCHEMA
+
+
+def validate_light_variation_data(data):
+    return validate_variation_data(data, LIGHT_VARIATIONS)
+
+
+### PWM Light ###
 
 LIGHT_SCHEMA = create_pwm_schema(
     {

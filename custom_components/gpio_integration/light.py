@@ -1,10 +1,9 @@
-from itertools import repeat
-from typing import Iterable
-
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_EFFECT,
     ATTR_FLASH,
+    ATTR_RGB_COLOR,
+    ATTR_WHITE,
     EFFECT_OFF,
     FLASH_SHORT,
     ColorMode,
@@ -15,10 +14,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .core import DOMAIN, GpioEffect, StoppableThread, get_logger
-from .gpio.pin_factory import create_pin
+from ._devices import Pwm, RgbLight, Switch
+from .core import DOMAIN, get_logger
 from .hub import Hub
 from .schemas.light import RgbLightConfig
+from .schemas.main import EntityTypes
 from .schemas.pwm import PwmConfig
 
 _LOGGER = get_logger()
@@ -32,88 +32,61 @@ async def async_setup_entry(
 ) -> None:
     """Add switch for passed config_entry in HA."""
     hub: Hub = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([GpioLight(hub.config)])
+    if hub.is_type(EntityTypes.LIGHT_PWM_LED):
+        async_add_entities([GpioLight(hub.config)])
+    elif hub.is_type(EntityTypes.LIGHT_RGB_LED):
+        async_add_entities([RgbGpioLight(hub.config)])
 
 
 BLINKS: dict = {
     "blink": {
-        "on_time": 1,
-        "off_time": 1,
+        "on_time": 1.2,
+        "off_time": 1.2,
         "times": 200,
     },
     "flash_short": {
-        "on_time": 0.5,
-        "off_time": 0.5,
+        "on_time": 1,
+        "off_time": 1,
         "times": 2,
     },
     "flash_long": {
-        "on_time": 1.2,
-        "off_time": 1.2,
+        "on_time": 1.5,
+        "off_time": 1.5,
         "times": 4,
     },
 }
 
 
-class BlinkEffect(GpioEffect):
-    def compute_state(self, config: dict) -> Iterable[tuple[int, float]]:
-        self.check_config_value("times", config)
-        self.check_config_value("on_time", config)
-        self.check_config_value("off_time", config)
-        times = config["times"]
-        iterable = repeat(0) if times is None else repeat(0, times)
-        for _ in iterable:
-            yield HIGH_BRIGHTNESS, config["on_time"]
-            yield 0, config["off_time"]
-
-
-class Led:
-    def __init__(self, pin, frequency):
-        self._io = create_pin(pin, mode="output", frequency=frequency)
-        self._brightness: int = -1
-
-    @property
-    def PWM(self):
-        return self._io.pwm
-
-    @property
-    def brightness(self):
-        return self._brightness
-
-    @brightness.setter
-    def brightness(self, value):
-        if value != self._brightness:
-            self._brightness = value
-            self._io.state = self._to_state(value) if self.PWM else value > 0
-            _LOGGER.debug(f"{self._io!s} light set to {self._io.state}")
-
-    def _to_state(self, value):
-        return round(float(value / HIGH_BRIGHTNESS), 4)
-
-    async def async_close(self):
-        if self._io is not None:
-            await self._io.async_close()
-            self._io = None
+def brightness_to_value(brightness: int) -> int:
+    return round(float(brightness / HIGH_BRIGHTNESS), 4)
 
 
 class BlinkMixin:
-    def _blink_off(self):
-        """Blink off."""
-        if self._blink_thread is not None:
-            self._blink_thread.stop()
-            self._blink_thread = None
+    def _blink(self, effect: str, pwm: bool):
+        if effect not in BLINKS:
+            raise ValueError(f"Unknown blink effect: {effect}")
 
-    def _blink(self, config):
-        """Blink."""
+        opts = BLINKS[effect]
+        if "on_time" not in opts or "off_time" not in opts:
+            raise ValueError(f"Invalid blink options: {effect}")
+
+        _LOGGER.debug(f"{self._io!s} light blink {effect}")
+
         self.turn_off()
-        self._blink_thread = StoppableThread(target=self._blinker, args=(config,))
-        self._blink_thread.start()
 
-    def _blinker(self, config):
-        """Blinker."""
-        for state, duration in self._effect.compute_state(config):
-            self._set_state(state)
-            if self._blink_thread.wait(duration):
-                break
+        on_time = opts["on_time"]
+        off_time = opts["off_time"]
+        if pwm:
+            fade_time = 1
+            self._io.blink(
+                on_time=on_time - fade_time,
+                off_time=off_time - fade_time,
+                fade_in_time=fade_time,
+                fade_out_time=fade_time,
+                n=opts["times"],
+            )
+        else:
+            self._io.blink(on_time=on_time, off_time=off_time, n=opts["times"])
 
 
 class GpioLight(BlinkMixin, LightEntity):
@@ -121,6 +94,8 @@ class GpioLight(BlinkMixin, LightEntity):
 
     def __init__(self, config: PwmConfig) -> None:
         """Initialize the pin."""
+
+        self._pwm = config.frequency is not None and config.frequency > 0
 
         self._attr_name = config.name
         self._attr_unique_id = config.unique_id
@@ -130,75 +105,65 @@ class GpioLight(BlinkMixin, LightEntity):
         self._attr_supported_features = (
             LightEntityFeature.FLASH | LightEntityFeature.EFFECT
         )
+        self._attr_color_mode = ColorMode.BRIGHTNESS if self._pwm else ColorMode.ONOFF
+        self._attr_supported_color_modes = {self._attr_color_mode}
 
-        self._led = Led(config.port, config.frequency)
+        if self._pwm:
+            self._io = Pwm(
+                config.port, config.frequency, initial_value=config.default_state
+            )
+        else:
+            self._io = Switch(config.port, initial_value=config.default_state)
 
-        mode = ColorMode.BRIGHTNESS if self._led.PWM else ColorMode.ONOFF
-        self._attr_supported_color_modes = {mode}
-        self._attr_color_mode = mode
-        self._blink_thread: StoppableThread | None = None
-        self._effect = BlinkEffect()
-
-        self._led.brightness = HIGH_BRIGHTNESS if config.default_state else 0
-
-    @property
-    def is_on(self):
-        """Return true if device is on."""
-        return self._led.brightness > 0
+        self._brightness = HIGH_BRIGHTNESS if config.default_state else 0
 
     @property
-    def brightness(self):
+    def is_on(self) -> bool:
+        return self._brightness > 0
+
+    @property
+    def brightness(self) -> int:
         """Return the brightness property."""
-        return self._led.brightness
+        return self._brightness
 
     @brightness.setter
-    def brightness(self, value):
-        """Set the brightness property."""
-        self._led.brightness = value
-        self.schedule_update_ha_state()
+    def brightness(self, value: int) -> None:
+        if value != self._brightness:
+            if value < 0 or value > HIGH_BRIGHTNESS:
+                raise ValueError(f"brightness must be between 0 and {HIGH_BRIGHTNESS}")
 
-    def _set_state(self, state):
-        self._led.brightness = state
-
-    async def async_will_remove_from_hass(self) -> None:
-        """On entity remove release the GPIO resources."""
-        self._blink_off()
-        await self._led.async_close()
-        await super().async_will_remove_from_hass()
+            state = brightness_to_value(value) if self._pwm else value > 0
+            self._brightness = value
+            self._io.value = state
+            self.async_write_ha_state()
+            _LOGGER.debug(f"{self._io!s} light set to {state}")
 
     def turn_on(self, **kwargs):
         """Turn on."""
-        self._blink_off()
         if ATTR_FLASH in kwargs:
             short = kwargs[ATTR_FLASH] == FLASH_SHORT
-            blink = BLINKS["flash_short" if short else "flash_long"]
-            self._blink(blink)
+            self._blink("flash_short" if short else "flash_long", self._pwm)
         elif ATTR_EFFECT in kwargs:
             effect_name = kwargs[ATTR_EFFECT]
-            self._blink(BLINKS[effect_name])
+            self._blink(effect_name, self._pwm)
         else:
             self.brightness = kwargs.get(ATTR_BRIGHTNESS, HIGH_BRIGHTNESS)
-            _LOGGER.debug(f"{self._attr_name} light turn on")
 
     def turn_off(self, **kwargs):
-        """Turn off."""
-        self._blink_off()
-        if self.is_on:
-            self.brightness = 0
-            _LOGGER.debug(f"{self._attr_name} light turn off")
+        self.brightness = 0
+
+    def _close(self) -> None:
+        if self._io is not None:
+            self._io.close()
+            self._io = None
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._close()
+        await super().async_will_remove_from_hass()
 
 
-class RgbBlinkEffect(BlinkEffect):
-    def compute_state(
-        self, config: dict
-    ) -> Iterable[tuple[tuple[int, int, int, int], float]]:
-        self.check_config_value("times", config)
-        self.check_config_value("on_time", config)
-        self.check_config_value("off_time", config)
-        iterable = repeat(0) if config["times"] is None else repeat(0, config["times"])
-        for _ in iterable:
-            yield (HIGH_BRIGHTNESS, HIGH_BRIGHTNESS, HIGH_BRIGHTNESS, HIGH_BRIGHTNESS)
-            yield (0, 0, 0, 0)
+RGB_WHITE = (HIGH_BRIGHTNESS, HIGH_BRIGHTNESS, HIGH_BRIGHTNESS)
+RGB_OFF = (0, 0, 0)
 
 
 class RgbGpioLight(BlinkMixin, LightEntity):
@@ -213,6 +178,7 @@ class RgbGpioLight(BlinkMixin, LightEntity):
             ColorMode.RGB,
             ColorMode.BRIGHTNESS,
             ColorMode.ONOFF,
+            ColorMode.WHITE,
         }
         self._attr_effect = EFFECT_OFF
         self._attr_effect_list = [EFFECT_OFF, "Blink"]
@@ -220,69 +186,82 @@ class RgbGpioLight(BlinkMixin, LightEntity):
             LightEntityFeature.FLASH | LightEntityFeature.EFFECT
         )
 
-        self._blink_thread: StoppableThread | None = None
-        self._effect = RgbBlinkEffect()
-
-        self._r_led = Led(config.port_red, config.frequency)
-        self._g_led = Led(config.port_green, config.frequency)
-        self._b_led = Led(config.port_blue, config.frequency)
-        self._switch(config.default_state)
+        self._brightness = HIGH_BRIGHTNESS if config.default_state else 0
+        self._rgb = RGB_WHITE if config.default_state else RGB_OFF
+        self._io = RgbLight(
+            config.port_red,
+            config.port_green,
+            config.port_blue,
+            initial_value=(1, 1, 1) if config.default_state else (0, 0, 0),
+        )
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool:
         """Return true if device is on."""
-        return self._value[3] > 0 and any(self._value[:3] > 0)
+        return self._brightness > 0 and any(self._io.value)
 
     @property
-    def brightness(self):
-        """Return the brightness property."""
-        return self._value[3]
+    def rgb_color(self) -> tuple[int, int, int]:
+        """Return the rgb color value."""
+        return self._rgb
+
+    @property
+    def brightness(self) -> int:
+        return self._brightness
 
     @brightness.setter
-    def brightness(self, value):
-        """Set the brightness property."""
-        self._set_state((self._value[0], self._value[1], self._value[2], value))
+    def brightness(self, value: int) -> None:
+        self._set(value, self._rgb)
 
-    def turn_on(self, **kwargs):
+    def turn_on(self, **kwargs) -> None:
         """Turn on."""
         self._blink_off()
         if ATTR_FLASH in kwargs:
             short = kwargs[ATTR_FLASH] == FLASH_SHORT
-            blink = BLINKS["flash_short" if short else "flash_long"]
-            self._blink(blink)
+            self._blink("flash_short" if short else "flash_long", pwm=True)
         elif ATTR_EFFECT in kwargs:
             effect_name = kwargs[ATTR_EFFECT]
-            self._blink(BLINKS[effect_name])
-        elif ATTR_BRIGHTNESS in kwargs:
-            self.brightness = kwargs.get(ATTR_BRIGHTNESS)
+            self._blink(effect_name, pwm=True)
+        elif (
+            ATTR_BRIGHTNESS in kwargs
+            or ATTR_RGB_COLOR in kwargs
+            or ATTR_WHITE in kwargs
+        ):
+            brightness = kwargs.get(ATTR_BRIGHTNESS, self._brightness)
+            rgb = kwargs.get(ATTR_RGB_COLOR, self._rgb)
+            if ATTR_WHITE in kwargs:
+                white: True | int = kwargs[ATTR_WHITE]
+                rgb = RGB_WHITE
+                if white > 0 and white <= HIGH_BRIGHTNESS:
+                    brightness = white
+
+            self._set(brightness, rgb)
+        elif self._rgb == RGB_OFF:
+            self._set(HIGH_BRIGHTNESS, RGB_WHITE)
         else:
-            self._switch(True)
+            self.brightness = HIGH_BRIGHTNESS
 
-    def turn_off(self, **kwargs):
-        """Turn off."""
-        self._blink_off()
-        if self.is_on:
-            self._switch(False)
+    def turn_off(self, **kwargs) -> None:
+        self.brightness = 0
 
-    def _switch(self, value: bool):
-        """Switch."""
-        self._set_state(
-            (HIGH_BRIGHTNESS, HIGH_BRIGHTNESS, HIGH_BRIGHTNESS, HIGH_BRIGHTNESS)
-            if value
-            else (0, 0, 0, 0)
-        )
+    def _set(self, brightness: int, rgb: tuple[int, int, int]) -> None:
+        if brightness < 0 or brightness > HIGH_BRIGHTNESS:
+            raise ValueError(f"brightness must be between 0 and {HIGH_BRIGHTNESS}")
 
-    def _set_state(self, state: tuple[int, int, int, int]):
-        self._value = state
-        brightness_ratio = state[3] / HIGH_BRIGHTNESS
-        self._r_led.brightness = state[0] * brightness_ratio
-        self._g_led.brightness = state[1] * brightness_ratio
-        self._b_led.brightness = state[2] * brightness_ratio
+        if brightness != self._brightness or rgb != self._rgb:
+            r = brightness_to_value(brightness)  # between 0 and 1
+            value = tuple((v / HIGH_BRIGHTNESS) * r for v in rgb)
+            self._rgb = rgb
+            self._brightness = brightness
+            self._io.value = value
+            self.async_write_ha_state()
+            _LOGGER.debug(f"{self._io!s} light set to {rgb}/{brightness} ({value})")
+
+    def _close(self) -> None:
+        if self._io is not None:
+            self._io.close()
+            self._io = None
 
     async def async_will_remove_from_hass(self) -> None:
-        """On entity remove release the GPIO resources."""
-        self._blink_off()
-        await self._b_led.async_close()
-        await self._r_led.async_close()
-        await self._g_led.async_close()
+        self._close()
         await super().async_will_remove_from_hass()

@@ -7,8 +7,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from ._devices import PwmFromPercent
 from .core import DOMAIN, get_logger
-from .gpio.pin_factory import create_pin
 from .hub import Hub
 from .schemas.pwm import PwmConfig
 
@@ -40,26 +40,26 @@ class GpioFan(FanEntity):
         self._attr_has_entity_name = True
         self._attr_should_poll = False
         self._attr_supported_features = SUPPORT_SIMPLE_FAN
-        self._percentage = 0
-
-        self._io = create_pin(
-            config.port,
-            mode="output",
-            frequency=config.frequency,
+        self._io = PwmFromPercent(
+            config.port, frequency=config.frequency, initial_value=config.default_state
         )
-
-        if config.default_state:
-            self.set_percentage(100)
 
     @property
     def is_on(self):
         """Return true if device is on."""
-        return self._percentage > 0
+        return self._io.is_active
 
     @property
     def percentage(self) -> int:
         """Return the percentage property."""
-        return self._percentage
+        return self._io.percentage
+
+    def set_percentage(self, percentage: int) -> None:
+        """Set the percentage property."""
+        if self._io.percentage != percentage:
+            self._io.percentage = percentage
+            self.async_write_ha_state()
+            _LOGGER.debug(f"{self._io!s} set to {percentage}%")
 
     def turn_on(self, percentage: None, **kwargs) -> None:
         """Turn on the fan."""
@@ -68,22 +68,16 @@ class GpioFan(FanEntity):
         elif ATTR_PERCENTAGE in kwargs:
             self.set_percentage(kwargs[ATTR_PERCENTAGE])
         else:
-            self.set_percentage(100)
+            self._io.on()
 
     def turn_off(self, **kwargs) -> None:
         """Turn off the fan."""
-        self.set_percentage(0)
-        _LOGGER.debug(f"{self._io!s} turn off")
-
-    def set_percentage(self, percentage: int) -> None:
-        """Set the speed percentage of the fan."""
-        if percentage != self._percentage:
-            self._percentage = percentage
-            self._io.state = percentage / 100
-            self.schedule_update_ha_state()
-            _LOGGER.debug(f"{self._io!s} set to {percentage}")
+        if self._io.is_active:
+            self._io.off()
+            self.async_write_ha_state()
+            _LOGGER.debug(f"{self._io!s} turn off")
 
     async def async_will_remove_from_hass(self) -> None:
         """On entity remove release the GPIO resources."""
-        await self._io.async_close()
+        self._io.close()
         await super().async_will_remove_from_hass()

@@ -53,12 +53,12 @@ def test__pigpio_connect():
     proxy = MockedPi()
     pin = mocked.get_next_pin()
     with patch("pigpio.pi", return_value=proxy):
-        import custom_components.gpio_integration.gpio.pigpio as base
+        import custom_components.gpio_integration.gpio.__pigpio as base
 
         base.GpioPin(pin, factory=base.GpioPinFactory())
 
-        assert proxy.pins[pin]["mode"] == base.pigpio.INPUT
-        assert proxy.pins[pin]["pull"] == base.pigpio.PUD_OFF
+        assert proxy.pins[pin]["mode"] == base.__pigpio.INPUT
+        assert proxy.pins[pin]["pull"] == base.__pigpio.PUD_OFF
         assert proxy.pins[pin]["glitch"] == 0
 
 
@@ -66,7 +66,7 @@ def test__pigpio_set_default_value():
     proxy = MockedPi()
     pin = mocked.get_next_pin()
     with patch("pigpio.pi", return_value=proxy):
-        import custom_components.gpio_integration.gpio.pigpio as base
+        import custom_components.gpio_integration.gpio.__pigpio as base
 
         base.GpioPin(
             pin, mode="output", default_value=True, factory=base.GpioPinFactory()
@@ -79,7 +79,7 @@ def test__pigpio_set_frequency():
     proxy = MockedPi()
     pin = mocked.get_next_pin()
     with patch("pigpio.pi", return_value=proxy):
-        import custom_components.gpio_integration.gpio.pigpio as base
+        import custom_components.gpio_integration.gpio.__pigpio as base
 
         base.GpioPin(pin, mode="output", frequency=100, factory=base.GpioPinFactory())
 
@@ -94,13 +94,13 @@ def test__pigpio_edge_detection():
     pin = mocked.get_next_pin()
     callback = Mock()
     with patch("pigpio.pi", return_value=proxy):
-        import custom_components.gpio_integration.gpio.pigpio as base
+        import custom_components.gpio_integration.gpio.__pigpio as base
 
         base.GpioPin(
             pin, edge="rising", when_changed=callback, factory=base.GpioPinFactory()
         )
 
-        assert proxy.pins[pin]["edge"] == base.pigpio.RISING_EDGE
+        assert proxy.pins[pin]["edge"] == base.__pigpio.RISING_EDGE
 
         callback.assert_not_called()
         proxy._callback(pin, 1, 1)
@@ -113,7 +113,7 @@ def test__pigpio_edge_detection_multiple_detections():
     pin = mocked.get_next_pin()
     callback = Mock()
     with patch("pigpio.pi", return_value=proxy):
-        import custom_components.gpio_integration.gpio.pigpio as base
+        import custom_components.gpio_integration.gpio.__pigpio as base
 
         base.GpioPin(
             pin,

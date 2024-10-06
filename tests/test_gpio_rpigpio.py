@@ -73,7 +73,7 @@ def test__rpigpio_connect():
     pin = mocked.get_next_pin()
     logging.getLogger().error("pin %s", pin)
     with patch("RPi.GPIO", proxy):
-        import custom_components.gpio_integration.gpio.rpigpio as base
+        import custom_components.gpio_integration.gpio.__rpigpio as base
 
         base.GpioPin(pin, factory=base.GpioPinFactory())
 
@@ -85,7 +85,7 @@ def test__rpigpio_set_default_value():
     proxy = MockedGPIO()
     pin = mocked.get_next_pin()
     with patch("RPi.GPIO", proxy):
-        import custom_components.gpio_integration.gpio.rpigpio as base
+        import custom_components.gpio_integration.gpio.__rpigpio as base
 
         base.GpioPin(
             pin, mode="output", default_value=True, factory=base.GpioPinFactory()
@@ -98,7 +98,7 @@ def test__rpigpio_set_frequency():
     proxy = MockedGPIO()
     pin = mocked.get_next_pin()
     with patch("RPi.GPIO", proxy):
-        import custom_components.gpio_integration.gpio.rpigpio as base
+        import custom_components.gpio_integration.gpio.__rpigpio as base
 
         base.GpioPin(pin, mode="output", frequency=100, factory=base.GpioPinFactory())
 
@@ -111,7 +111,7 @@ def test__rpigpio_edge_detection():
     pin = mocked.get_next_pin()
     callback = Mock()
     with patch("RPi.GPIO", proxy):
-        import custom_components.gpio_integration.gpio.rpigpio as base
+        import custom_components.gpio_integration.gpio.__rpigpio as base
 
         base.GpioPin(
             pin, edge="rising", when_changed=callback, factory=base.GpioPinFactory()
