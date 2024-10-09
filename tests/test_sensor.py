@@ -44,10 +44,10 @@ def _send_DHT22_data(io, bits: str):
         data.append((0, 0.00005))
         data.append((1, 0.000026 if bit == "0" else 0.00007))
 
-    io._last_event = 0
+    io._last_change = 0
     for bit, time in data:
-        io._state = bit
-        io._last_event += time
+        io._state = 1 if bit == 0 else 0
+        io._last_change += time
         io._call_when_changed()
 
 
@@ -67,7 +67,24 @@ def test__DHT22_should_retrieve(mocked_factory):
             )
 
             assert temperature.native_value == 35.1
-            assert humidity.native_value == 62.5
+            assert humidity.native_value == 65.2
+
+
+def test__DHT22_should_retrieve_negative_temp(mocked_factory):
+    port = get_next_pin()
+    pin = mocked_factory.pin(port)
+    controller = DHT22Controller(_create_config(port))
+    sensors = controller.get_sensors()
+    with GpioSensor(sensors[0]) as temperature:
+        controller.stop_auto_read_loop()
+
+        controller._io.read()
+        _send_DHT22_data(
+            pin,
+            "00000010 10001100 10000000 10010011 10100001",
+        )
+
+        assert temperature.native_value == -14.7
 
 
 @pytest.mark.asyncio

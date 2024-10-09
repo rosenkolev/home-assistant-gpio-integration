@@ -136,15 +136,16 @@ class SerialDataInputDevice(InputDevice):
     def _state_changed(self, state: tuple[bool, float]) -> None:
         pass
 
-    def _pin_changed(self, ticks: int, state: int):
+    def _pin_changed(self, ticks: float, state: int):
         if state == self._last_state:
             raise ValueError("Invalid state change")
 
-        elapsed_ms = self.pin_factory.ticks_diff(ticks, self._last_event) / 1000
+        elapsed_ms = self.pin_factory.ticks_diff(ticks, self._last_event) * 1000
         state_time = (self._last_state, elapsed_ms)
         self._last_state = state
+        self._last_event = ticks
 
-        if self._check_transfer_started(state_time) and self.when_state_changed:
+        if self._check_transfer_started(state_time):
             self._state_changed(state_time)
 
 
@@ -199,7 +200,7 @@ class SerialDataPackageReader(SerialDataInputDevice):
     def _on_word_filled(self, bits: deque[int]) -> None:
         pass
 
-    def _state_changed(self, state: tuple[bool, float]) -> None:
+    def _state_changed(self, state: tuple[int, float]) -> None:
         if state[0]:
             if self._zero_high_ms_range[0] <= state[1] <= self._zero_high_ms_range[1]:
                 self._queue.append(0)
@@ -232,8 +233,8 @@ class DHT22(SerialDataPackageReader):
             zero_high_ms_range=(0.02, 0.03),
             one_high_ms_range=(0.06, 0.08),
             bounce_time=0.00001,
-            output_transfer_trigger_bits=[(False, 5.0), (True, 0.04)],
-            input_package_initialize_bits=[(False, 0.08), (True, 0.08)],
+            output_transfer_trigger_bits=[(0, 5.0), (1, 0.04)],
+            input_package_initialize_bits=[(0, 0.08), (1, 0.08)],
             word_bits_count=8,
         )
         self._reset_read_fields()
@@ -244,7 +245,7 @@ class DHT22(SerialDataPackageReader):
         self._on_data_received = None if callback is None else WeakMethod(callback)
 
     def set_on_invalid_check_sum(self, callback: Callable[[], None]) -> None:
-        self._on_invalid_check_sum = None if callback is None else WeakMethod
+        self._on_invalid_check_sum = None if callback is None else WeakMethod(callback)
 
     on_data_received: Callable[[DHT22Data], None] = property(
         fget=lambda self: self._on_data_received(),
@@ -267,6 +268,7 @@ class DHT22(SerialDataPackageReader):
         self._word_index = 0
         self._check_sum = 0
         self._temperature = 0
+        self._temperature_sign = 1
         self._humidity = 0
 
     def read(self) -> None:
@@ -295,22 +297,27 @@ class DHT22(SerialDataPackageReader):
                 if bits[0] == 1:
                     # negative temperature
                     bits[0] = 0
-                    dword = -bits_to_word(bits)
+                    dword = bits_to_word(bits)
+                    self._temperature_sign = -1
 
                 self._temperature = dword
             else:
                 self._temperature = (self._temperature << 8) | dword
 
+            self._word_index += 1
         else:
             # last word is check sum
             self.stop()
 
-            if self._check_sum != dword:
+            if (self._check_sum & 0b1111_1111) != dword:
                 if self.on_invalid_check_sum is not None:
                     self.on_invalid_check_sum()
                 else:
                     raise ValueError("Invalid check sum")
             else:
                 self.on_data_received(
-                    DHT22Data(self._temperature / 10.0, self._humidity / 10.0)
+                    DHT22Data(
+                        self._temperature_sign * self._temperature / 10.0,
+                        self._humidity / 10.0,
+                    )
                 )
