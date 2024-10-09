@@ -5,6 +5,7 @@ from typing import Literal
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import CONF_MODE, CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
+from homeassistant.helpers.selector import selector
 
 from . import (
     CONF_INVERT_LOGIC,
@@ -14,7 +15,7 @@ from . import (
     CONF_RELAY_TIME,
     CONF_RELAY_UP_INVERT,
     CONF_RELAY_UP_PIN,
-    VARIATION_SCHEMA,
+    EMPTY_VARIATION_DATA,
     create_variation_list_schema,
     get_unique_id,
     validate_variation_data,
@@ -33,7 +34,7 @@ def create_cover_variation_schema(data: dict) -> vol.Schema:
     return create_variation_list_schema(data, COVER_VARIATIONS)
 
 
-COVER_VARIATION_SCHEMA = VARIATION_SCHEMA
+COVER_VARIATION_SCHEMA = create_cover_variation_schema(EMPTY_VARIATION_DATA)
 
 
 def validate_cover_variation_data(data):

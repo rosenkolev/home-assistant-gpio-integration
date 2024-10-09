@@ -1,5 +1,5 @@
 import datetime
-import time
+import warnings
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
 from ._devices import BinarySensor
-from .core import DOMAIN, get_logger
+from .core import DOMAIN, ClosableMixin, get_logger
 from .hub import Hub
 from .schemas.binary_sensor import BinarySensorConfig
 
@@ -45,7 +45,7 @@ def get_device_class(mode: str) -> BinarySensorDeviceClass:
     return BinarySensorDeviceClass.DOOR
 
 
-class GpioBinarySensor(BinarySensorEntity):
+class GpioBinarySensor(ClosableMixin, BinarySensorEntity):
     """Represent a binary sensor that uses Raspberry Pi GPIO."""
 
     def __init__(self, config: BinarySensorConfig) -> None:
@@ -62,13 +62,12 @@ class GpioBinarySensor(BinarySensorEntity):
 
         self._io = BinarySensor(
             config.pin,
-            pull_up=config.pull_mode == "up",
-            active_state=not config.invert_logic,
+            active_high=not config.invert_logic,
             bounce_time=config.bounce_time_ms / 1000,
         )
 
-        self._io.when_activated = self.edge_detection_callback
-        self._io.when_deactivated = self.edge_detection_callback
+        self._io.on_state_changed = self.edge_detection_callback
+        self._event_occurred = False
 
     @property
     def is_on(self) -> bool:
@@ -76,28 +75,31 @@ class GpioBinarySensor(BinarySensorEntity):
 
     @property
     def is_sensor_active(self) -> bool:
-        event_time = self._io.last_event_time_sec
-        return (event_time is not None) and (
-            time.perf_counter() - event_time
-        ) < self._edge_event_timeout_sec
+        event_time = self._io.any_event_time_sec
+        return self._event_occurred and event_time < self._edge_event_timeout_sec
 
-    def edge_detection_callback(self, _=None) -> None:
-        if not self._rely_on_edge_events or not self._state:
+    def edge_detection_callback(self, io: BinarySensor) -> None:
+        self._event_occurred = True
+        if not self._rely_on_edge_events or (not self._state and io.is_active):
             _LOGGER.debug(f"{self._io!s} schedule state update")
             self.schedule_update_ha_state(force_refresh=True)
 
     def update(self):
         """Update the GPIO state."""
         if self._rely_on_edge_events:
-            state = self.is_sensor_active == self._io.active_high
+            state = self.is_sensor_active
         else:
-            state = self._io.value
+            state = self._io.is_active
 
         if state != self._state:
             self._state = state
             _LOGGER.debug("%s update %s", self._attr_name, self._state)
 
     ### HASS lifecycle hooks ###
+
+    def _close(self) -> None:
+        self._io.on_state_changed = None
+        super()._close()
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added."""
@@ -107,10 +109,7 @@ class GpioBinarySensor(BinarySensorEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """On entity remove release the GPIO resources."""
-        self._io.when_activated = None
-        self._io.when_deactivated = None
-
-        await self._io.close()
+        self._close()
         await super().async_will_remove_from_hass()
 
     ### state auto-update logic ###

@@ -52,13 +52,12 @@ class Roller:
         self._io_sensor = (
             BinarySensor(
                 self._pin_closed,
-                active_state=config.pin_closed_on_state == "high",
-                pull_up=True,
+                active_high=config.pin_closed_on_state == "high",
             )
             if self._has_sensor
             else None
         )
-        self._position = 0 if not self._has_sensor or self._io_sensor.value else 100
+        self._position = 0 if not self._has_sensor or self._io_sensor.is_active else 100
 
     @property
     def position(self) -> int:
@@ -67,11 +66,11 @@ class Roller:
 
     @property
     def is_sensor_closed(self) -> bool:
-        return self._has_sensor and self._io_sensor.value
+        return self._has_sensor and self._io_sensor.is_active
 
     @property
     def is_closed(self) -> bool:
-        return self._io_sensor.value if self._has_sensor else (self._position == 0)
+        return self._io_sensor.is_active if self._has_sensor else (self._position == 0)
 
     @property
     def is_moving(self) -> bool:

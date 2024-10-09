@@ -1,45 +1,15 @@
-from collections import deque
-from time import sleep
-from typing import Literal
+import threading
 
-from .._devices import SerialDataInputDevice
+from .._devices import DHT22
 from ..core import get_logger
-from ..schemas.main import EntityTypes
-from ..schemas.sensor import SensorSerialConfig
+from ..schemas.sensor import DHT22Config
 
 _LOGGER = get_logger()
 
 
-class StateProvider:
+class SensorStateProvider:
     def get_state(self, id: str) -> float:
-        raise NotImplementedError()
-
-    def release(self) -> None:
-        raise NotImplementedError()
-
-
-class SensorRef:
-    def __init__(
-        self, controller: StateProvider, name: str, id: str, unit: str
-    ) -> None:
-        self._controller = controller
-        self.name = name
-        self.id = id
-        self.unit = unit
-
-    @property
-    def state(self):
-        return self._controller.get_state(self.id)
-
-    def release(self):
-        if self._controller is not None:
-            self._controller.release()
-            self._controller = None
-
-
-class ControllerBase(StateProvider):
-    def get_sensors(self) -> list[SensorRef]:
-        raise NotImplementedError
+        pass
 
     def release(self) -> None:
         if hasattr(self, "_io") and self._io is not None:
@@ -47,35 +17,46 @@ class ControllerBase(StateProvider):
             self._io = None
 
 
-class SensorsHub:
-    def __init__(self, type: EntityTypes, config: dict) -> None:
-        if type == EntityTypes.SENSOR_SERIAL_DATA:
-            _LOGGER.debug("Creating serial data sensor controller")
-            controller = SerialDataSensorController(SensorSerialConfig(config))
-        else:
-            raise ValueError(f"Unknown sensor type: {type}")
+class SensorRef:
+    def __init__(
+        self, provider: SensorStateProvider, name: str, id: str, unit: str
+    ) -> None:
+        self.name = name
+        self.id = id
+        self.unit = unit
+        self._provider = provider
 
-        self.sensors = controller.get_sensors()
+    @property
+    def state(self):
+        return self._provider.get_state(self.id)
+
+    def release(self):
+        if self._provider is not None:
+            self._provider.release()
+            self._provider = None
 
 
-class SerialDataSensorController(ControllerBase):
-    def __init__(self, config: SensorSerialConfig) -> None:
+class SensorsProvider:
+    def get_sensors(self) -> list[SensorRef]:
+        pass
+
+
+class DHT22Controller(SensorsProvider, SensorStateProvider):
+    def __init__(self, config: DHT22Config) -> None:
         self.name = config.name
         self.id = config.unique_id
         self._temperature_id = f"{self.id}_T"
         self._humidity_id = f"{self.id}_H"
-        self._signal_activate_ms = [(False, 18.0), (True, 0.04)]
-        self._zero_high_ms = (True, 0.026)
-        self._one_high_ms = (True, 0.07)
-        self._interval_ms = 0.05
-        self._state = (0, 0)
-        self._io = SerialDataInputDevice(
-            config.port,
-            pull_up=True,
-            max_bits=40,
-            package_initial_bits=[(False, 0.08), (True, 0.08)],
-        )
-        self._io.when_filled = self.read
+        self._temperature = 0.0
+        self._humidity = 0.0
+        self._io = DHT22(config.port)
+        self._io.on_data = self._on_data
+        self._io.on_invalid_check_sum = self._on_invalid_check_sum
+        self._retry = 0
+
+        self._loop_stop_event = threading.Event()
+        self._loop_thread = None
+        self.start_auto_read_loop(5)
 
     def get_sensors(self):
         return [
@@ -85,17 +66,47 @@ class SerialDataSensorController(ControllerBase):
 
     def get_state(self, id: str) -> float:
         if id == self._temperature_id:
-            return self._state[0]
+            return self._temperature
         elif id == self._humidity_id:
-            return self._state[1]
-        else:
-            raise ValueError(f"Unknown sensor id: {id}")
+            return self._humidity
 
-    def activate(self):
-        for state, duration in self._signal_activate_ms:
-            self._io.value = state
-            sleep(duration / 1000)
+        raise ValueError(f"Unknown sensor id: {id}")
 
-    def read(self, bits: deque[(bool, float)]):
-        # convert first 8 bits as temperature
-        temperature = 0
+    def start_auto_read_loop(self, interval_sec: int):
+        """Start async loop to read data every `data: interval_sec` seconds."""
+        self._loop_stop_event.clear()
+        self._loop_thread = threading.Thread(
+            target=self._auto_read_loop, args=(interval_sec,)
+        )
+
+    def stop_auto_read_loop(self):
+        """Stop the async loop."""
+        self._loop_stop_event.set()
+        if self._loop_thread:
+            self._loop_thread.join()
+            if self._loop_thread.is_alive():
+                _LOGGER.warning("DHT22: failed to stop auto read loop")
+
+            self._loop_thread = None
+            _LOGGER.debug("DHT22: auto read loop stopped")
+
+    def release(self) -> None:
+        _LOGGER.debug("DHT22: releasing resources")
+        super().release()
+        self.stop_auto_read_loop()
+
+    def _on_data(self, temperature: float, humidity: float):
+        self._temperature = temperature
+        self._humidity = humidity
+        self._retry = 0
+        _LOGGER.debug("DHT22: temperature=%.1f, humidity=%.1f", temperature, humidity)
+
+    def _on_invalid_check_sum(self):
+        _LOGGER.warning("DHT22: invalid check sum")
+        if self._retry < 2:
+            self._io.read()
+            self._retry += 1
+
+    def _auto_read_loop(self, interval_sec: int):
+        while not self._loop_stop_event.wait(interval_sec):
+            self._io.read()

@@ -17,7 +17,7 @@ async def async_setup_entry(
 ) -> None:
     """Add switch for passed config_entry in HA."""
     hub: Hub = hass.data[DOMAIN][config_entry.entry_id]
-    sensors: list[SensorRef] = hub.hub.sensors
+    sensors: list[SensorRef] = hub.sensors
     for sensor in sensors:
         async_add_entities([GpioSensor(sensor)])
 
@@ -29,10 +29,8 @@ class GpioSensor(SensorEntity):
         """Initialize the pin."""
         self._attr_name = sensor.name
         self._attr_unique_id = sensor.id
-        # self._attr_should_poll = False
         self._sensor = sensor
         self._attr_native_unit_of_measurement = sensor.unit
-        # self._attr_device_class = ??
 
     @property
     def native_value(self) -> int | float:

@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ._devices import PwmFromPercent
-from .core import DOMAIN, get_logger
+from .core import DOMAIN, ClosableMixin, get_logger
 from .hub import Hub
 from .schemas.pwm import PwmConfig
 
@@ -25,12 +25,7 @@ async def async_setup_entry(
     async_add_entities([GpioFan(hub.config)])
 
 
-SUPPORT_SIMPLE_FAN = (
-    FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
-)
-
-
-class GpioFan(FanEntity):
+class GpioFan(ClosableMixin, FanEntity):
     """Representation of a simple PWM FAN."""
 
     def __init__(self, config: PwmConfig) -> None:
@@ -39,7 +34,15 @@ class GpioFan(FanEntity):
         self._attr_unique_id = config.unique_id
         self._attr_has_entity_name = True
         self._attr_should_poll = False
-        self._attr_supported_features = SUPPORT_SIMPLE_FAN
+        self._attr_supported_features = (
+            FanEntityFeature.SET_SPEED
+            | FanEntityFeature.TURN_ON
+            | FanEntityFeature.TURN_OFF
+        )
+
+        if config.frequency is None or config.frequency <= 0:
+            raise ValueError("Frequency must be greater than 0")
+
         self._io = PwmFromPercent(
             config.port, frequency=config.frequency, initial_value=config.default_state
         )
@@ -79,5 +82,5 @@ class GpioFan(FanEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """On entity remove release the GPIO resources."""
-        self._io.close()
+        self._close()
         await super().async_will_remove_from_hass()

@@ -1,4 +1,6 @@
-from queue import Queue
+from collections import deque
+from time import sleep
+from typing import Callable
 
 from gpiozero import (
     RGBLED,
@@ -56,25 +58,31 @@ class Switch(DigitalOutputDevice):
 
 
 class BinarySensor(DigitalInputDevice):
-    def __init__(self, pin: int, pull_up=False, active_state=False, bounce_time=None):
+    def __init__(self, pin: int, active_high=True, bounce_time=None):
         super().__init__(
             pin,
             pin_factory=get_pin_factory(),
-            pull_up=pull_up,
+            pull_up=not active_high,
             active_state=None,
             bounce_time=bounce_time,
         )
 
-        self.active_high = not active_state
+    on_state_changed: Callable[[DigitalInputDevice], None] = event(
+        """
+        Event that is fired when the state of the sensor changes.
+        The callback should accept a single argument: the new state.
+        """
+    )
+
+    def _pin_changed(self, ticks, state):
+        super()._pin_changed(ticks, state)
+        if self.on_state_changed:
+            self.on_state_changed()
 
     @property
-    def last_event_time_sec(self) -> float | None:
+    def any_event_time_sec(self) -> float | None:
         active_time = self.active_time
         return active_time if active_time is not None else self.inactive_time
-
-    @property
-    def value(self) -> bool:
-        return self._read() == self.active_high
 
     def __repr__(self):
         return f"{self.pin!r}"
@@ -98,58 +106,188 @@ class SerialDataInputDevice(InputDevice):
     def __init__(
         self,
         pin: int,
-        pull_up=False,
-        active_state=False,
+        active_high=True,
         bounce_time=None,
-        max_bits=8,
-        package_initial_bits: list[tuple[bool, float]] = None,
     ):
         super().__init__(
             pin,
             pin_factory=get_pin_factory(),
-            pull_up=pull_up,
+            pull_up=not active_high,
             active_state=None,
             bounce_time=bounce_time,
         )
 
         self.pin.bounce = bounce_time
         self.pin.edges = "both"
+
+    def read(self) -> None:
+        self._last_state: int = self.value
+        self._last_event: int = self.pin_factory.ticks()
         self.pin.when_changed = self._pin_changed
-        self._bits: Queue[tuple[bool, float]] = Queue(max_bits * 2)
-        self._last_event = None
-        self._transfer = False
-        self._init_index = 0
-        self._package_initial_bits = package_initial_bits
 
-    def clear(self):
-        with self._bits.mutex:
-            self._bits.queue.clear()
+    def stop(self) -> None:
+        self.pin.when_changed = None
 
-        self._last_state = self.value
-        self._last_event = self.pin_factory.ticks()
+    def _check_transfer_started(self, state: tuple[bool, float]) -> bool:
+        pass
 
-    when_filled = event(
-        """
-        Event that is fired when the queue is filled with bits.
-        The callback should accept a single argument: the value of the bits.
-        """
-    )
+    def _state_changed(self, state: tuple[bool, float]) -> None:
+        pass
 
-    def _pin_changed(self, ticks, state):
+    def _pin_changed(self, ticks: int, state: int):
         if state == self._last_state:
-            self.clear()
             raise ValueError("Invalid state change")
 
         elapsed_ms = self.pin_factory.ticks_diff(self._last_event, ticks) / 1000
+        state = (self._last_state, elapsed_ms)
+        self._last_state = state
 
-        if self._package_initial_bits is None or self._transfer:
-            self._bits.put((self._last_state, elapsed_ms))
-            if self._bits.full() and self.when_filled:
-                self.when_filled(self._bits.queue)
-        elif self._package_init_bits[self._init_index] == (
-            self._last_state,
-            elapsed_ms,
-        ):
-            self._init_index += 1
-            if self._init_index == len(self._package_init_bits):
+        if self._check_transfer_started(state) and self.when_state_changed:
+            self._state_changed(state)
+
+
+class SerialDataPackageReader(SerialDataInputDevice):
+    def __init__(
+        self,
+        pin: int,
+        zero_high_ms_range: tuple[float, float],
+        one_high_ms_range: tuple[float, float],
+        bounce_time=None,
+        output_transfer_trigger_bits: list[tuple[bool, float]] = None,
+        input_package_initialize_bits: list[tuple[bool, float]] = None,
+        word_bits_count: int = 8,
+    ):
+        super().__init__(pin, True, bounce_time)
+
+        self._transfer = False
+        self._initial_package_index = 0
+        self._output_transfer_trigger_bits = output_transfer_trigger_bits
+        self._input_package_initialize_bits = input_package_initialize_bits
+        self._zero_high_ms_range = zero_high_ms_range
+        self._one_high_ms_range = one_high_ms_range
+        self._queue = deque(maxlen=word_bits_count)
+
+    def read(self) -> None:
+        super().read()
+        self._queue.clear()
+        self._transfer = False
+        self._initial_package_index = 0
+        self.send_trigger_package()
+
+    def send_trigger_package(self) -> None:
+        if self._output_transfer_trigger_bits is not None:
+            for state, duration in self._output_transfer_trigger_bits:
+                self.pin.value = state
+                sleep(duration / 1000)
+
+    def _check_transfer_started(self, state: tuple[bool, float]) -> bool:
+        if self._input_package_initialize_bits is None or self._transfer:
+            return True
+
+        if self._input_package_initialize_bits[self._initial_package_index] == state:
+            self._initial_package_index += 1
+            if self._initial_package_index == len(self._input_package_initialize_bits):
                 self._transfer = True
+
+            return False
+
+        self.stop()
+        raise ValueError("Invalid package initialization")
+
+    def _on_word_filled(self, bits: deque[int]) -> None:
+        pass
+
+    def _state_changed(self, state: tuple[bool, float]) -> None:
+        if state[0]:
+            if self._zero_high_ms_range[0] <= state[1] <= self._zero_high_ms_range[1]:
+                self._queue.append(0)
+            elif self._one_high_ms_range[0] <= state[1] <= self._one_high_ms_range[1]:
+                self._queue.append(1)
+            else:
+                self.stop()
+                raise ValueError("Invalid bit duration")
+
+            if len(self._queue) == self._queue.maxlen:
+                self._on_word_filled(self._queue)
+                self._queue.clear()
+
+
+def bits_to_word(bits: deque[int]) -> int:
+    dword = 0
+    for bit in bits:
+        dword = (dword << 1) | bit
+
+    return dword
+
+
+class DHT22(SerialDataPackageReader):
+    def __init__(self, pin: int):
+        super().__init__(
+            pin,
+            zero_high_ms_range=(0.02, 0.03),
+            one_high_ms_range=(0.06, 0.08),
+            bounce_time=0.00001,
+            output_transfer_trigger_bits=[(False, 5.0), (True, 0.04)],
+            input_package_initialize_bits=[(False, 0.08), (True, 0.08)],
+            word_bits_count=8,
+        )
+
+    on_data: Callable[[float, float], None] = event(
+        """
+        Event that is fired when a new data is received from the sensor.
+        The callback should accept 2 arguments: temperature and humidity.
+        """
+    )
+
+    on_invalid_check_sum: Callable[[], None] = event(
+        """
+        Event that is fired when an invalid check sum is received from the sensor.
+        """
+    )
+
+    def read(self) -> None:
+        super().read()
+        self._word_index = 0
+        self._check_sum = 0
+        self._temperature = 0
+        self._humidity = 0
+
+    def _on_word_filled(self, bits: deque[int]) -> None:
+        """Converts 8 bits to a word and processes it."""
+
+        if self.on_data is None:
+            # when no one is listening, no need to continue
+            self.stop()
+            return
+
+        # convert 8 bits to a word
+        dword = bits_to_word(bits)
+        if self._word_index < 4:
+            # first 4 words are data
+            self._check_sum += dword
+
+            if self._word_index == 0:
+                self._humidity = dword
+            elif self._word_index == 1:
+                self._humidity = (self._humidity << 8) | dword
+            elif self._word_index == 2:
+                if bits[0] == 1:
+                    # negative temperature
+                    bits[0] = 0
+                    dword = -bits_to_word(bits)
+
+                self._temperature = dword
+            else:
+                self._temperature = (self._temperature << 8) | dword
+
+        else:
+            # last word is check sum
+            self.stop()
+
+            if self._check_sum != dword:
+                if self.on_invalid_check_sum is not None:
+                    self.on_invalid_check_sum()
+                else:
+                    raise ValueError("Invalid check sum")
+            else:
+                self.on_data(self._temperature / 10.0, self._humidity / 10.0)

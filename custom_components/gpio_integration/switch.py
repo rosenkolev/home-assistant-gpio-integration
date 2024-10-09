@@ -4,7 +4,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ._devices import Switch
-from .core import DOMAIN, get_logger
+from .core import DOMAIN, ClosableMixin, get_logger
 from .hub import Hub
 from .schemas.switch import SwitchConfig
 
@@ -21,7 +21,7 @@ async def async_setup_entry(
     async_add_entities([GpioSwitch(hub.config)])
 
 
-class GpioSwitch(SwitchEntity):
+class GpioSwitch(ClosableMixin, SwitchEntity):
     def __init__(self, config: SwitchConfig) -> None:
         """Initialize the pin."""
         self._attr_name = config.name
@@ -54,5 +54,5 @@ class GpioSwitch(SwitchEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """Cleanup before removing from hass."""
-        self._io.close()
+        self._close()
         await super().async_will_remove_from_hass()

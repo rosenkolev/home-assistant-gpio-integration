@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ._devices import Pwm, RgbLight, Switch
-from .core import DOMAIN, get_logger
+from .core import DOMAIN, ClosableMixin, get_logger
 from .hub import Hub
 from .schemas.light import RgbLightConfig
 from .schemas.main import EntityTypes
@@ -89,7 +89,7 @@ class BlinkMixin:
             self._io.blink(on_time=on_time, off_time=off_time, n=opts["times"])
 
 
-class GpioLight(BlinkMixin, LightEntity):
+class GpioLight(ClosableMixin, BlinkMixin, LightEntity):
     """Representation of a Raspberry Pi GPIO."""
 
     def __init__(self, config: PwmConfig) -> None:
@@ -152,11 +152,6 @@ class GpioLight(BlinkMixin, LightEntity):
     def turn_off(self, **kwargs):
         self.brightness = 0
 
-    def _close(self) -> None:
-        if self._io is not None:
-            self._io.close()
-            self._io = None
-
     async def async_will_remove_from_hass(self) -> None:
         self._close()
         await super().async_will_remove_from_hass()
@@ -166,7 +161,7 @@ RGB_WHITE = (HIGH_BRIGHTNESS, HIGH_BRIGHTNESS, HIGH_BRIGHTNESS)
 RGB_OFF = (0, 0, 0)
 
 
-class RgbGpioLight(BlinkMixin, LightEntity):
+class RgbGpioLight(ClosableMixin, BlinkMixin, LightEntity):
     def __init__(self, config: RgbLightConfig) -> None:
         """Initialize the pin."""
 
@@ -256,11 +251,6 @@ class RgbGpioLight(BlinkMixin, LightEntity):
             self._io.value = value
             self.async_write_ha_state()
             _LOGGER.debug(f"{self._io!s} light set to {rgb}/{brightness} ({value})")
-
-    def _close(self) -> None:
-        if self._io is not None:
-            self._io.close()
-            self._io = None
 
     async def async_will_remove_from_hass(self) -> None:
         self._close()

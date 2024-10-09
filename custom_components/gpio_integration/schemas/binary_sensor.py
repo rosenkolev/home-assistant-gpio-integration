@@ -1,7 +1,5 @@
 """Schema for the Binary Sensor entity."""
 
-from typing import Literal
-
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import CONF_MODE, CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
@@ -12,7 +10,6 @@ from . import (
     CONF_DEFAULT_STATE,
     CONF_EDGE_EVENT_TIMEOUT,
     CONF_INVERT_LOGIC,
-    CONF_PULL_MODE,
     get_unique_id,
 )
 from ._validators import v_name, v_pin, v_time
@@ -27,11 +24,6 @@ def create_binary_sensor_schema(data: dict) -> vol.Schema:
                 default=data[CONF_PORT],
                 description="GPIO pin number for the sensor",
             ): cv.positive_int,
-            vol.Optional(
-                CONF_PULL_MODE,
-                default=data[CONF_PULL_MODE],
-                description="Pull mode for the sensor",
-            ): vol.In(["up", "down"]),
             vol.Optional(
                 CONF_BOUNCE_TIME,
                 default=data[CONF_BOUNCE_TIME],
@@ -65,7 +57,6 @@ BINARY_SENSOR_SCHEMA = create_binary_sensor_schema(
     {
         CONF_NAME: None,
         CONF_PORT: None,
-        CONF_PULL_MODE: "up",
         CONF_BOUNCE_TIME: 200,
         CONF_INVERT_LOGIC: False,
         CONF_MODE: "Door",
@@ -88,7 +79,6 @@ class BinarySensorConfig:
     def __init__(self, data: dict):
         self.name: str = data[CONF_NAME]
         self.pin: int = data[CONF_PORT]
-        self.pull_mode: Literal["up", "down"] = data[CONF_PULL_MODE]
         self.mode: str = data[CONF_MODE]
         self.bounce_time_ms: int = data[CONF_BOUNCE_TIME]
         self.invert_logic: bool = data[CONF_INVERT_LOGIC]

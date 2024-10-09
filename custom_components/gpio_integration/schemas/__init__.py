@@ -13,7 +13,6 @@ CONF_RELAY_DOWN_PIN = "down_pin"
 CONF_RELAY_DOWN_INVERT = "down_pin_invert"
 CONF_RELAY_TIME = "relay_time"
 CONF_PIN_CLOSED_SENSOR = "pin_closed_sensor"
-CONF_PULL_MODE = "pull_mode"
 CONF_INVERT_LOGIC = "invert_logic"
 CONF_BOUNCE_TIME = "bounce_time_in_ms"
 CONF_DEFAULT_STATE = "default_state"
@@ -80,7 +79,7 @@ def create_variation_list_schema(
     )
 
 
-VARIATION_SCHEMA = create_variation_list_schema({CONF_VARIATION: None})
+EMPTY_VARIATION_DATA = {CONF_VARIATION: None}
 
 
 def validate_variation_data(data: dict, variations: dict) -> bool:

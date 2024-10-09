@@ -16,7 +16,7 @@ class EntityTypes(Enum):
     LIGHT_RGB_LED = "light_rgb_led"
     FAN = "fan"
     SENSOR = "sensor"
-    SENSOR_SERIAL_DATA = "sensor_serial_data"
+    SENSOR_DHT22 = "sensor_dht22"
 
 
 CONF_TYPES: dict = {

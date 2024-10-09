@@ -9,15 +9,16 @@ from homeassistant.const import (
 )
 
 from . import (
-    VARIATION_SCHEMA,
+    EMPTY_VARIATION_DATA,
     create_variation_list_schema,
     get_unique_id,
     validate_variation_data,
 )
 from ._validators import v_name, v_pin
+from .main import EntityTypes
 
 SENSOR_VARIATIONS = {
-    "sensor_serial_data": "ADC Sensor",
+    EntityTypes.SENSOR_DHT22.value: "DHT22",
 }
 
 
@@ -25,7 +26,7 @@ def create_sensor_variation_schema(data: dict) -> vol.Schema:
     return create_variation_list_schema(data, SENSOR_VARIATIONS)
 
 
-SENSOR_VARIATION_SCHEMA = VARIATION_SCHEMA
+SENSOR_VARIATION_SCHEMA = create_sensor_variation_schema(EMPTY_VARIATION_DATA)
 
 
 def validate_sensor_variation_data(data):
@@ -35,7 +36,7 @@ def validate_sensor_variation_data(data):
 ### Sensor Serial Data ###
 
 
-def create_sensor_serial_schema(data: dict) -> vol.Schema:
+def create_sensor_dht22_schema(data: dict) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_NAME, default=data[CONF_NAME]): cv.string,
@@ -49,7 +50,7 @@ def create_sensor_serial_schema(data: dict) -> vol.Schema:
     )
 
 
-SENSOR_SERIAL_SCHEMA = create_sensor_serial_schema(
+SENSOR_DHT22_SCHEMA = create_sensor_dht22_schema(
     {
         CONF_NAME: None,
         CONF_PORT: None,
@@ -58,11 +59,11 @@ SENSOR_SERIAL_SCHEMA = create_sensor_serial_schema(
 )
 
 
-def validate_sensor_serial_data(data):
+def validate_sensor_dht22_data(data):
     return v_name(data[CONF_NAME]) and v_pin(data[CONF_PORT])
 
 
-class SensorSerialConfig:
+class DHT22Config:
     def __init__(self, data: dict):
         self.name: str = data[CONF_NAME]
         self.pin: int = data[CONF_PORT]

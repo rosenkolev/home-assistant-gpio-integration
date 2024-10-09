@@ -32,14 +32,14 @@ from .schemas.light import (
     validate_light_variation_data,
     validate_rgb_light_data,
 )
-from .schemas.main import MAIN_SCHEMA, get_type
+from .schemas.main import MAIN_SCHEMA, EntityTypes, get_type
 from .schemas.pwm import create_pwm_schema, validate_pwm_data
 from .schemas.sensor import (
-    SENSOR_SERIAL_SCHEMA,
+    SENSOR_DHT22_SCHEMA,
     SENSOR_VARIATION_SCHEMA,
-    create_sensor_serial_schema,
+    create_sensor_dht22_schema,
     create_sensor_variation_schema,
-    validate_sensor_serial_data,
+    validate_sensor_dht22_data,
     validate_sensor_variation_data,
 )
 from .schemas.switch import SWITCH_SCHEMA, create_switch_schema, validate_switch_data
@@ -47,60 +47,60 @@ from .schemas.switch import SWITCH_SCHEMA, create_switch_schema, validate_switch
 _LOGGER = get_logger()
 
 CONF_ENTITIES: dict = {
-    "cover": {
+    EntityTypes.COVER: {
         "schema": COVER_VARIATION_SCHEMA,
         "validate": validate_cover_variation_data,
         "schema_builder": create_cover_variation_schema,
     },
-    "cover_up_down": {
+    EntityTypes.COVER_UP_DOWN: {
         "schema": COVER_UP_DOWN_SCHEMA,
         "validate": validate_cover_up_down_data,
         "schema_builder": create_cover_up_down_schema,
     },
-    "cover_toggle": {
+    EntityTypes.COVER_TOGGLE: {
         "schema": COVER_TOGGLE_SCHEMA,
         "validate": validate_toggle_cover_data,
         "schema_builder": create_toggle_cover_schema,
     },
-    "binary_sensor": {
+    EntityTypes.BINARY_SENSOR: {
         "schema": BINARY_SENSOR_SCHEMA,
         "validate": validate_binary_sensor_data,
         "schema_builder": create_binary_sensor_schema,
     },
-    "switch": {
+    EntityTypes.SWITCH: {
         "schema": SWITCH_SCHEMA,
         "validate": validate_switch_data,
         "schema_builder": create_switch_schema,
     },
-    "light": {
+    EntityTypes.LIGHT: {
         "schema": LIGHT_VARIATION_SCHEMA,
         "validate": validate_light_variation_data,
         "schema_builder": create_light_variation_schema,
     },
-    "light_pwm_led": {
+    EntityTypes.LIGHT_PWM_LED: {
         "schema": LIGHT_SCHEMA,
         "validate": validate_pwm_data,
         "schema_builder": create_pwm_schema,
     },
-    "light_rgb_led": {
+    EntityTypes.LIGHT_RGB_LED: {
         "schema": RGB_LIGHT_SCHEMA,
         "validate": validate_rgb_light_data,
         "schema_builder": create_rgb_light_schema,
     },
-    "fan": {
+    EntityTypes.FAN: {
         "schema": FAN_SCHEMA,
         "validate": validate_pwm_data,
         "schema_builder": create_pwm_schema,
     },
-    "sensor": {
+    EntityTypes.SENSOR: {
         "schema": SENSOR_VARIATION_SCHEMA,
         "validate": validate_sensor_variation_data,
         "schema_builder": create_sensor_variation_schema,
     },
-    "sensor_serial_data": {
-        "schema": SENSOR_SERIAL_SCHEMA,
-        "validate": validate_sensor_serial_data,
-        "schema_builder": create_sensor_serial_schema,
+    EntityTypes.SENSOR_DHT22: {
+        "schema": SENSOR_DHT22_SCHEMA,
+        "validate": validate_sensor_dht22_data,
+        "schema_builder": create_sensor_dht22_schema,
     },
 }
 
@@ -117,14 +117,14 @@ def validate_config_data(entity_type: str, data_input: dict):
 
 
 VARIATION_STEP_ENTITIES = [
-    "cover",
-    "light",
-    "sensor",
+    EntityTypes.COVER,
+    EntityTypes.LIGHT,
+    EntityTypes.SENSOR,
 ]
 SINGLE_STEP_ENTITIES = [
-    "binary_sensor",
-    "switch",
-    "fan",
+    EntityTypes.BINARY_SENSOR,
+    EntityTypes.SWITCH,
+    EntityTypes.FAN,
 ]
 
 

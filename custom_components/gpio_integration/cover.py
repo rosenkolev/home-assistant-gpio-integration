@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ._devices import BinarySensor, Switch
-from .core import DOMAIN
+from .core import DOMAIN, ClosableMixin
 from .hub import Hub, Roller
 from .schemas.cover import ToggleRollerConfig
 from .schemas.main import EntityTypes
@@ -45,7 +45,7 @@ def get_device_class(mode: str) -> CoverDeviceClass:
         return CoverDeviceClass.CURTAIN
 
 
-class GpioBasicCover(CoverEntity):
+class GpioBasicCover(ClosableMixin, CoverEntity):
     def __init__(
         self,
         config: ToggleRollerConfig,
@@ -61,9 +61,7 @@ class GpioBasicCover(CoverEntity):
         )
 
         self._has_sensor = config.pin_closed is not None
-        self._io_sensor = (
-            BinarySensor(config.pin_closed, pull_up=True) if self._has_sensor else None
-        )
+        self._io_sensor = BinarySensor(config.pin_closed) if self._has_sensor else None
 
         self._io = Switch(
             config.port,
@@ -71,7 +69,7 @@ class GpioBasicCover(CoverEntity):
             initial_value=False,
         )
 
-        self._closed = self._io_sensor.value if self._has_sensor else False
+        self._closed = self._io_sensor.is_active if self._has_sensor else True
         self._relay_time = config.relay_time
 
     @property
@@ -102,9 +100,7 @@ class GpioBasicCover(CoverEntity):
             self._closed = not self._closed
 
     def _close(self):
-        if self._io is not None:
-            self._io.close()
-            self._io = None
+        super()._close()
         if self._io_sensor is not None:
             self._io_sensor.close()
             self._io_sensor = None
@@ -114,7 +110,7 @@ class GpioBasicCover(CoverEntity):
         await super().async_will_remove_from_hass()
 
 
-class GpioCover(CoverEntity):
+class GpioCover(ClosableMixin, CoverEntity):
     """Representation of a Raspberry GPIO cover."""
 
     def __init__(
@@ -175,7 +171,12 @@ class GpioCover(CoverEntity):
         """Move the cover to a specific position."""
         self.__roller.set_position(kwargs[ATTR_POSITION])
 
+    def _close(self):
+        if self.__roller is not None:
+            self.__roller.release()
+            self.__roller = None
+
     async def async_will_remove_from_hass(self) -> None:
         """Release the resources."""
-        self.__roller.release()
+        self._close()
         await super().async_will_remove_from_hass()
