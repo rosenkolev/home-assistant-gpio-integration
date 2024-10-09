@@ -125,7 +125,7 @@ class GpioBinarySensor(ClosableMixin, BinarySensorEntity):
 
         self.async_on_remove(timer_cancel)
 
-    def _auto_update_callback(self):
+    def _auto_update_callback(self, _=None):
         if self.is_sensor_active != self._state:
             _LOGGER.debug(f"{self._io!s} auto-update scheduled")
             self.schedule_update_ha_state(force_refresh=True)

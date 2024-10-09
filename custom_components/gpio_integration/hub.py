@@ -1,5 +1,7 @@
 from homeassistant.const import Platform
 
+from custom_components.gpio_integration.schemas.light import RgbLightConfig
+
 from .controllers.cover import Roller
 from .controllers.sensor import DHT22Controller
 from .core import get_logger
@@ -19,7 +21,7 @@ class Hub:
     def __init__(self, configs: dict) -> None:
         """Init hub."""
 
-        self._type = EntityTypes[configs["type"]]
+        self._type = EntityTypes(configs["type"])
         _LOGGER.debug('Hub: type "%s"', self._type.name)
 
         if self.is_type(EntityTypes.COVER_UP_DOWN):
@@ -38,10 +40,13 @@ class Hub:
         elif self.is_type(EntityTypes.LIGHT_PWM_LED):
             self.config = PwmConfig(configs)
             self.platforms = [Platform.LIGHT]
+        elif self.is_type(EntityTypes.LIGHT_RGB_LED):
+            self.config = RgbLightConfig(configs)
+            self.platforms = [Platform.LIGHT]
         elif self.is_type(EntityTypes.FAN):
             self.config = PwmConfig(configs)
             self.platforms = [Platform.FAN]
-        elif self.is_type(EntityTypes.DHT22):
+        elif self.is_type(EntityTypes.SENSOR_DHT22):
             self.config = DHT22Config(configs)
             self.controller = DHT22Controller(self.config)
             self.sensors = self.controller.get_sensors()

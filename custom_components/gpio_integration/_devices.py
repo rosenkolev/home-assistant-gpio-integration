@@ -1,6 +1,7 @@
-from collections import deque
+from collections import deque, namedtuple
 from time import sleep
 from typing import Callable
+from weakref import WeakMethod
 
 from gpiozero import (
     RGBLED,
@@ -114,15 +115,16 @@ class SerialDataInputDevice(InputDevice):
             pin_factory=get_pin_factory(),
             pull_up=not active_high,
             active_state=None,
-            bounce_time=bounce_time,
         )
 
         self.pin.bounce = bounce_time
         self.pin.edges = "both"
+        self._last_state: int = 0
+        self._last_event: int = 0
 
     def read(self) -> None:
-        self._last_state: int = self.value
-        self._last_event: int = self.pin_factory.ticks()
+        self._last_state = 0
+        self._last_event = self.pin_factory.ticks()
         self.pin.when_changed = self._pin_changed
 
     def stop(self) -> None:
@@ -138,12 +140,12 @@ class SerialDataInputDevice(InputDevice):
         if state == self._last_state:
             raise ValueError("Invalid state change")
 
-        elapsed_ms = self.pin_factory.ticks_diff(self._last_event, ticks) / 1000
-        state = (self._last_state, elapsed_ms)
+        elapsed_ms = self.pin_factory.ticks_diff(ticks, self._last_event) / 1000
+        state_time = (self._last_state, elapsed_ms)
         self._last_state = state
 
-        if self._check_transfer_started(state) and self.when_state_changed:
-            self._state_changed(state)
+        if self._check_transfer_started(state_time) and self.when_state_changed:
+            self._state_changed(state_time)
 
 
 class SerialDataPackageReader(SerialDataInputDevice):
@@ -168,11 +170,11 @@ class SerialDataPackageReader(SerialDataInputDevice):
         self._queue = deque(maxlen=word_bits_count)
 
     def read(self) -> None:
-        super().read()
         self._queue.clear()
         self._transfer = False
         self._initial_package_index = 0
         self.send_trigger_package()
+        super().read()
 
     def send_trigger_package(self) -> None:
         if self._output_transfer_trigger_bits is not None:
@@ -220,6 +222,9 @@ def bits_to_word(bits: deque[int]) -> int:
     return dword
 
 
+DHT22Data = namedtuple("DHT22Data", ["temperature", "humidity"])
+
+
 class DHT22(SerialDataPackageReader):
     def __init__(self, pin: int):
         super().__init__(
@@ -231,31 +236,47 @@ class DHT22(SerialDataPackageReader):
             input_package_initialize_bits=[(False, 0.08), (True, 0.08)],
             word_bits_count=8,
         )
+        self._reset_read_fields()
+        self._on_data_received = None
+        self._on_invalid_check_sum = None
 
-    on_data: Callable[[float, float], None] = event(
-        """
-        Event that is fired when a new data is received from the sensor.
-        The callback should accept 2 arguments: temperature and humidity.
-        """
+    def set_on_data_received(self, callback: Callable[[DHT22Data], None]) -> None:
+        self._on_data_received = None if callback is None else WeakMethod(callback)
+
+    def set_on_invalid_check_sum(self, callback: Callable[[], None]) -> None:
+        self._on_invalid_check_sum = None if callback is None else WeakMethod
+
+    on_data_received: Callable[[DHT22Data], None] = property(
+        fget=lambda self: self._on_data_received(),
+        fset=lambda self, value: self.set_on_data_received(value),
+        doc="""
+            Event that is fired when a new data is received from the sensor.
+            The callback should accept 2 arguments: temperature and humidity.
+            """,
     )
 
-    on_invalid_check_sum: Callable[[], None] = event(
-        """
-        Event that is fired when an invalid check sum is received from the sensor.
-        """
+    on_invalid_check_sum: Callable[[], None] = property(
+        fget=lambda self: self._on_invalid_check_sum(),
+        fset=lambda self, value: self.set_on_invalid_check_sum(value),
+        doc="""
+            Event that is fired when an invalid check sum is received from the sensor.
+            """,
     )
 
-    def read(self) -> None:
-        super().read()
+    def _reset_read_fields(self) -> None:
         self._word_index = 0
         self._check_sum = 0
         self._temperature = 0
         self._humidity = 0
 
+    def read(self) -> None:
+        self._reset_read_fields()
+        super().read()
+
     def _on_word_filled(self, bits: deque[int]) -> None:
         """Converts 8 bits to a word and processes it."""
 
-        if self.on_data is None:
+        if self.on_data_received is None:
             # when no one is listening, no need to continue
             self.stop()
             return
@@ -290,4 +311,6 @@ class DHT22(SerialDataPackageReader):
                 else:
                     raise ValueError("Invalid check sum")
             else:
-                self.on_data(self._temperature / 10.0, self._humidity / 10.0)
+                self.on_data_received(
+                    DHT22Data(self._temperature / 10.0, self._humidity / 10.0)
+                )

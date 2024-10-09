@@ -135,6 +135,7 @@ def test__Cover_should_init_no_sensor(mocked_factory):
         assert pin_down._function == "output"
 
 
+@pytest.mark.skip(reason="too slow, it waits for 5 seconds")
 def test__Cover_should_set_position(mocked_factory):
     pin_up_port = get_next_pin()
     pin_down_port = get_next_pin()

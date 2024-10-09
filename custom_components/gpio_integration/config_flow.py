@@ -1,5 +1,7 @@
 """Config flow for GPIO integration."""
 
+from enum import Enum
+
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
@@ -47,57 +49,57 @@ from .schemas.switch import SWITCH_SCHEMA, create_switch_schema, validate_switch
 _LOGGER = get_logger()
 
 CONF_ENTITIES: dict = {
-    EntityTypes.COVER: {
+    EntityTypes.COVER.value: {
         "schema": COVER_VARIATION_SCHEMA,
         "validate": validate_cover_variation_data,
         "schema_builder": create_cover_variation_schema,
     },
-    EntityTypes.COVER_UP_DOWN: {
+    EntityTypes.COVER_UP_DOWN.value: {
         "schema": COVER_UP_DOWN_SCHEMA,
         "validate": validate_cover_up_down_data,
         "schema_builder": create_cover_up_down_schema,
     },
-    EntityTypes.COVER_TOGGLE: {
+    EntityTypes.COVER_TOGGLE.value: {
         "schema": COVER_TOGGLE_SCHEMA,
         "validate": validate_toggle_cover_data,
         "schema_builder": create_toggle_cover_schema,
     },
-    EntityTypes.BINARY_SENSOR: {
+    EntityTypes.BINARY_SENSOR.value: {
         "schema": BINARY_SENSOR_SCHEMA,
         "validate": validate_binary_sensor_data,
         "schema_builder": create_binary_sensor_schema,
     },
-    EntityTypes.SWITCH: {
+    EntityTypes.SWITCH.value: {
         "schema": SWITCH_SCHEMA,
         "validate": validate_switch_data,
         "schema_builder": create_switch_schema,
     },
-    EntityTypes.LIGHT: {
+    EntityTypes.LIGHT.value: {
         "schema": LIGHT_VARIATION_SCHEMA,
         "validate": validate_light_variation_data,
         "schema_builder": create_light_variation_schema,
     },
-    EntityTypes.LIGHT_PWM_LED: {
+    EntityTypes.LIGHT_PWM_LED.value: {
         "schema": LIGHT_SCHEMA,
         "validate": validate_pwm_data,
         "schema_builder": create_pwm_schema,
     },
-    EntityTypes.LIGHT_RGB_LED: {
+    EntityTypes.LIGHT_RGB_LED.value: {
         "schema": RGB_LIGHT_SCHEMA,
         "validate": validate_rgb_light_data,
         "schema_builder": create_rgb_light_schema,
     },
-    EntityTypes.FAN: {
+    EntityTypes.FAN.value: {
         "schema": FAN_SCHEMA,
         "validate": validate_pwm_data,
         "schema_builder": create_pwm_schema,
     },
-    EntityTypes.SENSOR: {
+    EntityTypes.SENSOR.value: {
         "schema": SENSOR_VARIATION_SCHEMA,
         "validate": validate_sensor_variation_data,
         "schema_builder": create_sensor_variation_schema,
     },
-    EntityTypes.SENSOR_DHT22: {
+    EntityTypes.SENSOR_DHT22.value: {
         "schema": SENSOR_DHT22_SCHEMA,
         "validate": validate_sensor_dht22_data,
         "schema_builder": create_sensor_dht22_schema,
@@ -117,15 +119,20 @@ def validate_config_data(entity_type: str, data_input: dict):
 
 
 VARIATION_STEP_ENTITIES = [
-    EntityTypes.COVER,
-    EntityTypes.LIGHT,
-    EntityTypes.SENSOR,
+    EntityTypes.COVER.value,
+    EntityTypes.LIGHT.value,
+    EntityTypes.SENSOR.value,
 ]
 SINGLE_STEP_ENTITIES = [
-    EntityTypes.BINARY_SENSOR,
-    EntityTypes.SWITCH,
-    EntityTypes.FAN,
+    EntityTypes.BINARY_SENSOR.value,
+    EntityTypes.SWITCH.value,
+    EntityTypes.FAN.value,
 ]
+
+
+class StepTypes(Enum):
+    Setup = "setup"
+    Variation = "variation"
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -139,50 +146,51 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("config user, type: {}".format(type))
         if type is None:
             return self.async_show_form(step_id="user", data_schema=MAIN_SCHEMA)
-        elif type in SINGLE_STEP_ENTITIES:
-            return await self.async_step_common_setup(data_input=None, schema_id=type)
+
+        self.type = type
+        if type in SINGLE_STEP_ENTITIES:
+            return await self.async_step_common_setup(data_input=None)
         elif type in VARIATION_STEP_ENTITIES:
-            return await self.async_step_select_variation(
-                data_input=None, schema_id=type
-            )
+            return await self.async_step_select_variation(data_input=None)
 
         return self.async_abort(reason="unknown_type")
 
-    async def async_step_common_setup(
-        self, data_input=None, errors=None, schema_id: str | None = None
-    ):
-        """Handle the generic setup step."""
-        schema = CONF_ENTITIES[schema_id]["schema"]
-        if data_input is None:
-            return self.async_show_form(step_id="common_setup", data_schema=schema)
-
-        errors = validate_config_data(schema_id, data_input)
-        if errors is None:
-            data_input["type"] = schema_id
-            await self.async_set_unique_id(get_unique_id(data_input))
-            return self.async_create_entry(title=data_input[CONF_NAME], data=data_input)
-
-        return self.async_show_form(
-            step_id="common_setup", data_schema=schema, errors=errors
+    async def async_step_common_setup(self, data_input=None):
+        return await self.async_handle_generic_config_steps(
+            "common_setup", StepTypes.Setup, data_input
         )
 
-    async def async_step_select_variation(
-        self, data_input=None, schema_id: str | None = None
+    async def async_step_select_variation(self, data_input=None):
+        return await self.async_handle_generic_config_steps(
+            "select_variation", StepTypes.Variation, data_input
+        )
+
+    async def async_handle_generic_config_steps(
+        self, id, step_type: StepTypes, data_input=None
     ):
-        """Handle the generic setup step."""
-        schema = CONF_ENTITIES[schema_id]["schema"]
+        """Handle a flow initialized by the user."""
+        _LOGGER.debug(f"config step '{id}' with type {self.type}")
+        if not hasattr(self, "type") or self.type is None:
+            _LOGGER.error("type not set")
+            return self.async_abort(reason="unknown_type")
+
+        schema = CONF_ENTITIES[self.type]["schema"]
         if data_input is None:
-            return self.async_show_form(step_id="select_variation", data_schema=schema)
+            return self.async_show_form(step_id=id, data_schema=schema)
 
-        errors = validate_config_data(schema_id, data_input)
+        errors = validate_config_data(self.type, data_input)
         if errors is not None:
-            return self.async_show_form(
-                step_id="select_variation", data_schema=schema, errors=errors
-            )
+            return self.async_show_form(step_id=id, data_schema=schema, errors=errors)
 
-        variation = data_input[CONF_VARIATION]
-        _LOGGER.debug(f"config type: {schema_id}, variation: {variation}")
-        return await self.async_step_common_setup(data_input=None, schema_id=variation)
+        if step_type == StepTypes.Setup:
+            data_input["type"] = self.type
+            await self.async_set_unique_id(get_unique_id(data_input))
+            return self.async_create_entry(title=data_input[CONF_NAME], data=data_input)
+        elif step_type == StepTypes.Variation:
+            self.type = data_input[CONF_VARIATION]
+            return await self.async_step_common_setup(data_input=None)
+
+        return self.async_abort(reason="unknown_type")
 
     @staticmethod
     @callback

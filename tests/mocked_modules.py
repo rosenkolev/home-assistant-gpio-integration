@@ -3,9 +3,21 @@ from unittest.mock import Mock
 
 from tests.mocks import MockedBaseEntity
 
+
+class Platform:
+    SWITCH = "switch"
+    LIGHT = "light"
+    COVER = "cover"
+    BINARY_SENSOR = "binary_sensor"
+    FAN = "fan"
+    SENSOR = "sensor"
+    NUMBER = "number"
+
+
 sys.modules["voluptuous"] = Mock()
 sys.modules["homeassistant"] = Mock()
 sys.modules["homeassistant.const"] = Mock()
+sys.modules["homeassistant.const"].Platform = Platform
 sys.modules["homeassistant.core"] = Mock()
 sys.modules["homeassistant.config_entries"] = Mock()
 sys.modules["homeassistant.helpers"] = Mock()
@@ -35,6 +47,7 @@ sys.modules["homeassistant.components.binary_sensor"].BinarySensorEntity = (
     MockedBaseEntity
 )
 sys.modules["homeassistant.components.sensor"] = Mock()
+sys.modules["homeassistant.components.sensor"].SensorEntity = MockedBaseEntity
 sys.modules["homeassistant.components.switch"] = Mock()
 sys.modules["homeassistant.components.switch"].SwitchEntity = MockedBaseEntity
 

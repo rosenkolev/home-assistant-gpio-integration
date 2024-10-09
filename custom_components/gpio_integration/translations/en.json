@@ -9,77 +9,35 @@
           "type": "The entity type"
         }
       },
-      "switch": {
-        "title": "Setup Switch",
-        "description": "Enter your GPIO data for the switch",
+      "select_variation": {
+        "title": "Select the entity variation",
+        "description": "Select the entity variation you want to setup",
         "data": {
-          "name": "Name",
-          "port": "GPIO pin",
-          "invert_logic": "Invert logic (normally 3.3v = on, 0v = off)",
-          "default_state": "Default state (unchecked = off, checked = on)",
-          "unique_id": "Unique ID"
+          "variation": "The entity variation"
         }
       },
-      "binary_sensor": {
-        "title": "Setup Binary Sensor",
-        "description": "Enter your GPIO data for the binary sensor",
+      "common_setup": {
+        "title": "Setup the entity",
+        "description": "Enter the GPIO data for the entity",
         "data": {
           "name": "Name",
           "port": "GPIO pin",
+          "red_pin": "GPIO red color pin",
+          "green_pin": "GPIO green color pin",
+          "blue_pin": "GPIO blue color pin",
+          "up_pin": "GPIO up pin",
+          "up_pin_invert": "GPIO up pin invert",
+          "down_pin": "GPIO down pin",
+          "down_pin_invert": "GPIO down pin invert",
           "pull_mode": "Pull mode (up, down) [default is up]",
           "bounce_time_in_ms": "Bounce time in milliseconds (default is 50ms)",
           "invert_logic": "Invert logic (normally 3.3v = on, 0v = off)",
           "default_state": "Default state (unchecked = off, checked = on)",
-          "rely_on_edge_events": "Rely only on edge events (e.g. motion/vibration sensor)",
-          "edge_event_timeout": "Event timeout in seconds",
-          "unique_id": "Unique ID"
-        }
-      },
-      "cover_toggle": {
-        "title": "Setup Cover",
-        "description": "Enter your GPIO data for the cover with toggle action",
-        "data": {
-          "name": "Name",
-          "port": "GPIO pin",
-          "invert_logic": "Invert logic (normally 3.3v = on, 0v = off)",
-          "relay_time":"relay time in seconds",
-          "pin_closed_sensor": "pin for 'door closed' sensor",
-          "unique_id": "Unique ID"
-        }
-      },
-      "cover_up_down": {
-        "title": "Setup Cover",
-        "description": "Enter your GPIO data for the cover with up and down actions",
-        "data": {
-          "name": "Name",
-          "up_pin": "GPIO up pin",
-          "up_pin_invert": "GPIO up pin invert logic",
-          "down_pin": "GPIO down pin",
-          "down_pin_invert": "GPIO down pin invert(default 3.3v)",
           "relay_time": "relay time in seconds (pin on time)",
           "pin_closed_sensor": "pin for 'door closed' sensor",
-          "unique_id": "Unique ID"
-        }
-      },
-      "light": {
-        "title": "Setup Light",
-        "description": "Enter your GPIO data for the light",
-        "data": {
-          "name": "Name",
-          "port": "GPIO pin",
+          "edge_event_timeout": "Event timeout in seconds (only for motion/vibration sensors)",
+          "rely_on_edge_events": "Rely only on edge events (e.g. motion/vibration sensor)",
           "frequency": "The frequency of the PWM signal or 0/None",
-          "default_state": "Default state (unchecked = off, checked = on)",
-          "unique_id": "Unique ID"
-        }
-      },
-      "fen": {
-        "title": "Setup Fen",
-        "description": "Enter your GPIO data for the fen",
-        "data": {
-          "name": "Name",
-          "port": "GPIO pin",
-          "frequency": "The frequency of the PWM signal or 0/None",
-          "default_state": "Default state (unchecked = off, checked = on)",
           "unique_id": "Unique ID"
         }
       }
@@ -98,6 +56,9 @@
         "data": {
           "name": "Name",
           "port": "GPIO pin",
+          "red_pin": "GPIO red color pin",
+          "green_pin": "GPIO green color pin",
+          "blue_pin": "GPIO blue color pin",
           "up_pin": "GPIO up pin",
           "up_pin_invert": "GPIO up pin invert",
           "down_pin": "GPIO down pin",

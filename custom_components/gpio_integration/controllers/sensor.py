@@ -1,6 +1,6 @@
 import threading
 
-from .._devices import DHT22
+from .._devices import DHT22, DHT22Data
 from ..core import get_logger
 from ..schemas.sensor import DHT22Config
 
@@ -12,9 +12,7 @@ class SensorStateProvider:
         pass
 
     def release(self) -> None:
-        if hasattr(self, "_io") and self._io is not None:
-            self._io.close()
-            self._io = None
+        pass
 
 
 class SensorRef:
@@ -30,7 +28,7 @@ class SensorRef:
     def state(self):
         return self._provider.get_state(self.id)
 
-    def release(self):
+    def close(self):
         if self._provider is not None:
             self._provider.release()
             self._provider = None
@@ -49,8 +47,8 @@ class DHT22Controller(SensorsProvider, SensorStateProvider):
         self._humidity_id = f"{self.id}_H"
         self._temperature = 0.0
         self._humidity = 0.0
-        self._io = DHT22(config.port)
-        self._io.on_data = self._on_data
+        self._io = DHT22(config.pin)
+        self._io.on_data_received = self._on_data
         self._io.on_invalid_check_sum = self._on_invalid_check_sum
         self._retry = 0
 
@@ -78,6 +76,7 @@ class DHT22Controller(SensorsProvider, SensorStateProvider):
         self._loop_thread = threading.Thread(
             target=self._auto_read_loop, args=(interval_sec,)
         )
+        self._loop_thread.start()
 
     def stop_auto_read_loop(self):
         """Stop the async loop."""
@@ -91,15 +90,22 @@ class DHT22Controller(SensorsProvider, SensorStateProvider):
             _LOGGER.debug("DHT22: auto read loop stopped")
 
     def release(self) -> None:
-        _LOGGER.debug("DHT22: releasing resources")
-        super().release()
+        if self._io is not None:
+            _LOGGER.debug("DHT22: releasing resources")
+            self._io.on_data_received = None
+            self._io.on_invalid_check_sum = None
+            self._io.close()
+            self._io = None
+
         self.stop_auto_read_loop()
 
-    def _on_data(self, temperature: float, humidity: float):
-        self._temperature = temperature
-        self._humidity = humidity
+    def _on_data(self, data: DHT22Data):
+        self._temperature = data.temperature
+        self._humidity = data.humidity
         self._retry = 0
-        _LOGGER.debug("DHT22: temperature=%.1f, humidity=%.1f", temperature, humidity)
+        _LOGGER.debug(
+            "DHT22: temperature=%.1fC, humidity=%.1f%", data.temperature, data.humidity
+        )
 
     def _on_invalid_check_sum(self):
         _LOGGER.warning("DHT22: invalid check sum")

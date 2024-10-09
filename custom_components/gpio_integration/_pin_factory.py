@@ -16,7 +16,8 @@ PIN_FACTORIES = {
     "rpigpio": "gpiozero.pins.rpigpio:RPiGPIOFactory",
     "native": "gpiozero.pins.native:NativeFactory",
     #
-    # add custom pin factory
+    # add custom pin factory like this:
+    # "my_lib": ".pins.my_lib:MyLibFactory",
 }
 
 
@@ -31,23 +32,31 @@ def get_config_option(key: str):
 
 def _get_pin_factory_class_by_name(name: str) -> Type[Factory]:
     mod_name, cls_name = PIN_FACTORIES[name].split(":", 1)
-    path = f"{__package__}{mod_name}"
+    if mod_name.startswith("."):
+        path = f"{__package__}{mod_name[1:]}"
+    else:
+        path = mod_name
     module = __import__(path, fromlist=(cls_name,))
     pin_cls = getattr(module, cls_name)
     return pin_cls
 
 
+def create_pin_factory(name: str, pin_factory_class: type[Factory]) -> Factory:
+    if name == "pigpio" and CONF_HOST in PIN_FACTORY_OPTIONS:
+        host = PIN_FACTORY_OPTIONS[CONF_HOST]
+        if host is not None and host != "":
+            return pin_factory_class(**{"host": host})
+
+    return pin_factory_class()
+
+
 def _find_pin_factory() -> Factory:
-    for name, _ in PIN_FACTORIES.items():
+    for name in PIN_FACTORIES.keys():
         try:
             pin_factory_class = _get_pin_factory_class_by_name(name)
-            if name == "pigpio" and CONF_HOST in PIN_FACTORY_OPTIONS:
-                host = PIN_FACTORY_OPTIONS[CONF_HOST]
-                return pin_factory_class(**{"host": host})
-
-            return pin_factory_class()
+            return create_pin_factory(name, pin_factory_class)
         except Exception as e:
-            _LOGGER.warn(f"Falling back from {name}: {e!s}")
+            _LOGGER.warning(f"Falling back from {name}: {e!s}")
 
     raise RuntimeError("No default pin factory available")
 
@@ -63,7 +72,7 @@ def get_pin_factory() -> Factory:
         else:
             _LOGGER.debug(f"Using specified pin factory {name}")
             pin_factory_class = _get_pin_factory_class_by_name(name)
-            pin_factory = pin_factory_class()
+            pin_factory = create_pin_factory(name, pin_factory_class)
 
         Device.pin_factory = pin_factory
 
