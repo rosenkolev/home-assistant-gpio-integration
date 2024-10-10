@@ -47,6 +47,9 @@ class GpioFan(ClosableMixin, FanEntity):
             config.port, frequency=config.frequency, initial_value=config.default_state
         )
 
+    def __repr__(self) -> str:
+        return f"{self._io!s}({self._attr_name})"
+
     @property
     def is_on(self):
         """Return true if device is on."""
@@ -62,7 +65,7 @@ class GpioFan(ClosableMixin, FanEntity):
         if self._io.percentage != percentage:
             self._io.percentage = percentage
             self.async_write_ha_state()
-            _LOGGER.debug(f"{self._io!s} set to {percentage}%")
+            _LOGGER.debug(f"{self!r} set to {percentage}%")
 
     def turn_on(self, percentage: None, **kwargs) -> None:
         """Turn on the fan."""
@@ -78,7 +81,7 @@ class GpioFan(ClosableMixin, FanEntity):
         if self._io.is_active:
             self._io.off()
             self.async_write_ha_state()
-            _LOGGER.debug(f"{self._io!s} turn off")
+            _LOGGER.debug(f"{self!r} turn off")
 
     async def async_will_remove_from_hass(self) -> None:
         """On entity remove release the GPIO resources."""

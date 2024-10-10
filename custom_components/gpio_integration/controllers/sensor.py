@@ -54,12 +54,12 @@ class DHT22Controller(SensorsProvider, SensorStateProvider):
 
         self._loop_stop_event = threading.Event()
         self._loop_thread = None
-        self.start_auto_read_loop(5)
+        self.start_auto_read_loop(10)
 
     def get_sensors(self):
         return [
-            SensorRef(self, self.name, self._temperature_id, "C"),
-            SensorRef(self, self.name, self._humidity_id, "%"),
+            SensorRef(self, f"{self.name} Temperature", self._temperature_id, "C"),
+            SensorRef(self, f"{self.name} Humidity", self._humidity_id, "%"),
         ]
 
     def get_state(self, id: str) -> float:
@@ -115,4 +115,5 @@ class DHT22Controller(SensorsProvider, SensorStateProvider):
 
     def _auto_read_loop(self, interval_sec: int):
         while not self._loop_stop_event.wait(interval_sec):
+            _LOGGER.debug("DHT22: auto read")
             self._io.read()

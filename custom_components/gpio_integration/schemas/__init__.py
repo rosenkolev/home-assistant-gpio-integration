@@ -7,10 +7,10 @@ from homeassistant.helpers.selector import selector
 from ..core import DOMAIN
 
 CONF_COVERS = "covers"
-CONF_RELAY_UP_PIN = "up_pin"
-CONF_RELAY_UP_INVERT = "up_pin_invert"
-CONF_RELAY_DOWN_PIN = "down_pin"
-CONF_RELAY_DOWN_INVERT = "down_pin_invert"
+CONF_RELAY_CLOSE_PIN = "close_pin"
+CONF_RELAY_CLOSE_INVERT = "close_pin_invert"
+CONF_RELAY_OPEN_PIN = "open_pin"
+CONF_RELAY_OPEN_INVERT = "open_pin_invert"
 CONF_RELAY_TIME = "relay_time"
 CONF_PIN_CLOSED_SENSOR = "pin_closed_sensor"
 CONF_INVERT_LOGIC = "invert_logic"

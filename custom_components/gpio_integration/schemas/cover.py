@@ -10,11 +10,11 @@ from homeassistant.helpers.selector import selector
 from . import (
     CONF_INVERT_LOGIC,
     CONF_PIN_CLOSED_SENSOR,
-    CONF_RELAY_DOWN_INVERT,
-    CONF_RELAY_DOWN_PIN,
+    CONF_RELAY_CLOSE_INVERT,
+    CONF_RELAY_CLOSE_PIN,
+    CONF_RELAY_OPEN_INVERT,
+    CONF_RELAY_OPEN_PIN,
     CONF_RELAY_TIME,
-    CONF_RELAY_UP_INVERT,
-    CONF_RELAY_UP_PIN,
     EMPTY_VARIATION_DATA,
     create_variation_list_schema,
     get_unique_id,
@@ -51,24 +51,24 @@ def create_cover_up_down_schema(data: dict) -> vol.Schema:
         {
             vol.Required(CONF_NAME, default=data[CONF_NAME]): cv.string,
             vol.Required(
-                CONF_RELAY_UP_PIN,
-                default=data[CONF_RELAY_UP_PIN],
-                description="GPIO pin number for the up relay",
+                CONF_RELAY_CLOSE_PIN,
+                default=data[CONF_RELAY_CLOSE_PIN],
+                description="GPIO pin number for the close relay",
             ): cv.positive_int,
             vol.Optional(
-                CONF_RELAY_UP_INVERT,
-                default=data[CONF_RELAY_UP_INVERT],
-                description="Invert the logic of the up relay",
+                CONF_RELAY_CLOSE_INVERT,
+                default=data[CONF_RELAY_CLOSE_INVERT],
+                description="Invert the logic of the close relay",
             ): cv.boolean,
             vol.Required(
-                CONF_RELAY_DOWN_PIN,
-                default=data[CONF_RELAY_DOWN_PIN],
-                description="GPIO pin number for the down relay",
+                CONF_RELAY_OPEN_PIN,
+                default=data[CONF_RELAY_OPEN_PIN],
+                description="GPIO pin number for the open relay",
             ): cv.positive_int,
             vol.Optional(
-                CONF_RELAY_DOWN_INVERT,
-                default=data[CONF_RELAY_DOWN_INVERT],
-                description="Invert the logic of the down relay",
+                CONF_RELAY_OPEN_INVERT,
+                default=data[CONF_RELAY_OPEN_INVERT],
+                description="Invert the logic of the open relay",
             ): cv.boolean,
             vol.Optional(
                 CONF_RELAY_TIME, default=data[CONF_RELAY_TIME]
@@ -92,10 +92,10 @@ def create_cover_up_down_schema(data: dict) -> vol.Schema:
 COVER_UP_DOWN_SCHEMA = create_cover_up_down_schema(
     {
         CONF_NAME: "",
-        CONF_RELAY_UP_PIN: 0,
-        CONF_RELAY_UP_INVERT: False,
-        CONF_RELAY_DOWN_PIN: 0,
-        CONF_RELAY_DOWN_INVERT: False,
+        CONF_RELAY_CLOSE_PIN: 0,
+        CONF_RELAY_CLOSE_INVERT: False,
+        CONF_RELAY_OPEN_PIN: 0,
+        CONF_RELAY_OPEN_INVERT: False,
         CONF_RELAY_TIME: 15,
         CONF_PIN_CLOSED_SENSOR: 0,
         CONF_MODE: "Blind",
@@ -107,8 +107,8 @@ COVER_UP_DOWN_SCHEMA = create_cover_up_down_schema(
 def validate_cover_up_down_data(data: dict) -> bool:
     return (
         v_name(data[CONF_NAME])
-        and v_pin(data[CONF_RELAY_UP_PIN])
-        and v_pin(data[CONF_RELAY_DOWN_PIN])
+        and v_pin(data[CONF_RELAY_CLOSE_PIN])
+        and v_pin(data[CONF_RELAY_OPEN_PIN])
         and v_time(data[CONF_RELAY_TIME])
     )
 
@@ -117,13 +117,13 @@ class RollerConfig:
     def __init__(self, data: dict):
         self.name: str = data[CONF_NAME]
         self.mode: str = data[CONF_MODE]
-        self.pin_up: int = data[CONF_RELAY_UP_PIN]
-        self.pin_up_on_state: Literal["high", "low"] = (
-            "high" if data[CONF_RELAY_UP_INVERT] else "low"
+        self.pin_close: int = data[CONF_RELAY_CLOSE_PIN]
+        self.pin_close_on_state: Literal["high", "low"] = (
+            "high" if data[CONF_RELAY_CLOSE_INVERT] else "low"
         )
-        self.pin_down: int = data[CONF_RELAY_DOWN_PIN]
-        self.pin_down_on_state: Literal["high", "low"] = (
-            "high" if data[CONF_RELAY_DOWN_INVERT] else "low"
+        self.pin_open: int = data[CONF_RELAY_OPEN_PIN]
+        self.pin_open_on_state: Literal["high", "low"] = (
+            "high" if data[CONF_RELAY_OPEN_INVERT] else "low"
         )
         self.relay_time: int = data[CONF_RELAY_TIME]
         self.pin_closed: int | None = data[CONF_PIN_CLOSED_SENSOR]

@@ -1,4 +1,6 @@
 from collections import deque, namedtuple
+from math import isclose
+from threading import RLock
 from time import sleep
 from typing import Callable
 from weakref import WeakMethod
@@ -13,6 +15,9 @@ from gpiozero import (
 )
 
 from ._pin_factory import get_pin_factory
+from .core import get_logger
+
+_LOGGER = get_logger()
 
 
 class Pwm(PWMOutputDevice):
@@ -103,7 +108,31 @@ class RgbLight(RGBLED):
         return f"{self.red!r}, {self.green!r}, {self.blue!r}"
 
 
-class SerialDataInputDevice(InputDevice):
+class BitInfo:
+    def __init__(self, state: int, duration_ms: float | None):
+        self.state = state
+        self.duration_ms = duration_ms
+
+    def between(self, min_ms: float, max_ms: float) -> bool:
+        return min_ms <= self.duration_ms <= max_ms
+
+    def __eq__(self, value: object) -> bool:
+        return (
+            isinstance(value, BitInfo)
+            and self.state == value.state
+            and (
+                self.duration_ms is None
+                or isclose(
+                    self.duration_ms, value.duration_ms, rel_tol=0.01, abs_tol=0.01
+                )
+            )
+        )
+
+    def __repr__(self):
+        return f"({self.state}[{self.duration_ms:.2f}])"
+
+
+class EdgeInputDevice(InputDevice):
     def __init__(
         self,
         pin: int,
@@ -119,127 +148,152 @@ class SerialDataInputDevice(InputDevice):
 
         self.pin.bounce = bounce_time
         self.pin.edges = "both"
-        self._last_state: int = 0
-        self._last_event: int = 0
+        self._lock = RLock()
+        self._last_state = 0
+        self._state_index = 0
+        self._last_event = 0
 
     def read(self) -> None:
-        self._last_state = 0
+        self._state_index = 0
         self._last_event = self.pin_factory.ticks()
         self.pin.when_changed = self._pin_changed
 
     def stop(self) -> None:
         self.pin.when_changed = None
 
-    def _check_transfer_started(self, state: tuple[bool, float]) -> bool:
+    def _state_changed(self, state: BitInfo) -> None:
         pass
 
-    def _state_changed(self, state: tuple[bool, float]) -> None:
-        pass
+    def close(self):
+        self._lock = None
+        super().close()
 
     def _pin_changed(self, ticks: float, state: int):
-        if state == self._last_state:
+        if self._state_index == 0:
+            self._last_state = 1 if state == 0 else 0
+        elif state == self._last_state:
+            self.stop()
             raise ValueError("Invalid state change")
 
-        elapsed_ms = self.pin_factory.ticks_diff(ticks, self._last_event) * 1000
-        state_time = (self._last_state, elapsed_ms)
-        self._last_state = state
-        self._last_event = ticks
-
-        if self._check_transfer_started(state_time):
+        with self._lock:
+            elapsed_ms = self.pin_factory.ticks_diff(ticks, self._last_event) * 1000
+            state_time = BitInfo(self._last_state, elapsed_ms)
+            self._last_state = state
+            self._last_event = ticks
             self._state_changed(state_time)
+            self._state_index += 1
 
 
-class SerialDataPackageReader(SerialDataInputDevice):
+class SerialInputDevice(EdgeInputDevice):
     def __init__(
         self,
         pin: int,
         zero_high_ms_range: tuple[float, float],
         one_high_ms_range: tuple[float, float],
         bounce_time=None,
-        output_transfer_trigger_bits: list[tuple[bool, float]] = None,
-        input_package_initialize_bits: list[tuple[bool, float]] = None,
+        ready_to_send_bits: list[BitInfo] = [],
         word_bits_count: int = 8,
     ):
         super().__init__(pin, True, bounce_time)
 
-        self._transfer = False
-        self._initial_package_index = 0
-        self._output_transfer_trigger_bits = output_transfer_trigger_bits
-        self._input_package_initialize_bits = input_package_initialize_bits
+        self._transferring = False
+        self._ready_to_send_bits = ready_to_send_bits
+        self._ready_to_send_bits_count = len(ready_to_send_bits)
         self._zero_high_ms_range = zero_high_ms_range
         self._one_high_ms_range = one_high_ms_range
-        self._queue = deque(maxlen=word_bits_count)
+        self._dword_size = word_bits_count
+        self._dword = 0
+        self._dword_index = 0
 
     def read(self) -> None:
-        self._queue.clear()
-        self._transfer = False
-        self._initial_package_index = 0
-        self.send_trigger_package()
+        if self._transferring:
+            _LOGGER.debug("Already transferring")
+            return
+
+        self._transferring = self._ready_to_send_bits_count == 0
+        self._dword = 0b0000
+        self._dword_index = self._dword_size
         super().read()
 
-    def send_trigger_package(self) -> None:
-        if self._output_transfer_trigger_bits is not None:
-            for state, duration in self._output_transfer_trigger_bits:
-                self.pin.value = state
-                sleep(duration / 1000)
+    def stop(self) -> None:
+        self._transferring = False
+        return super().stop()
 
-    def _check_transfer_started(self, state: tuple[bool, float]) -> bool:
-        if self._input_package_initialize_bits is None or self._transfer:
-            return True
-
-        if self._input_package_initialize_bits[self._initial_package_index] == state:
-            self._initial_package_index += 1
-            if self._initial_package_index == len(self._input_package_initialize_bits):
-                self._transfer = True
-
-            return False
-
-        self.stop()
-        raise ValueError("Invalid package initialization")
-
-    def _on_word_filled(self, bits: deque[int]) -> None:
+    def _on_word_filled(self, dword: int) -> None:
         pass
 
-    def _state_changed(self, state: tuple[int, float]) -> None:
-        if state[0]:
-            if self._zero_high_ms_range[0] <= state[1] <= self._zero_high_ms_range[1]:
-                self._queue.append(0)
-            elif self._one_high_ms_range[0] <= state[1] <= self._one_high_ms_range[1]:
-                self._queue.append(1)
+    def _state_changed(self, info: BitInfo) -> None:
+        if not self._transferring:
+            if self._ready_to_send_bits_count <= self._state_index:
+                self._transferring = True
+                _LOGGER.debug(f"{self.pin!r} transferring data")
+            elif self._ready_to_send_bits[self._state_index] == info:
+                # ready to send sequence is correct so far
+                return
             else:
+                self.stop()
+                raise ValueError("Invalid ready to send bits")
+
+        if info.state == 1:
+            self._dword <<= 1
+            if info.between(*self._one_high_ms_range):
+                self._dword |= 0b0001
+            elif not info.between(*self._zero_high_ms_range):
                 self.stop()
                 raise ValueError("Invalid bit duration")
 
-            if len(self._queue) == self._queue.maxlen:
-                self._on_word_filled(self._queue)
-                self._queue.clear()
-
-
-def bits_to_word(bits: deque[int]) -> int:
-    dword = 0
-    for bit in bits:
-        dword = (dword << 1) | bit
-
-    return dword
+            self._dword_index -= 1
+            if self._dword_index <= 0:
+                self._on_word_filled(self._dword)
+                self._dword_index = self._dword_size
+                self._dword = 0b0000
 
 
 DHT22Data = namedtuple("DHT22Data", ["temperature", "humidity"])
 
 
-class DHT22(SerialDataPackageReader):
+class PulseMixin:
+    def _send_sec(self, state: int, duration_sec: float) -> None:
+        self.pin.value = state
+        sleep(duration_sec / 1000)
+
+
+class DHT22(PulseMixin, SerialInputDevice):
     def __init__(self, pin: int):
         super().__init__(
             pin,
-            zero_high_ms_range=(0.02, 0.03),
-            one_high_ms_range=(0.06, 0.08),
-            bounce_time=0.00001,
-            output_transfer_trigger_bits=[(0, 5.0), (1, 0.04)],
-            input_package_initialize_bits=[(0, 0.08), (1, 0.08)],
+            zero_high_ms_range=(0.02, 0.035),
+            one_high_ms_range=(0.055, 0.085),
+            bounce_time=0.000_005,
+            ready_to_send_bits=[BitInfo(1, None), BitInfo(0, None)],
             word_bits_count=8,
         )
-        self._reset_read_fields()
+
         self._on_data_received = None
         self._on_invalid_check_sum = None
+        self._reset_fields()
+
+    def read(self) -> None:
+        if self._transferring:
+            return
+
+        self._reset_fields()
+        self.trigger_pulse()
+        super().read()
+
+    def _reset_fields(self) -> None:
+        self._word_index = 0
+        self._check_sum = 0
+        self._temperature = 0
+        self._temperature_sign = 1
+        self._humidity = 0
+
+    def trigger_pulse(self) -> None:
+        self.pin.function = "output"
+        self._send_sec(1, 0.010)  # 10 ms
+        self._send_sec(0, 0.018)  # 18 ms
+        self._send_sec(1, 0.000_04)  # 40 us
+        self.pin.function = "input"
 
     def set_on_data_received(self, callback: Callable[[DHT22Data], None]) -> None:
         self._on_data_received = None if callback is None else WeakMethod(callback)
@@ -248,7 +302,9 @@ class DHT22(SerialDataPackageReader):
         self._on_invalid_check_sum = None if callback is None else WeakMethod(callback)
 
     on_data_received: Callable[[DHT22Data], None] = property(
-        fget=lambda self: self._on_data_received(),
+        fget=lambda self: (
+            None if self._on_data_received is None else self._on_data_received()
+        ),
         fset=lambda self, value: self.set_on_data_received(value),
         doc="""
             Event that is fired when a new data is received from the sensor.
@@ -264,27 +320,14 @@ class DHT22(SerialDataPackageReader):
             """,
     )
 
-    def _reset_read_fields(self) -> None:
-        self._word_index = 0
-        self._check_sum = 0
-        self._temperature = 0
-        self._temperature_sign = 1
-        self._humidity = 0
-
-    def read(self) -> None:
-        self._reset_read_fields()
-        super().read()
-
-    def _on_word_filled(self, bits: deque[int]) -> None:
+    def _on_word_filled(self, dword: int) -> None:
         """Converts 8 bits to a word and processes it."""
-
+        _LOGGER.debug(f"word: {dword:08b}")
         if self.on_data_received is None:
             # when no one is listening, no need to continue
             self.stop()
             return
 
-        # convert 8 bits to a word
-        dword = bits_to_word(bits)
         if self._word_index < 4:
             # first 4 words are data
             self._check_sum += dword
@@ -294,10 +337,10 @@ class DHT22(SerialDataPackageReader):
             elif self._word_index == 1:
                 self._humidity = (self._humidity << 8) | dword
             elif self._word_index == 2:
-                if bits[0] == 1:
-                    # negative temperature
-                    bits[0] = 0
-                    dword = bits_to_word(bits)
+                sign_bit = 0b1000_0000
+                if (dword & sign_bit) == sign_bit:
+                    # convert the sign bit to 0
+                    dword &= sign_bit & 0b0111_1111
                     self._temperature_sign = -1
 
                 self._temperature = dword
@@ -310,6 +353,9 @@ class DHT22(SerialDataPackageReader):
             self.stop()
 
             if (self._check_sum & 0b1111_1111) != dword:
+                _LOGGER.warning(
+                    f"checksum mismatch: {self._check_sum:08b} != {dword:08b}"
+                )
                 if self.on_invalid_check_sum is not None:
                     self.on_invalid_check_sum()
                 else:

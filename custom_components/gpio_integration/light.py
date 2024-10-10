@@ -117,6 +117,9 @@ class GpioLight(ClosableMixin, BlinkMixin, LightEntity):
 
         self._brightness = HIGH_BRIGHTNESS if config.default_state else 0
 
+    def __repr__(self) -> str:
+        return f"{self._io!s}({self._attr_name})"
+
     @property
     def is_on(self) -> bool:
         return self._brightness > 0
@@ -136,7 +139,7 @@ class GpioLight(ClosableMixin, BlinkMixin, LightEntity):
             self._brightness = value
             self._io.value = state
             self.async_write_ha_state()
-            _LOGGER.debug(f"{self._io!s} light set to {state}")
+            _LOGGER.debug(f"{self!r} light set to {state}")
 
     def turn_on(self, **kwargs):
         """Turn on."""
@@ -189,6 +192,9 @@ class RgbGpioLight(ClosableMixin, BlinkMixin, LightEntity):
             config.port_blue,
             initial_value=(1, 1, 1) if config.default_state else (0, 0, 0),
         )
+
+    def __repr__(self) -> str:
+        return f"{self._io!s}({self._attr_name})"
 
     @property
     def is_on(self) -> bool:
@@ -250,7 +256,7 @@ class RgbGpioLight(ClosableMixin, BlinkMixin, LightEntity):
             self._brightness = brightness
             self._io.value = value
             self.async_write_ha_state()
-            _LOGGER.debug(f"{self._io!s} light set to {rgb}/{brightness} ({value})")
+            _LOGGER.debug(f"{self!r} light set to {rgb}/{brightness} ({value})")
 
     async def async_will_remove_from_hass(self) -> None:
         self._close()

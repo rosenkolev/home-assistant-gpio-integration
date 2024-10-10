@@ -26,8 +26,8 @@ class Roller:
         # >0 is up, <0 is down. This very much just for demonstration.
         self._moving = 0
 
-        self._pin_down = config.pin_down
-        self._pin_up = config.pin_up
+        self._pin_open = config.pin_open
+        self._pin_close = config.pin_close
         self._pin_closed = config.pin_closed
         self._step_time = (config.relay_time / 100.0) * 5.0
         self._direction = -1
@@ -38,16 +38,18 @@ class Roller:
         _LOGGER.debug(
             "roller %s; down %s; up %s; closed %s",
             self.name,
-            self._pin_down,
-            self._pin_up,
+            self._pin_open,
+            self._pin_close,
             self._pin_closed,
         )
 
-        self._io_down = Switch(
-            self._pin_down,
-            active_high=config.pin_down_on_state == "high",
+        self._io_open = Switch(
+            self._pin_open,
+            active_high=config.pin_open_on_state == "high",
         )
-        self._io_up = Switch(self._pin_up, active_high=config.pin_up_on_state == "high")
+        self._io_close = Switch(
+            self._pin_close, active_high=config.pin_close_on_state == "high"
+        )
 
         self._io_sensor = (
             BinarySensor(
@@ -149,17 +151,17 @@ class Roller:
         if self._io_sensor is not None:
             self._io_sensor.close()
             self._io_sensor = None
-        if self._io_down is not None:
-            self._io_down.close()
-            self._io_down = None
-        if self._io_up is not None:
-            self._io_up.close()
-            self._io_up = None
+        if self._io_open is not None:
+            self._io_open.close()
+            self._io_open = None
+        if self._io_close is not None:
+            self._io_close.close()
+            self._io_close = None
 
     def _move(self, steps, closing=False, full_close=False):
         """Move the roller at the given position."""
 
-        pin = self._io_down if closing else self._io_up
+        pin = self._io_close if closing else self._io_open
         time = 0
 
         self._direction = -1 if closing else 1

@@ -7,11 +7,11 @@ from custom_components.gpio_integration.schemas import (
     CONF_INVERT_LOGIC,
     CONF_NAME,
     CONF_PIN_CLOSED_SENSOR,
-    CONF_RELAY_DOWN_INVERT,
-    CONF_RELAY_DOWN_PIN,
+    CONF_RELAY_CLOSE_INVERT,
+    CONF_RELAY_CLOSE_PIN,
+    CONF_RELAY_OPEN_INVERT,
+    CONF_RELAY_OPEN_PIN,
     CONF_RELAY_TIME,
-    CONF_RELAY_UP_INVERT,
-    CONF_RELAY_UP_PIN,
 )
 from custom_components.gpio_integration.schemas.cover import (
     RollerConfig,
@@ -34,21 +34,21 @@ def __create_config(port=None, invert_logic=False, closed_sensor=0, relay_time=0
 
 
 def _create_roller_config(
-    up_port: int,
-    down_port,
+    open_port: int,
+    close_port: int,
     sensor_port=0,
-    up_invert_logic=False,
-    down_invert_logic=False,
+    open_invert_logic=False,
+    close_invert_logic=False,
     relay_time=10,
 ):
     return RollerConfig(
         {
             CONF_NAME: "Test Name",
             CONF_MODE: "Blind",
-            CONF_RELAY_UP_PIN: up_port,
-            CONF_RELAY_UP_INVERT: up_invert_logic,
-            CONF_RELAY_DOWN_PIN: down_port,
-            CONF_RELAY_DOWN_INVERT: down_invert_logic,
+            CONF_RELAY_OPEN_PIN: open_port,
+            CONF_RELAY_OPEN_INVERT: open_invert_logic,
+            CONF_RELAY_CLOSE_PIN: close_port,
+            CONF_RELAY_CLOSE_INVERT: close_invert_logic,
             CONF_RELAY_TIME: relay_time,
             CONF_PIN_CLOSED_SENSOR: sensor_port,
         }

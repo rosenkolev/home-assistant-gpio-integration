@@ -81,7 +81,7 @@ class GpioBinarySensor(ClosableMixin, BinarySensorEntity):
     def edge_detection_callback(self, io: BinarySensor) -> None:
         self._event_occurred = True
         if not self._rely_on_edge_events or (not self._state and io.is_active):
-            _LOGGER.debug(f"{self._io!s} schedule state update")
+            _LOGGER.debug(f"{self!r} schedule update")
             self.schedule_update_ha_state(force_refresh=True)
 
     def update(self):
@@ -93,7 +93,7 @@ class GpioBinarySensor(ClosableMixin, BinarySensorEntity):
 
         if state != self._state:
             self._state = state
-            _LOGGER.debug("%s update %s", self._attr_name, self._state)
+            _LOGGER.debug(f"{self!r} updated to '{self._state}'")
 
     ### HASS lifecycle hooks ###
 
@@ -129,3 +129,6 @@ class GpioBinarySensor(ClosableMixin, BinarySensorEntity):
         if self.is_sensor_active != self._state:
             _LOGGER.debug(f"{self._io!s} auto-update scheduled")
             self.schedule_update_ha_state(force_refresh=True)
+
+    def __repr__(self) -> str:
+        return f"{self._io!s}({self._attr_name})"

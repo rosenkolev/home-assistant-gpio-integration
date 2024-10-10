@@ -37,7 +37,15 @@ def create_binary_sensor_schema(data: dict) -> vol.Schema:
             vol.Required(CONF_MODE, default=data[CONF_MODE]): selector(
                 {
                     "select": {
-                        "options": ["Door", "Motion", "Light", "Vibration", "Plug"],
+                        "options": [
+                            "Door",
+                            "Motion",
+                            "Light",
+                            "Vibration",
+                            "Plug",
+                            "Smoke",
+                            "Window",
+                        ],
                         "mode": "dropdown",
                     }
                 }
