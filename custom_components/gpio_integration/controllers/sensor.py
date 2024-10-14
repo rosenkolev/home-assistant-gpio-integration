@@ -17,10 +17,18 @@ class SensorStateProvider:
 
 class SensorRef:
     def __init__(
-        self, provider: SensorStateProvider, name: str, id: str, unit: str
+        self,
+        provider: SensorStateProvider,
+        name: str,
+        id: str,
+        unit: str,
+        device_id: str,
+        device_name: str,
     ) -> None:
         self.name = name
         self.id = id
+        self.device_id = device_id
+        self.device_name = device_name
         self.unit = unit
         self._provider = provider
 
@@ -38,6 +46,9 @@ class SensorsProvider:
     def get_sensors(self) -> list[SensorRef]:
         pass
 
+    def create_sensor(self, name: str, id: str, unit: str) -> SensorRef:
+        return SensorRef(self, f"{self.name} {name}", id, unit, self.id, self.name)
+
 
 class DHT22Controller(SensorsProvider, SensorStateProvider):
     def __init__(self, config: DHT22Config) -> None:
@@ -54,12 +65,12 @@ class DHT22Controller(SensorsProvider, SensorStateProvider):
 
         self._loop_stop_event = threading.Event()
         self._loop_thread = None
-        self.start_auto_read_loop(10)
+        self.start_auto_read_loop(20)
 
     def get_sensors(self):
         return [
-            SensorRef(self, f"{self.name} Temperature", self._temperature_id, "C"),
-            SensorRef(self, f"{self.name} Humidity", self._humidity_id, "%"),
+            self.create_sensor("Temperature", self._temperature_id, "C"),
+            self.create_sensor("Humidity", self._humidity_id, "%"),
         ]
 
     def get_state(self, id: str) -> float:

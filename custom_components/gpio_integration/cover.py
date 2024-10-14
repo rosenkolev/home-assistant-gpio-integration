@@ -10,6 +10,7 @@ from homeassistant.components.cover import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ._devices import BinarySensor, Switch
@@ -129,6 +130,16 @@ class GpioCover(ClosableMixin, CoverEntity):
             | CoverEntityFeature.CLOSE
             | CoverEntityFeature.STOP
             | CoverEntityFeature.SET_POSITION
+        )
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.unique_id)},
+            name=self.name,
+            manufacturer="Raspberry Pi",
+            model="GPIO",
+            sw_version="1",
         )
 
     @property

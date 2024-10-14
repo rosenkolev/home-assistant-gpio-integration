@@ -1,5 +1,4 @@
 from collections import deque, namedtuple
-from math import isclose
 from threading import RLock
 from time import sleep
 from typing import Callable
@@ -20,7 +19,12 @@ from .core import get_logger
 _LOGGER = get_logger()
 
 
-class Pwm(PWMOutputDevice):
+class AsStringMixin:
+    def __repr__(self):
+        return f"{self.pin!r} ({self.__class__.__name__})"
+
+
+class Pwm(AsStringMixin, PWMOutputDevice):
     def __init__(self, pin: int, frequency=100, active_high=True, initial_value=False):
         super().__init__(
             pin,
@@ -29,9 +33,6 @@ class Pwm(PWMOutputDevice):
             frequency=frequency,
             initial_value=1 if initial_value else 0,
         )
-
-    def __repr__(self):
-        return f"{self.pin!r}"
 
 
 class PwmFromPercent(Pwm):
@@ -50,7 +51,7 @@ class PwmFromPercent(Pwm):
         self.value = self._percent_to_value(percent)
 
 
-class Switch(DigitalOutputDevice):
+class Switch(AsStringMixin, DigitalOutputDevice):
     def __init__(self, pin: int, active_high=True, initial_value=False):
         super().__init__(
             pin,
@@ -59,11 +60,8 @@ class Switch(DigitalOutputDevice):
             initial_value=initial_value,
         )
 
-    def __repr__(self):
-        return f"{self.pin!r}"
 
-
-class BinarySensor(DigitalInputDevice):
+class BinarySensor(AsStringMixin, DigitalInputDevice):
     def __init__(self, pin: int, active_high=True, bounce_time=None):
         super().__init__(
             pin,
@@ -90,9 +88,6 @@ class BinarySensor(DigitalInputDevice):
         active_time = self.active_time
         return active_time if active_time is not None else self.inactive_time
 
-    def __repr__(self):
-        return f"{self.pin!r}"
-
 
 class RgbLight(RGBLED):
     def __init__(self, red: int, green: int, blue: int, initial_value=(0, 0, 0)):
@@ -109,27 +104,15 @@ class RgbLight(RGBLED):
 
 
 class BitInfo:
-    def __init__(self, state: int, duration_ms: float | None):
+    def __init__(self, state: int, duration_ms: float):
         self.state = state
         self.duration_ms = duration_ms
 
     def between(self, min_ms: float, max_ms: float) -> bool:
         return min_ms <= self.duration_ms <= max_ms
 
-    def __eq__(self, value: object) -> bool:
-        return (
-            isinstance(value, BitInfo)
-            and self.state == value.state
-            and (
-                self.duration_ms is None
-                or isclose(
-                    self.duration_ms, value.duration_ms, rel_tol=0.01, abs_tol=0.01
-                )
-            )
-        )
-
     def __repr__(self):
-        return f"({self.state}[{self.duration_ms:.2f}])"
+        return f"({self.state}[{self.duration_ms:.2f}ms])"
 
 
 class EdgeInputDevice(InputDevice):
@@ -137,7 +120,7 @@ class EdgeInputDevice(InputDevice):
         self,
         pin: int,
         active_high=True,
-        bounce_time=None,
+        bounce_time: float = None,
     ):
         super().__init__(
             pin,
@@ -155,11 +138,15 @@ class EdgeInputDevice(InputDevice):
 
     def read(self) -> None:
         self._state_index = 0
+        self._last_state = 0
         self._last_event = self.pin_factory.ticks()
+        self.pin.function = "input"
         self.pin.when_changed = self._pin_changed
+        _LOGGER.debug(f"{self!r}: reading")
 
     def stop(self) -> None:
         self.pin.when_changed = None
+        _LOGGER.debug(f"{self!r}: stopped")
 
     def _state_changed(self, state: BitInfo) -> None:
         pass
@@ -176,7 +163,7 @@ class EdgeInputDevice(InputDevice):
             raise ValueError("Invalid state change")
 
         with self._lock:
-            elapsed_ms = self.pin_factory.ticks_diff(ticks, self._last_event) * 1000
+            elapsed_ms = self.pin_factory.ticks_diff(ticks, self._last_event) * 1000.0
             state_time = BitInfo(self._last_state, elapsed_ms)
             self._last_state = state
             self._last_event = ticks
@@ -184,116 +171,84 @@ class EdgeInputDevice(InputDevice):
             self._state_index += 1
 
 
-class SerialInputDevice(EdgeInputDevice):
-    def __init__(
-        self,
-        pin: int,
-        zero_high_ms_range: tuple[float, float],
-        one_high_ms_range: tuple[float, float],
-        bounce_time=None,
-        ready_to_send_bits: list[BitInfo] = [],
-        word_bits_count: int = 8,
-    ):
-        super().__init__(pin, True, bounce_time)
-
-        self._transferring = False
-        self._ready_to_send_bits = ready_to_send_bits
-        self._ready_to_send_bits_count = len(ready_to_send_bits)
-        self._zero_high_ms_range = zero_high_ms_range
-        self._one_high_ms_range = one_high_ms_range
-        self._dword_size = word_bits_count
-        self._dword = 0
-        self._dword_index = 0
-
-    def read(self) -> None:
-        if self._transferring:
-            _LOGGER.debug("Already transferring")
-            return
-
-        self._transferring = self._ready_to_send_bits_count == 0
-        self._dword = 0b0000
-        self._dword_index = self._dword_size
-        super().read()
-
-    def stop(self) -> None:
-        self._transferring = False
-        return super().stop()
-
-    def _on_word_filled(self, dword: int) -> None:
-        pass
-
-    def _state_changed(self, info: BitInfo) -> None:
-        if not self._transferring:
-            if self._ready_to_send_bits_count <= self._state_index:
-                self._transferring = True
-                _LOGGER.debug(f"{self.pin!r} transferring data")
-            elif self._ready_to_send_bits[self._state_index] == info:
-                # ready to send sequence is correct so far
-                return
-            else:
-                self.stop()
-                raise ValueError("Invalid ready to send bits")
-
-        if info.state == 1:
-            self._dword <<= 1
-            if info.between(*self._one_high_ms_range):
-                self._dword |= 0b0001
-            elif not info.between(*self._zero_high_ms_range):
-                self.stop()
-                raise ValueError("Invalid bit duration")
-
-            self._dword_index -= 1
-            if self._dword_index <= 0:
-                self._on_word_filled(self._dword)
-                self._dword_index = self._dword_size
-                self._dword = 0b0000
-
-
 DHT22Data = namedtuple("DHT22Data", ["temperature", "humidity"])
 
 
 class PulseMixin:
-    def _send_sec(self, state: int, duration_sec: float) -> None:
+    def _send_and_wait(self, state: int, duration_sec: float) -> None:
         self.pin.value = state
-        sleep(duration_sec / 1000)
+        sleep(duration_sec)
 
 
-class DHT22(PulseMixin, SerialInputDevice):
+def dword_from_deque(deque: deque[BitInfo], bit_count: int) -> int:
+    dword = 0b0000
+    for _ in range(bit_count):
+        dword <<= 1
+        bit = deque.popleft()
+        if bit.between(0.055, 0.085):
+            dword |= 0b0001
+        elif not bit.between(0.02, 0.035):
+            raise ValueError("Invalid bit duration")
+    return dword
+
+
+class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
     def __init__(self, pin: int):
         super().__init__(
             pin,
-            zero_high_ms_range=(0.02, 0.035),
-            one_high_ms_range=(0.055, 0.085),
             bounce_time=0.000_005,
-            ready_to_send_bits=[BitInfo(1, None), BitInfo(0, None)],
-            word_bits_count=8,
         )
-
         self._on_data_received = None
         self._on_invalid_check_sum = None
-        self._reset_fields()
+        self._deque: deque[BitInfo] = deque(maxlen=41)
+
+    def _state_changed(self, info: BitInfo) -> None:
+        _LOGGER.debug(f"{self!r}: {info!r}")
+        if info.state == 1:
+            self._deque.append(info)
+            if self._deque.maxlen == len(self._deque):
+                self.stop()
+                _LOGGER.debug(f"{self!r} deque full")
+                self._process()
+
+    def _process(self) -> None:
+        # first bit is start bit
+        self._deque.popleft()
+
+        humidity = dword_from_deque(self._deque, 16)
+        temperature = dword_from_deque(self._deque, 16)
+        check_sum = dword_from_deque(self._deque, 8)
+        sum = (
+            (humidity >> 8)
+            + (humidity & 0b1111_1111)
+            + (temperature >> 8)
+            + (temperature & 0b1111_1111)
+        ) & 0b1111_1111
+        if sum != check_sum:
+            _LOGGER.warning("{self!r}: invalid check sum")
+            if self.on_invalid_check_sum is not None:
+                self.on_invalid_check_sum()
+            else:
+                raise ValueError("Invalid check sum")
+        else:
+            temperature_sign = -1 if temperature & 0b1000_0000 else 1
+            temperature &= 0b0111_1111_1111_1111
+            self.on_data_received(
+                DHT22Data(
+                    temperature_sign * temperature / 10.0,
+                    humidity / 10.0,
+                )
+            )
 
     def read(self) -> None:
-        if self._transferring:
-            return
+        self._deque.clear()
 
-        self._reset_fields()
-        self.trigger_pulse()
-        super().read()
-
-    def _reset_fields(self) -> None:
-        self._word_index = 0
-        self._check_sum = 0
-        self._temperature = 0
-        self._temperature_sign = 1
-        self._humidity = 0
-
-    def trigger_pulse(self) -> None:
         self.pin.function = "output"
-        self._send_sec(1, 0.010)  # 10 ms
-        self._send_sec(0, 0.018)  # 18 ms
-        self._send_sec(1, 0.000_04)  # 40 us
-        self.pin.function = "input"
+        self._send_and_wait(1, 0.001)  # 10 ms
+        self._send_and_wait(0, 0.018)  # 18 ms
+        self._send_and_wait(1, 0.000_04)  # 40 us
+
+        super().read()
 
     def set_on_data_received(self, callback: Callable[[DHT22Data], None]) -> None:
         self._on_data_received = None if callback is None else WeakMethod(callback)
@@ -319,51 +274,3 @@ class DHT22(PulseMixin, SerialInputDevice):
             Event that is fired when an invalid check sum is received from the sensor.
             """,
     )
-
-    def _on_word_filled(self, dword: int) -> None:
-        """Converts 8 bits to a word and processes it."""
-        _LOGGER.debug(f"word: {dword:08b}")
-        if self.on_data_received is None:
-            # when no one is listening, no need to continue
-            self.stop()
-            return
-
-        if self._word_index < 4:
-            # first 4 words are data
-            self._check_sum += dword
-
-            if self._word_index == 0:
-                self._humidity = dword
-            elif self._word_index == 1:
-                self._humidity = (self._humidity << 8) | dword
-            elif self._word_index == 2:
-                sign_bit = 0b1000_0000
-                if (dword & sign_bit) == sign_bit:
-                    # convert the sign bit to 0
-                    dword &= sign_bit & 0b0111_1111
-                    self._temperature_sign = -1
-
-                self._temperature = dword
-            else:
-                self._temperature = (self._temperature << 8) | dword
-
-            self._word_index += 1
-        else:
-            # last word is check sum
-            self.stop()
-
-            if (self._check_sum & 0b1111_1111) != dword:
-                _LOGGER.warning(
-                    f"checksum mismatch: {self._check_sum:08b} != {dword:08b}"
-                )
-                if self.on_invalid_check_sum is not None:
-                    self.on_invalid_check_sum()
-                else:
-                    raise ValueError("Invalid check sum")
-            else:
-                self.on_data_received(
-                    DHT22Data(
-                        self._temperature_sign * self._temperature / 10.0,
-                        self._humidity / 10.0,
-                    )
-                )

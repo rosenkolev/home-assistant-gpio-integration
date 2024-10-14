@@ -35,22 +35,25 @@ def test__DHT22_should_init_default_state(mocked_factory):
         assert pin._function == "input"
         assert pin._state is False
         assert pin.edges == "both"
-        assert pin.bounce == 0.00001
+        assert pin.bounce == 0.000_005
 
 
 def _send_DHT22_data(io, bits: str):
     io.clear_states()
     data = [(0, 0.00008), (1, 0.00008)]
     for bit in bits.replace(" ", ""):
-        data.append((1, 0.000_014))
+        # data.append((1, 0.000_014))
         data.append((0, 0.000_05))
         data.append((1, 0.000_026 if bit == "0" else 0.000_07))
+
+    data.append((0, 0.000_05))
 
     io._last_change = 0
     for bit, time in data:
         io._state = 1 if bit == 0 else 0
         io._last_change += time
-        io._call_when_changed()
+        if io._when_changed is not None:
+            io._call_when_changed()
 
 
 def test__DHT22_should_retrieve(mocked_factory):
