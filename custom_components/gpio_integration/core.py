@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import logging
-from threading import Event, Thread
-from typing import Iterable
 
 DOMAIN = "gpio_integration"
 
@@ -15,25 +13,22 @@ def get_logger():
     return __LOGGER
 
 
-class StoppableThread(Thread):
-    def __init__(self, target, name: str | None = None, args=(), kwargs=None):
-        self.stopping = Event()
-        super().__init__(None, target, name, args, kwargs)
-        self.daemon = True
+class ClosableMixin:
+    def __enter__(self):
+        return self
 
-    def start(self):
-        self.stopping.clear()
-        super().start()
+    def __exit__(self, *exc_info) -> None:
+        self._close()
 
-    def stop(self, timeout=None):
-        if self.is_alive():
-            self.stopping.set()
-            self.join(timeout)
-
-    def wait(self, timeout: int):
-        return self.stopping.wait(timeout)
+    def _close(self) -> None:
+        if hasattr(self, "_io") and self._io is not None:
+            self._io.close()
+            self._io = None
 
 
-class GpioEffect:
-    def compute_state(self, config: dict) -> Iterable[tuple[bool | float, float]]:
-        raise NotImplementedError
+class ReprMixin:
+    def __repr__(self) -> str:
+        if hasattr(self, "_attr_name"):
+            return f"{self._io!s} ({self._attr_name})"
+
+        return f"{self._io!s} ({self.__class__.__name__})"

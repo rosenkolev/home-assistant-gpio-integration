@@ -9,7 +9,7 @@
         {
             "label": "spell-check",
             "type": "shell",
-            "command": "npx cspell --no-progress \"**/*"
+            "command": "npx -y cspell --no-progress \"**/*"
         },
         {
             "label": "lint",

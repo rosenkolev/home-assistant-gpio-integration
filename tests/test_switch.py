@@ -1,113 +1,77 @@
-from unittest.mock import Mock, patch
-
-import mocked_models as mocked
 import pytest
+from homeassistant.const import CONF_PORT
 
-from custom_components.gpio_integration.config_schema import (
+from custom_components.gpio_integration.schemas import (
     CONF_DEFAULT_STATE,
     CONF_INVERT_LOGIC,
     CONF_NAME,
-    CONF_PORT,
-    SwitchConfig,
 )
+from custom_components.gpio_integration.schemas.switch import SwitchConfig
+from custom_components.gpio_integration.switch import GpioSwitch
+from tests.mocks import get_next_pin
 
 
 def __create_config(port=None, default_state=False, invert_logic=False):
     return SwitchConfig(
         {
             CONF_NAME: "Test Name",
-            CONF_PORT: mocked.get_next_pin() if port is None else port,
+            CONF_PORT: get_next_pin() if port is None else port,
             CONF_DEFAULT_STATE: default_state,
             CONF_INVERT_LOGIC: invert_logic,
         }
     )
 
 
-@patch("custom_components.gpio_integration.gpio.pin_factory.create_pin", Mock())
-@patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
-def test__GpioSwitch_should_init_default_sate():
-    from custom_components.gpio_integration.switch import GpioSwitch
-
-    gpio = GpioSwitch(__create_config())
-
-    assert gpio.is_on is False
+def test__GpioSwitch_should_init_default_sate(mocked_factory):
+    with GpioSwitch(__create_config()) as gpio:
+        assert gpio.is_on is False
 
 
-@patch("custom_components.gpio_integration.gpio.pin_factory.create_pin", Mock())
-@patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
-def test__GpioSwitch_should_init_default_state():
-    from custom_components.gpio_integration.switch import GpioSwitch
-
-    gpio = GpioSwitch(__create_config(default_state=True))
-
-    assert gpio.is_on is True
+def test__GpioSwitch_should_init_default_state(mocked_factory):
+    with GpioSwitch(__create_config(default_state=True)) as gpio:
+        assert gpio.is_on is True
 
 
-@patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
-def test__GpioSwitch_should_init_default_state_io():
-    import custom_components.gpio_integration.switch as base
-
-    pin = mocked.get_next_pin()
-    with patch.object(base, "create_pin", Mock()) as create_pin:
-        base.GpioSwitch(__create_config(port=pin, default_state=True))
-        create_pin.assert_called_once_with(
-            pin, mode="output", pull="up", default_value=True
-        )
+def test__GpioSwitch_should_init_invert(mocked_factory):
+    number = get_next_pin()
+    pin = mocked_factory.pin(number)
+    with GpioSwitch(__create_config(number, invert_logic=True, default_state=True)):
+        pin.assert_states([False])
 
 
-@patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
-def test__GpioSwitch_should_set_pin():
-    import custom_components.gpio_integration.switch as base
-
-    proxy = mocked.MockedCreatePin()
-    with patch.object(base, "create_pin", proxy.mock):
-        gpio = base.GpioSwitch(__create_config())
-
-        gpio.set_state(True)
-        assert proxy.pin.data["write"] is True
-
-        gpio.set_state(False)
-        assert proxy.pin.data["write"] is False
+def test__GpioSwitch_should_init_pin(mocked_factory):
+    number = get_next_pin()
+    pin = mocked_factory.pin(number)
+    with GpioSwitch(__create_config(port=number, default_state=True)):
+        assert pin._function == "output"
+        assert pin.state is True
 
 
-@patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
-def test__GpioSwitch_should_set_pin_invert():
-    import custom_components.gpio_integration.switch as base
-
-    proxy = mocked.MockedCreatePin()
-    with patch.object(base, "create_pin", proxy.mock):
-        gpio = base.GpioSwitch(__create_config(invert_logic=True))
-
-        gpio.set_state(True)
-        assert not proxy.pin.data["write"]
-
-        gpio.set_state(False)
-        assert proxy.pin.data["write"]
+def test__GpioSwitch_should_set_pin(mocked_factory):
+    number = get_next_pin()
+    pin = mocked_factory.pin(number)
+    with GpioSwitch(__create_config(port=number)) as gpio:
+        gpio.turn_on()
+        gpio.turn_off()
+        pin.assert_states([False, True, False])
 
 
-@patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
-def test__GpioSwitch_on_off_should_write_ha():
-    import custom_components.gpio_integration.switch as base
+def test__GpioSwitch_on_off_should_write_ha(mocked_factory):
+    with GpioSwitch(__create_config()) as gpio:
+        gpio.ha_state_write = False
+        gpio.turn_on()
+        assert gpio.ha_state_write
 
-    gpio = base.GpioSwitch(__create_config())
-
-    gpio.ha_state_write = False
-    gpio.turn_on()
-    assert gpio.ha_state_write
-
-    gpio.ha_state_write = False
-    gpio.turn_off()
-    assert gpio.ha_state_write
+        gpio.ha_state_write = False
+        gpio.turn_off()
+        assert gpio.ha_state_write
 
 
 @pytest.mark.asyncio
-@patch("homeassistant.components.switch.SwitchEntity", mocked.MockedBaseEntity)
-async def test__GpioSwitch_will_close_pin():
-    import custom_components.gpio_integration.switch as base
-
-    proxy = mocked.MockedCreatePin()
-    with patch.object(base, "create_pin", proxy.mock):
-        gpio = base.GpioSwitch(__create_config())
-
-        await gpio.async_will_remove_from_hass()
-        assert proxy.pin.data["close"] is True
+async def test__GpioSwitch_will_close_pin(mocked_factory):
+    number = get_next_pin()
+    pin = mocked_factory.pin(number)
+    gpio = GpioSwitch(__create_config(port=number))
+    await gpio.async_will_remove_from_hass()
+    assert pin.closed is True
+    assert gpio._io is None
