@@ -1,9 +1,10 @@
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .core import DOMAIN, ClosableMixin, get_logger
+from .core import DOMAIN, ClosableMixin, ReprMixin, get_logger
 from .hub import Hub, Roller
 from .schemas.main import EntityTypes
 
@@ -21,7 +22,7 @@ async def async_setup_entry(
         async_add_entities([GpioPosition(hub.controller)])
 
 
-class GpioPosition(ClosableMixin, NumberEntity):
+class GpioPosition(ClosableMixin, ReprMixin, NumberEntity):
     def __init__(self, roller: Roller) -> None:
         """Initialize the cover."""
         self._io = roller
@@ -30,8 +31,15 @@ class GpioPosition(ClosableMixin, NumberEntity):
         self._attr_native_step = roller.step
         self._attr_native_unit_of_measurement = "%"
 
-    def __repr__(self) -> str:
-        return f"{self._io!s}({self._attr_name})"
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.unique_id)},
+            name=self.name,
+            manufacturer="Raspberry Pi",
+            model="GPIO",
+            sw_version="1",
+        )
 
     @property
     def native_value(self):

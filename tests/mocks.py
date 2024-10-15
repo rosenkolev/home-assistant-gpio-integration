@@ -1,6 +1,6 @@
 from gpiozero import BoardInfo, Factory
 from gpiozero.pins import HeaderInfo, PinInfo
-from gpiozero.pins.mock import MockPin
+from gpiozero.pins.mock import MockPin, PinState
 
 PIN_NUMBER = 0
 
@@ -138,3 +138,33 @@ class MockFactory(Factory):
             col=1,
             interfaces=frozenset(["gpio", "pwm", "spi"]),
         )
+
+
+class MockedEvent:
+    def __init__(self):
+        self.waits = []
+
+    def wait(self, timeout: int):
+        return self.waits.append(timeout)
+
+
+class MockedGPIOThread:
+    def __init__(self, target, args=(), kwargs=None):
+        self.args = args
+        self.stopping = MockedEvent()
+        self.target = target
+        self.started = False
+
+    def start(self):
+        self.started = True
+
+    def stop(self):
+        self.started = False
+
+    def execute_target(self):
+        self.target(*self.args)
+
+    def zip(self, pin_states: list[PinState]) -> list[tuple[bool, float]]:
+        """Zip states.state with times."""
+        times = self.stopping.waits
+        return list(zip((state.state for state in pin_states), times))

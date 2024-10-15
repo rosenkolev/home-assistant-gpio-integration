@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ._devices import Pwm, RgbLight, Switch
-from .core import DOMAIN, ClosableMixin, get_logger
+from .core import DOMAIN, ClosableMixin, ReprMixin, get_logger
 from .hub import Hub
 from .schemas.light import RgbLightConfig
 from .schemas.main import EntityTypes
@@ -63,16 +63,19 @@ def brightness_to_value(brightness: int) -> int:
 
 class BlinkMixin:
     def _blink(self, effect: str, pwm: bool):
-        if effect not in BLINKS:
+        self.turn_off()
+        if effect == EFFECT_OFF:
+            return
+
+        effect_name = effect.lower()
+        if effect_name not in BLINKS:
             raise ValueError(f"Unknown blink effect: {effect}")
 
-        opts = BLINKS[effect]
+        opts = BLINKS[effect_name]
         if "on_time" not in opts or "off_time" not in opts:
-            raise ValueError(f"Invalid blink options: {effect}")
+            raise ValueError(f"Invalid blink options: {effect_name}")
 
-        _LOGGER.debug(f"{self._io!s} light blink {effect}")
-
-        self.turn_off()
+        _LOGGER.debug(f"{self._io!s} light blink {effect_name}")
 
         on_time = opts["on_time"]
         off_time = opts["off_time"]
@@ -89,7 +92,7 @@ class BlinkMixin:
             self._io.blink(on_time=on_time, off_time=off_time, n=opts["times"])
 
 
-class GpioLight(ClosableMixin, BlinkMixin, LightEntity):
+class GpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
     """Representation of a Raspberry Pi GPIO."""
 
     def __init__(self, config: PwmConfig) -> None:
@@ -117,9 +120,6 @@ class GpioLight(ClosableMixin, BlinkMixin, LightEntity):
 
         self._brightness = HIGH_BRIGHTNESS if config.default_state else 0
 
-    def __repr__(self) -> str:
-        return f"{self._io!s}({self._attr_name})"
-
     @property
     def is_on(self) -> bool:
         return self._brightness > 0
@@ -138,7 +138,7 @@ class GpioLight(ClosableMixin, BlinkMixin, LightEntity):
             state = brightness_to_value(value) if self._pwm else value > 0
             self._brightness = value
             self._io.value = state
-            self.async_write_ha_state()
+            self.schedule_update_ha_state()
             _LOGGER.debug(f"{self!r} light set to {state}")
 
     def turn_on(self, **kwargs):
@@ -164,7 +164,7 @@ RGB_WHITE = (HIGH_BRIGHTNESS, HIGH_BRIGHTNESS, HIGH_BRIGHTNESS)
 RGB_OFF = (0, 0, 0)
 
 
-class RgbGpioLight(ClosableMixin, BlinkMixin, LightEntity):
+class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
     def __init__(self, config: RgbLightConfig) -> None:
         """Initialize the pin."""
 
@@ -192,9 +192,6 @@ class RgbGpioLight(ClosableMixin, BlinkMixin, LightEntity):
             config.port_blue,
             initial_value=(1, 1, 1) if config.default_state else (0, 0, 0),
         )
-
-    def __repr__(self) -> str:
-        return f"{self._io!s}({self._attr_name})"
 
     @property
     def is_on(self) -> bool:

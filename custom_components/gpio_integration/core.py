@@ -24,3 +24,11 @@ class ClosableMixin:
         if hasattr(self, "_io") and self._io is not None:
             self._io.close()
             self._io = None
+
+
+class ReprMixin:
+    def __repr__(self) -> str:
+        if hasattr(self, "_attr_name"):
+            return f"{self._io!s} ({self._attr_name})"
+
+        return f"{self._io!s} ({self.__class__.__name__})"

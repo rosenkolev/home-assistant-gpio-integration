@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ._devices import PwmFromPercent
-from .core import DOMAIN, ClosableMixin, get_logger
+from .core import DOMAIN, ClosableMixin, ReprMixin, get_logger
 from .hub import Hub
 from .schemas.pwm import PwmConfig
 
@@ -25,7 +25,7 @@ async def async_setup_entry(
     async_add_entities([GpioFan(hub.config)])
 
 
-class GpioFan(ClosableMixin, FanEntity):
+class GpioFan(ClosableMixin, ReprMixin, FanEntity):
     """Representation of a simple PWM FAN."""
 
     def __init__(self, config: PwmConfig) -> None:
@@ -46,9 +46,6 @@ class GpioFan(ClosableMixin, FanEntity):
         self._io = PwmFromPercent(
             config.port, frequency=config.frequency, initial_value=config.default_state
         )
-
-    def __repr__(self) -> str:
-        return f"{self._io!s}({self._attr_name})"
 
     @property
     def is_on(self):

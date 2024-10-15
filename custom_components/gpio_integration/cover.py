@@ -14,7 +14,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ._devices import BinarySensor, Switch
-from .core import DOMAIN, ClosableMixin
+from .core import DOMAIN, ClosableMixin, ReprMixin
 from .hub import Hub, Roller
 from .schemas.cover import ToggleRollerConfig
 from .schemas.main import EntityTypes
@@ -46,7 +46,7 @@ def get_device_class(mode: str) -> CoverDeviceClass:
         return CoverDeviceClass.CURTAIN
 
 
-class GpioBasicCover(ClosableMixin, CoverEntity):
+class GpioBasicCover(ClosableMixin, ReprMixin, CoverEntity):
     def __init__(
         self,
         config: ToggleRollerConfig,
@@ -111,7 +111,7 @@ class GpioBasicCover(ClosableMixin, CoverEntity):
         await super().async_will_remove_from_hass()
 
 
-class GpioCover(ClosableMixin, CoverEntity):
+class GpioCover(ClosableMixin, ReprMixin, CoverEntity):
     """Representation of a Raspberry GPIO cover."""
 
     def __init__(

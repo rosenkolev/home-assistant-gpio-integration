@@ -226,7 +226,7 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
                     entry=self.config_entry,
                     unique_id=unique_id,
                     title=user_input[CONF_NAME],
-                    data=data,
+                    data=user_input,
                     options=self.options,
                 )
                 if result:

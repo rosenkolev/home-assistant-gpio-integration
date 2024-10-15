@@ -66,6 +66,7 @@ sys.modules["homeassistant.components.light"].ATTR_EFFECT = "A_EFFECT"
 sys.modules["homeassistant.components.light"].ATTR_FLASH = "A_FLASH"
 sys.modules["homeassistant.components.light"].EFFECT_OFF = "E_OFF"
 sys.modules["homeassistant.components.light"].FLASH_SHORT = "F_SHORT"
+sys.modules["homeassistant.components.light"].FLASH_LONG = "F_LONG"
 
 
 class FanEntityFeature:
