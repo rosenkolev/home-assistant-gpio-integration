@@ -108,6 +108,9 @@ class BitInfo:
         self.state = state
         self.duration_ms = duration_ms
 
+    def check(self, state: int, min_ms: float, max_ms) -> bool:
+        return self.state == state and min_ms <= self.duration_ms <= max_ms
+
     def between(self, min_ms: float, max_ms: float) -> bool:
         return min_ms <= self.duration_ms <= max_ms
 
@@ -165,9 +168,9 @@ class EdgeInputDevice(InputDevice):
         with self._lock:
             elapsed_ms = self.pin_factory.ticks_diff(ticks, self._last_event) * 1000.0
             state_time = BitInfo(self._last_state, elapsed_ms)
+            self._state_changed(state_time)
             self._last_state = state
             self._last_event = ticks
-            self._state_changed(state_time)
             self._state_index += 1
 
 
@@ -200,10 +203,20 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
         )
         self._on_data_received = None
         self._on_invalid_check_sum = None
-        self._deque: deque[BitInfo] = deque(maxlen=41)
+        self._transfer = False
+        self._deque: deque[BitInfo] = deque(maxlen=40)
 
     def _state_changed(self, info: BitInfo) -> None:
-        _LOGGER.debug(f"{self!r}: {info!r}")
+        if not self._transfer:
+            if self._state_index > 4:
+                self.stop()
+                _LOGGER.warning(f"{self!r}: invalid start bits")
+            elif info.check(1, 0.07, 0.09):
+                self._transfer = True
+                _LOGGER.debug(f"{self!r}: transfer started")
+
+            return
+
         if info.state == 1:
             self._deque.append(info)
             if self._deque.maxlen == len(self._deque):
@@ -212,12 +225,12 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
                 self._process()
 
     def _process(self) -> None:
-        # first bit is start bit
-        self._deque.popleft()
-
         humidity = dword_from_deque(self._deque, 16)
         temperature = dword_from_deque(self._deque, 16)
         check_sum = dword_from_deque(self._deque, 8)
+
+        _LOGGER.debug(f"{self!r}: {humidity=}, {temperature=}, {check_sum=}")
+
         sum = (
             (humidity >> 8)
             + (humidity & 0b1111_1111)
@@ -242,8 +255,11 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
 
     def read(self) -> None:
         self._deque.clear()
+        self._transfer = False
 
+        self.pin.when_changed = None
         self.pin.function = "output"
+
         self._send_and_wait(1, 0.001)  # 10 ms
         self._send_and_wait(0, 0.018)  # 18 ms
         self._send_and_wait(1, 0.000_04)  # 40 us

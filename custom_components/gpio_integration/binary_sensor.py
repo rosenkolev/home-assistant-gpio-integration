@@ -1,5 +1,4 @@
 import datetime
-import warnings
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,

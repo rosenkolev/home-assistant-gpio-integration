@@ -12,7 +12,7 @@
     "words": [
         "gpiozero",
         "gpio",
-        "gpiod",
+        "RGBLED",
         "GPIO",
         "hass",
         "homeassistant",
@@ -25,6 +25,7 @@
         "bouncetime",
         "pytest",
         "asyncio",
+        "popleft",
 
         "HACS",
         "Asus"

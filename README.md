@@ -22,6 +22,7 @@ The `gpio_integration` integration supports the following platforms: Binary Sens
 * [x] Switch
 * [x] Light
 * [x] Fen
+* [x] Sensor
 
 ## Installation
 
@@ -43,9 +44,12 @@ It uses `pigpio` package as default interface to access the GPIOs and fallback t
 
 See [Interface Advanced Configuration section](#interface-advanced-configuration).
 
+The [gpiozero](https://gpiozero.readthedocs.io/) library is used and the integration supports all interfaces `gpiozero` supports.
+
 * pigpio
+* lgpio (fallback)
 * rpigpio (fallback)
-* gpiod (fallback)
+* native (fallback)
 
 The integration is created in a way that can be extended for other hardware like 'Asus Tinker Board' or 'ODroid' but I don't have the hardware to implement it and anyone is welcome to do so (see [Development section](#development))
 
@@ -55,25 +59,22 @@ The integration is created in a way that can be extended for other hardware like
 
 To configure the integration use the UI
 
-#### 1. Select the entity type
+![Configuration flow first step!](/docs/step_type.png)
 
-![Configuration flow first step!](/docs/step_user.png)
+![Configuration variation!](/docs/step_variation.png)
 
-#### 2. Fill entity fields
-
-![Configuration flow first step!](/docs/step_cover.png)
+![Configuration flow first step!](/docs/step_setup.png)
 
 #### Notes
 
 * unique_id is not required and will be created automatically based on `Name`
-* the `door closed` sensor is not required for `cover` and will be assumed to be closed initially, state will be tracked so if you use other remote to open/close may get out of sync
 * **Pin numbers are GPIO pin numbers and not the actual pin order of the board**
 
 ### Entities / Types
 
 #### Binary Sensor
 
-Binary sensor set state based on GPIO pin input (ON = 3.3v, OFF = 0v) or based on RISING/FALLING events in the case of `Motion` or `Vibration` sensors.
+Binary sensor set state based on GPIO pin input (ON = 3.3v, OFF = 0v) or based on RISING/FALLING events for some `Motion` or `Vibration` sensors (when "Event timeout" is set).
 
 RISING/FALLING events are when pin input have a current goes from 0v to 3.3v (rising) or goes down from 3.3v to 0 (falling).
 
@@ -114,14 +115,13 @@ flowchart LR
 |  | |
 | - | - |
 | Name | The name of the entity |
-| GPIO pin | The number of the input pin |
-| Pull mode | The default input mode (up/down) [default `up`]. |
-| Bounce time (in milliseconds) | A time between GPIO input updates |
-| Invert logic | A invert logic. When checked, and the GPIO input is HIGH (3.3v) the state of the sensor will be `Off` (0v = `On`). Only apply for non motion/vibration sensors, because this sensors rely on edge events [default `False`]. |
+| GPIO pin | The number of the input pin. |
+| Bounce time (in milliseconds) | A time between GPIO input updates are detected [default `200`ms]. |
+| Invert logic | A invert logic. When checked, and the GPIO input is HIGH (3.3v) the state of the sensor will be `Off` (0v = `On`). Only apply when "Event timeout in seconds" is 0 [default `False`]. |
 | Mode | Sensor type [default `Door`] |
-| Default state | The initial state of the sensor, before the GPIO input is read [default `False`/`Off`] |
-| Event timeout in seconds | The time, sensor data is considered up to date. For example when set to 3sec and motion is not detected from motion sensor for 3sec, the state is considered `Off` or `no motion`. Only applicable for `Motion`/`Vibration` mode |
-| Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
+| Default state | The initial state of the sensor, before the GPIO input is read [default `False`/`Off`]. |
+| Event timeout in seconds | The time, sensor data is considered up to date. For example when set to 3sec and motion (edge event) is not detected from motion sensor for 3sec, the state is considered `Off` or `no motion` [default `0`]. |
+| Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default '']. |
 
 #### Cover with up and down button (optional sensor)
 
@@ -156,10 +156,10 @@ flowchart TB
 |  | |
 | - | - |
 | Name | The name of the entity |
-| Up pin | The GPIO pin number for the up relay/button |
-| GPIO up pin invert(default 3.3v) | When checked, the up pin output will be set to LOW (0v) when button is pressed and HIGH (3.3v) when not pressed [default `False`] |
-| Down pin | The GPIO pin number for the down relay/button |
-| GPIO down pin invert(default 3.3v) | The same as the up invert [default `False`] |
+| GPIO close pin | The GPIO pin number for the close relay/button |
+| GPIO close pin invert(default 3.3v) | When checked and the button is pressed, the close pin output will be set to LOW (0v), when not pressed it will be HIGH (3.3v) [default `False`] |
+| GPIO open pin | The GPIO pin number for the open relay/button |
+| GPIO open pin invert(default 3.3v) | The same as the close invert [default `False`] |
 | Relay time in seconds | The time in seconds a relay is active for the shade/cover/blind to be fully open/closed. Example, when set to 10 sec it's considered that to open a shade 50% we need to hold the UP button for 5sec [default `15`]  |
 | Pin closed sensor | OPTIONAL, Input GPIO pin for a door closed sensor. When provided the state is set based on the sensor, otherwise it's assumed to be closed on initialization. [default `0`] |
 | Mode | Cover type [default `Blind`] |
@@ -232,7 +232,7 @@ flowchart LR
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
-#### Light
+#### Light (PWM)
 
 Creates a home assistant `Light` entity, that supports ordinary light and LED light output.
 
@@ -283,6 +283,23 @@ This should indicate LED is at 40% brightness (2/5 every cycle).
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
+
+#### Light (RGB/PWM)
+
+The same as `Light (PWM)` but for a colored RGB LED.
+
+##### Options
+
+|  | |
+| - | - |
+| Name | The name of the entity |
+| GPIO red color pin | The GPIO number for red pin |
+| GPIO green color pin | The GPIO number for green pin |
+| GPIO blue color pin | The GPIO number for blue pin |
+| Frequency | The pulse-wide modulation PWM frequency used for LED lights, when set greater then 0 it's assumed it's a led light, when `None` or 0 it's assumed normal light bulb. [default `0`] |
+| Default state | The initial state of the switch [default `False`/`Off`] |
+| Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
+
 #### Fen
 
 Creates a home assistant `Fen` entity, that supports percentage and on/off state.
@@ -292,33 +309,61 @@ The Fen entity is similar to `Light` because it relays on PWM and have the same 
 
 See `Light` (_features:_ `FLASH` and `Effect`) entity.
 
+#### Sensors
+
+##### DHT22 (humidity and temperature)
+
+Sensor with serial data.
+
+```mermaid
+---
+title: GPIO Example
+---
+flowchart TB
+  subgraph GPIO
+    A["PIN (+3.3V)"]
+    B[GPIO 23]
+    C["PIN (GRD)"]
+  end
+
+  D["DHT22"] -- pin 1 ---o A
+  D -- pin 2 ---o B
+  D -- pin 4 ---o C
+```
+
+
+###### Options
+
+|  | |
+| - | - |
+| Name | The name of the entity |
+| GPIO pin | The GPIO pin number |
+| Unique ID | Optional: Id of the entity [default ''] |
+
+
 ## Development
 
 The code is located at `custom_components/gpio_integration`
 
 ```shell
 custom_components/gpio_integration
-  |- gpio/
-     |- __init__.py      #-> An abstract Pin class, for interface between the GPIO board and HA
-     |- pigpio.py        #-> `pigpio` implementation for Raspberry PI
-     |- rpigpio.py       #-> `rpigpio` implementation for Raspberry PI
-     |- pin_factory      #-> methods to auto-create the hardware interface
+  |- schemas/            #-> The config schematics for the entities
+  |- controllers/        #-> A common controllers that handle entities (cover, sensors)
   |- __init__.py         #-> home assistant initialization code
-  |- config_flow.py      #-> add/edit new entities, ConfigFlow, OptionsFlowHandler
-  |- config_schema.py    #-> the config schematics
-  |- hub.py              #-> classes shared between entities, like the Roller (Cover, Number)
+  |- _devices.py         #-> wrappers around `gpiozero` Device classes
+  |- _pin_factory.py     #-> functions that instantiate the correct pin_factory based on configs
+  |- config_flow.py      #-> add/edit new entities logic: ConfigFlow, OptionsFlowHandler
+  |- core.py             #-> common code like constants and base classes
+  |- hub.py              #-> class shared between entities (facade)
   |- switch.py, number.py, etc #-> Home assistant entities
 ```
 
-To create a new hardware implementation create a new `Pin` child class and implement it for the hardware, then add it to `default_factories` at `pin_factory.py`.
+To create a new hardware implementation create new `Factory` and `Pin` ([gpiozero.pins](https://github.com/gpiozero/gpiozero/blob/master/gpiozero/pins/__init__.py)) child classes and implement it for the hardware. Then add it to `PIN_FACTORIES` in [_pin_factory](./_pin_factory.py).
 
 ## Interface Advanced Configuration
 
-Interface known issues:
-
 * pigpio - supports all features (require `pigpiod` running)
 * rpigpio - `Home Assistant` OS uses [RPi.GPIO](https://pypi.org/project/RPi.GPIO/) python package that have [issue](https://github.com/raspberrypi/linux/issues/6037) preventing EDGE detection. When not using HA OS You must install alternative like [rpi-lgpio](https://pypi.org/project/rpi-lgpio/).
-* gpiod - don't support PWM (pulse-wide modulation).
 
 ### pigpiod
 
@@ -341,7 +386,7 @@ gpio_integration:
 
 | | |
 | - | - |
-| interface | `pigpio`, `rpigpio`, `gpiod` |
+| interface | `pigpio`, `lgpio`, `rpigpio`, `native` |
 | host | Host (only for pigpio) |
 
 ## Credits

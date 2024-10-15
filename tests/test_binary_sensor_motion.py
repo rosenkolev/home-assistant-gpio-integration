@@ -1,5 +1,3 @@
-from unittest.mock import Mock, patch
-
 from homeassistant.const import CONF_MODE, CONF_PORT
 
 from custom_components.gpio_integration.binary_sensor import GpioBinarySensor
