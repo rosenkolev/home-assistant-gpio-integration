@@ -62,12 +62,16 @@ def brightness_to_value(brightness: int) -> int:
 
 
 class BlinkMixin:
+    @property
+    def is_blinking(self) -> bool:
+        return self._io._blink_thread is not None or self._io._controller is not None
+
     def _blink(self, effect: str, pwm: bool):
         self.turn_off()
-        if effect == EFFECT_OFF:
+        effect_name = effect.lower()
+        if effect == EFFECT_OFF or effect_name == "off":
             return
 
-        effect_name = effect.lower()
         if effect_name not in BLINKS:
             raise ValueError(f"Unknown blink effect: {effect}")
 
@@ -131,6 +135,10 @@ class GpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
 
     @brightness.setter
     def brightness(self, value: int) -> None:
+        if self.is_blinking:
+            self._io.off()
+            self._brightness = 0
+
         if value != self._brightness:
             if value < 0 or value > HIGH_BRIGHTNESS:
                 raise ValueError(f"brightness must be between 0 and {HIGH_BRIGHTNESS}")
