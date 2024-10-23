@@ -3,8 +3,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from ._base import ClosableMixin, ReprMixin
 from ._devices import Switch
-from .core import DOMAIN, ClosableMixin, get_logger
+from .core import DOMAIN, get_logger
 from .hub import Hub
 from .schemas.switch import SwitchConfig
 
@@ -21,7 +22,7 @@ async def async_setup_entry(
     async_add_entities([GpioSwitch(hub.config)])
 
 
-class GpioSwitch(ClosableMixin, SwitchEntity):
+class GpioSwitch(ClosableMixin, ReprMixin, SwitchEntity):
     def __init__(self, config: SwitchConfig) -> None:
         """Initialize the pin."""
         self._attr_name = config.name
@@ -32,9 +33,6 @@ class GpioSwitch(ClosableMixin, SwitchEntity):
             active_high=not config.invert_logic,
             initial_value=config.default_state,
         )
-
-    def __repr__(self) -> str:
-        return f"{self._io!s}({self._attr_name})"
 
     @property
     def is_on(self) -> bool | None:

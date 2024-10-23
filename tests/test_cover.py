@@ -147,3 +147,17 @@ def test__Cover_should_set_position(mocked_factory):
         gpio.set_cover_position(**{"A_POSITION": 50})
 
         pin_down.assert_states_and_times([(0, False), (0, True), (5, False)])
+
+
+@pytest.mark.skip(reason="too slow, it waits for 5 seconds")
+def test__Cover_should_open(mocked_factory):
+    pin_up_port = get_next_pin()
+    pin_down_port = get_next_pin()
+
+    pin_down = mocked_factory.pin(pin_down_port)
+
+    roller = Roller(_create_roller_config(pin_up_port, pin_down_port))
+    with GpioCover(roller) as gpio:
+        gpio.open_cover()
+
+        pin_down.assert_states_and_times([(0, False), (0, True), (10, False)])

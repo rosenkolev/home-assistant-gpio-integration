@@ -14,6 +14,15 @@ class Platform:
     NUMBER = "number"
 
 
+class DeviceInfo:
+    def __init__(self, identifiers, name, manufacturer, model, sw_version):
+        self.identifiers = identifiers
+        self.name = name
+        self.manufacturer = manufacturer
+        self.model = model
+        self.sw_version = sw_version
+
+
 sys.modules["voluptuous"] = Mock()
 sys.modules["homeassistant"] = Mock()
 sys.modules["homeassistant.const"] = Mock()
@@ -23,6 +32,7 @@ sys.modules["homeassistant.config_entries"] = Mock()
 sys.modules["homeassistant.helpers"] = Mock()
 sys.modules["homeassistant.helpers.config_validation"] = Mock()
 sys.modules["homeassistant.helpers.device_registry"] = Mock()
+sys.modules["homeassistant.helpers.device_registry"].DeviceInfo = DeviceInfo
 sys.modules["homeassistant.helpers.entity_platform"] = Mock()
 sys.modules["homeassistant.helpers.event"] = Mock()
 sys.modules["homeassistant.helpers.selector"] = Mock()
@@ -79,3 +89,6 @@ sys.modules["homeassistant.components.fan"] = Mock()
 sys.modules["homeassistant.components.fan"].FanEntityFeature = FanEntityFeature()
 sys.modules["homeassistant.components.fan"].FanEntity = MockedBaseEntity
 sys.modules["homeassistant.components.fan"].ATTR_PERCENTAGE = "A_PERCENTAGE"
+
+sys.modules["homeassistant.components.number"] = Mock()
+sys.modules["homeassistant.components.number"].NumberEntity = MockedBaseEntity

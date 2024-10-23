@@ -10,11 +10,11 @@ from homeassistant.components.cover import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from ._base import ClosableMixin, DeviceMixin, ReprMixin
 from ._devices import BinarySensor, Switch
-from .core import DOMAIN, ClosableMixin, ReprMixin
+from .core import DOMAIN
 from .hub import Hub, Roller
 from .schemas.cover import ToggleRollerConfig
 from .schemas.main import EntityTypes
@@ -111,7 +111,7 @@ class GpioBasicCover(ClosableMixin, ReprMixin, CoverEntity):
         await super().async_will_remove_from_hass()
 
 
-class GpioCover(ClosableMixin, ReprMixin, CoverEntity):
+class GpioCover(ClosableMixin, ReprMixin, DeviceMixin, CoverEntity):
     """Representation of a Raspberry GPIO cover."""
 
     def __init__(
@@ -130,16 +130,6 @@ class GpioCover(ClosableMixin, ReprMixin, CoverEntity):
             | CoverEntityFeature.CLOSE
             | CoverEntityFeature.STOP
             | CoverEntityFeature.SET_POSITION
-        )
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.unique_id)},
-            name=self.name,
-            manufacturer="Raspberry Pi",
-            model="GPIO",
-            sw_version="1",
         )
 
     @property

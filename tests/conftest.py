@@ -4,7 +4,7 @@ import mocked_modules  # noqa: F401
 import pytest
 from gpiozero import Device
 
-from tests.mocks import MockedGPIOThread, MockFactory
+from tests.mocks import MockedGPIOThread, MockedTrackTimeInterval, MockFactory
 
 
 @pytest.fixture(scope="function")
@@ -32,3 +32,17 @@ def mock_gpio_thread(request) -> Generator[MockFactory, None, None]:
         yield None
     finally:
         output_devices.GPIOThread = saved_gpio_thread
+
+
+@pytest.fixture(scope="function")
+def mock_track_time_interval(request) -> Generator[MockedTrackTimeInterval, None, None]:
+    """Mock Event"""
+    import custom_components.gpio_integration._base as base
+
+    saved_track_time_interval = base.async_track_time_interval
+    try:
+        mock = MockedTrackTimeInterval()
+        base.async_track_time_interval = mock.caller
+        yield mock
+    finally:
+        base.async_track_time_interval = saved_track_time_interval
