@@ -200,3 +200,32 @@ class MockedTrackTimeInterval:
 
     def tick(self):
         self._callback()
+
+
+MOCK_MCP_INSTANCES: dict[int,] = {}
+
+
+def get_mock_mcp(channel: int) -> MockPin:
+    try:
+        return MOCK_MCP_INSTANCES[channel]
+    except KeyError:
+        MOCK_MCP_INSTANCES[channel] = MockMCP(channel)
+        return MOCK_MCP_INSTANCES[channel]
+
+
+class MockMCP:
+    def __init__(self, channel=0, pin_factory=None) -> None:
+        self._value = 0.0
+        self._closed = False
+
+        MOCK_MCP_INSTANCES[channel] = self
+
+    def read(self) -> float:
+        return self._value
+
+    def close(self) -> None:
+        self._closed = True
+
+    @property
+    def value(self) -> float:
+        return self._value

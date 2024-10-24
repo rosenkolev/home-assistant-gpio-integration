@@ -1,4 +1,5 @@
 import datetime
+import threading
 
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
@@ -36,8 +37,12 @@ class DeviceMixin:
     @property
     def device_info(self) -> DeviceInfo:
         """Return the device info."""
+        id = self._get_device_id()
+        if id is None:
+            return None
+
         return DeviceInfo(
-            identifiers={(DOMAIN, self._get_device_id())},
+            identifiers={(DOMAIN, id)},
             name=self._attr_name,
             manufacturer="Raspberry Pi",
             model="GPIO",
@@ -65,3 +70,34 @@ class AutoUpdMixin:
         if self.should_auto_update_state:
             _LOGGER.debug(f"{self._io!s} auto-update scheduled")
             self.schedule_update_ha_state(force_refresh=True)
+
+
+class AutoReadLoop:
+    def __init__(self) -> None:
+        self._loop_stop_event = threading.Event()
+        self._loop_thread = None
+
+    def start_auto_read_loop(self, interval_sec: int):
+        """Start async loop to read data every `data: interval_sec` seconds."""
+        self._loop_stop_event.clear()
+        self._loop_thread = threading.Thread(
+            target=self._auto_read_loop, args=(interval_sec,)
+        )
+        self._loop_thread.start()
+        _LOGGER.debug(f"{self!r}: auto read loop started")
+
+    def stop_auto_read_loop(self):
+        """Stop the async loop."""
+        self._loop_stop_event.set()
+        if self._loop_thread is not None:
+            self._loop_thread.join()
+            if self._loop_thread.is_alive():
+                _LOGGER.warning(f"{self!r}: failed to stop auto read loop")
+
+            self._loop_thread = None
+            _LOGGER.debug(f"{self!r}: auto read loop stopped")
+
+    def _auto_read_loop(self, interval_sec: int):
+        while not self._loop_stop_event.wait(interval_sec):
+            _LOGGER.debug(f"{self!r}: auto read")
+            self._read()

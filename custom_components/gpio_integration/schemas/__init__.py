@@ -1,3 +1,5 @@
+from typing import Literal
+
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_UNIQUE_ID
@@ -43,6 +45,19 @@ def get_unique_id(data: dict) -> str | None:
     return data.get(CONF_UNIQUE_ID) or data[CONF_NAME].lower().replace(" ", "_") or None
 
 
+def create_dropdown(
+    options: list[dict[Literal["label", "value"], str]] | list[str]
+) -> vol.Schema:
+    selector(
+        {
+            "select": {
+                "options": options,
+                "mode": "list",
+            }
+        }
+    )
+
+
 ### Exceptions ###
 
 
@@ -61,19 +76,14 @@ def create_variation_list_schema(
             vol.Required(
                 CONF_VARIATION,
                 default=data[CONF_VARIATION],
-            ): selector(
-                {
-                    "select": {
-                        "options": [
-                            {
-                                "label": label,
-                                "value": key,
-                            }
-                            for key, label in variations.items()
-                        ],
-                        "mode": "list",
+            ): create_dropdown(
+                [
+                    {
+                        "label": label,
+                        "value": key,
                     }
-                }
+                    for key, label in variations.items()
+                ]
             )
         }
     )

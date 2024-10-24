@@ -1,7 +1,5 @@
 """Support for controlling a Raspberry Pi cover."""
 
-from time import sleep
-
 from homeassistant.components.cover import (
     ATTR_POSITION,
     CoverDeviceClass,
@@ -14,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ._base import ClosableMixin, DeviceMixin, ReprMixin
 from ._devices import BinarySensor, Switch
-from .core import DOMAIN
+from .core import DOMAIN, sleep_sec
 from .hub import Hub, Roller
 from .schemas.cover import ToggleRollerConfig
 from .schemas.main import EntityTypes
@@ -95,7 +93,7 @@ class GpioBasicCover(ClosableMixin, ReprMixin, CoverEntity):
     def _toggle(self):
         """Trigger the cover."""
         self._io.value = True
-        sleep(self._relay_time)
+        sleep_sec(self._relay_time)
         self._io.value = False
         if not self._has_sensor:
             self._closed = not self._closed

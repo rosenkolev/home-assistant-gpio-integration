@@ -1,10 +1,16 @@
-from typing import Generator
+from typing import Callable, Generator
 
 import mocked_modules  # noqa: F401
 import pytest
 from gpiozero import Device
 
-from tests.mocks import MockedGPIOThread, MockedTrackTimeInterval, MockFactory
+from tests.mocks import (
+    MockedGPIOThread,
+    MockedTrackTimeInterval,
+    MockFactory,
+    MockMCP,
+    get_mock_mcp,
+)
 
 
 @pytest.fixture(scope="function")
@@ -46,3 +52,29 @@ def mock_track_time_interval(request) -> Generator[MockedTrackTimeInterval, None
         yield mock
     finally:
         base.async_track_time_interval = saved_track_time_interval
+
+
+@pytest.fixture(scope="function")
+def mock_MCP_chips(request) -> Generator[Callable[[int], MockMCP], None, None]:
+    """Mock MCP chips"""
+    import custom_components.gpio_integration._devices as devices
+
+    saved_MCP_MAP = devices.MCP_CLASS_MAP
+    saved_factory = Device.pin_factory
+    try:
+        Device.pin_factory = lambda: None
+        devices.MCP_CLASS_MAP = {
+            "MCP3001": MockMCP,
+            "MCP3002": MockMCP,
+            "MCP3004": MockMCP,
+            "MCP3008": MockMCP,
+            "MCP3201": MockMCP,
+            "MCP3202": MockMCP,
+            "MCP3204": MockMCP,
+            "MCP3208": MockMCP,
+        }
+
+        yield get_mock_mcp
+    finally:
+        devices.MCP_CLASS_MAP = saved_MCP_MAP
+        Device.pin_factory = saved_factory

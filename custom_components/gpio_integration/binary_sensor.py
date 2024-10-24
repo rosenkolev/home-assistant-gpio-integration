@@ -5,7 +5,6 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import async_track_time_interval
 
 from ._base import AutoUpdMixin, ClosableMixin, ReprMixin
 from ._devices import BinarySensor
