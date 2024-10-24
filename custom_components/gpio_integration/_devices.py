@@ -281,7 +281,7 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
             + (temperature & 0b1111_1111)
         ) & 0b1111_1111
         if sum != check_sum:
-            _LOGGER.warning("{self!r}: invalid check sum")
+            _LOGGER.warning(f"{self!r}: invalid check sum")
             if self.on_invalid_check_sum is not None:
                 self.on_invalid_check_sum()
             else:

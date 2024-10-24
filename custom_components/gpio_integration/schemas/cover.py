@@ -15,8 +15,8 @@ from . import (
     CONF_RELAY_OPEN_PIN,
     CONF_RELAY_TIME,
     EMPTY_VARIATION_DATA,
-    create_dropdown,
     create_variation_list_schema,
+    dropdown,
     get_unique_id,
     validate_variation_data,
 )
@@ -76,9 +76,7 @@ def create_cover_up_down_schema(data: dict) -> vol.Schema:
             vol.Optional(
                 CONF_PIN_CLOSED_SENSOR, default=data[CONF_PIN_CLOSED_SENSOR]
             ): cv.positive_int,
-            vol.Required(CONF_MODE, default=data[CONF_MODE]): create_dropdown(
-                COVER_MODES
-            ),
+            vol.Required(CONF_MODE, default=data[CONF_MODE]): dropdown(COVER_MODES),
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }
     )
@@ -153,9 +151,7 @@ def create_toggle_cover_schema(data: dict) -> vol.Schema:
             vol.Optional(
                 CONF_PIN_CLOSED_SENSOR, default=data[CONF_PIN_CLOSED_SENSOR]
             ): cv.positive_int,
-            vol.Required(CONF_MODE, default=data[CONF_MODE]): create_dropdown(
-                COVER_MODES
-            ),
+            vol.Required(CONF_MODE, default=data[CONF_MODE]): dropdown(COVER_MODES),
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }
     )

@@ -99,7 +99,7 @@ class DHT22Controller(SensorsMixin, ReprMixin, AutoReadLoop):
         self._io.read()
 
     def _on_invalid_check_sum(self):
-        _LOGGER.warning("DHT22: invalid check sum")
+        _LOGGER.warning(f"{self!r}: invalid check sum")
         if self._retry < 2:
             self._io.read()
             self._retry += 1

@@ -45,14 +45,15 @@ def get_unique_id(data: dict) -> str | None:
     return data.get(CONF_UNIQUE_ID) or data[CONF_NAME].lower().replace(" ", "_") or None
 
 
-def create_dropdown(
-    options: list[dict[Literal["label", "value"], str]] | list[str]
+def dropdown(
+    options: list[dict[Literal["label", "value"], str]] | list[str],
+    mode: Literal["dropdown", "list"] = "dropdown",
 ) -> vol.Schema:
-    selector(
+    return selector(
         {
             "select": {
                 "options": options,
-                "mode": "list",
+                "mode": mode,
             }
         }
     )
@@ -76,14 +77,15 @@ def create_variation_list_schema(
             vol.Required(
                 CONF_VARIATION,
                 default=data[CONF_VARIATION],
-            ): create_dropdown(
+            ): dropdown(
                 [
                     {
                         "label": label,
                         "value": key,
                     }
                     for key, label in variations.items()
-                ]
+                ],
+                mode="list",
             )
         }
     )

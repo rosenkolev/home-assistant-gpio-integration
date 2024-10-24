@@ -11,8 +11,8 @@ from homeassistant.const import (
 from .._devices import MCP_NAMES
 from . import (
     EMPTY_VARIATION_DATA,
-    create_dropdown,
     create_variation_list_schema,
+    dropdown,
     get_unique_id,
     validate_variation_data,
 )
@@ -81,9 +81,7 @@ def create_sensor_analog_step_schema(data: dict) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_NAME, default=data[CONF_NAME]): cv.string,
-            vol.Required(CONF_CHIP, default=data[CONF_CHIP]): create_dropdown(
-                MCP_NAMES
-            ),
+            vol.Required(CONF_CHIP, default=data[CONF_CHIP]): dropdown(MCP_NAMES),
             vol.Required(CONF_CHANNEL, default=data[CONF_CHANNEL]): cv.positive_int,
             vol.Required(
                 CONF_MIN_VOLTAGE, default=data[CONF_MIN_VOLTAGE]
