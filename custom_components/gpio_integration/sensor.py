@@ -1,11 +1,11 @@
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from ._base import ClosableMixin, DeviceMixin
 from .controllers.sensor import SensorRef
-from .core import DOMAIN, ClosableMixin, get_logger
+from .core import DOMAIN, get_logger
 from .hub import Hub
 
 _LOGGER = get_logger()
@@ -23,7 +23,7 @@ async def async_setup_entry(
         async_add_entities([GpioSensor(sensor)])
 
 
-class GpioSensor(ClosableMixin, SensorEntity):
+class GpioSensor(ClosableMixin, DeviceMixin, SensorEntity):
     """Representation of a Raspberry Pi GPIO."""
 
     def __init__(self, sensor: SensorRef) -> None:
@@ -38,16 +38,8 @@ class GpioSensor(ClosableMixin, SensorEntity):
         """Return true if device is on."""
         return self._io.state
 
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return the device info."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._io.device_id)},
-            name=self._io.device_name,
-            manufacturer="Raspberry Pi",
-            model="GPIO",
-            sw_version="1",
-        )
+    def _get_device_id(self) -> str:
+        return self._io.device_id
 
     async def async_will_remove_from_hass(self) -> None:
         """Cleanup before removing from hass."""

@@ -18,6 +18,16 @@ class MockedBaseEntity:
     ha_state_update_scheduled = False
     ha_state_update_scheduled_force_refresh = False
     ha_state_write = False
+    ha_added_to_hass = False
+    hass = 1
+
+    @property
+    def name(self) -> str:
+        return self._attr_name
+
+    @property
+    def unique_id(self) -> str:
+        return self._attr_unique_id
 
     def async_write_ha_state(self):
         self.ha_state_write = True
@@ -29,6 +39,12 @@ class MockedBaseEntity:
     def schedule_update_ha_state(self, force_refresh=False):
         self.ha_state_update_scheduled = True
         self.ha_state_update_scheduled_force_refresh = False
+
+    async def async_added_to_hass(self) -> None:
+        self.ha_added_to_hass = True
+
+    def async_on_remove(self, _=None):
+        pass
 
     async def async_will_remove_from_hass(self) -> None:
         pass
@@ -168,3 +184,48 @@ class MockedGPIOThread:
         """Zip states.state with times."""
         times = self.stopping.waits
         return list(zip((state.state for state in pin_states), times))
+
+
+class MockedTrackTimeInterval:
+    def __init__(self):
+        self._callback = None
+        self._interval = None
+        self._cancel_on_shutdown = False
+
+    def caller(self, hass, callback, interval, cancel_on_shutdown=False) -> int:
+        self._callback = callback
+        self._interval = interval
+        self._cancel_on_shutdown = cancel_on_shutdown
+        return 0
+
+    def tick(self):
+        self._callback()
+
+
+MOCK_MCP_INSTANCES: dict[int,] = {}
+
+
+def get_mock_mcp(channel: int) -> MockPin:
+    try:
+        return MOCK_MCP_INSTANCES[channel]
+    except KeyError:
+        MOCK_MCP_INSTANCES[channel] = MockMCP(channel)
+        return MOCK_MCP_INSTANCES[channel]
+
+
+class MockMCP:
+    def __init__(self, channel=0, pin_factory=None) -> None:
+        self._value = 0.0
+        self._closed = False
+
+        MOCK_MCP_INSTANCES[channel] = self
+
+    def read(self) -> float:
+        return self._value
+
+    def close(self) -> None:
+        self._closed = True
+
+    @property
+    def value(self) -> float:
+        return self._value

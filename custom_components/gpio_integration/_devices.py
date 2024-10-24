@@ -1,10 +1,17 @@
 from collections import deque, namedtuple
 from threading import RLock
-from time import sleep
-from typing import Callable
+from typing import Callable, Literal
 from weakref import WeakMethod
 
 from gpiozero import (
+    MCP3001,
+    MCP3002,
+    MCP3004,
+    MCP3008,
+    MCP3201,
+    MCP3202,
+    MCP3204,
+    MCP3208,
     RGBLED,
     DigitalInputDevice,
     DigitalOutputDevice,
@@ -14,7 +21,7 @@ from gpiozero import (
 )
 
 from ._pin_factory import get_pin_factory
-from .core import get_logger
+from .core import get_logger, sleep_sec
 
 _LOGGER = get_logger()
 
@@ -103,6 +110,42 @@ class RgbLight(RGBLED):
         return f"{self.red!r}, {self.green!r}, {self.blue!r}"
 
 
+MCP_CLASS_MAP = {
+    "MCP3001": MCP3001,
+    "MCP3002": MCP3002,
+    "MCP3004": MCP3004,
+    "MCP3008": MCP3008,
+    "MCP3201": MCP3201,
+    "MCP3202": MCP3202,
+    "MCP3204": MCP3204,
+    "MCP3208": MCP3208,
+}
+
+MCP_NAMES = list(MCP_CLASS_MAP.keys())
+
+
+def create_analog_device(
+    model: Literal[
+        "MCP3001",
+        "MCP3002",
+        "MCP3004",
+        "MCP3008",
+        "MCP3201",
+        "MCP3202",
+        "MCP3204",
+        "MCP3208",
+    ],
+    channel: int = 0,
+):
+    if model not in MCP_NAMES:
+        raise ValueError(f"Invalid model: {model}")
+
+    if model == "MCP3001" or model == "MCP3201":
+        return MCP_CLASS_MAP[model](pin_factory=get_pin_factory())
+
+    return MCP_CLASS_MAP[model](channel=channel, pin_factory=get_pin_factory())
+
+
 class BitInfo:
     def __init__(self, state: int, duration_ms: float):
         self.state = state
@@ -180,7 +223,7 @@ DHT22Data = namedtuple("DHT22Data", ["temperature", "humidity"])
 class PulseMixin:
     def _send_and_wait(self, state: int, duration_sec: float) -> None:
         self.pin.value = state
-        sleep(duration_sec)
+        sleep_sec(duration_sec)
 
 
 def dword_from_deque(deque: deque[BitInfo], bit_count: int) -> int:
@@ -238,7 +281,7 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
             + (temperature & 0b1111_1111)
         ) & 0b1111_1111
         if sum != check_sum:
-            _LOGGER.warning("{self!r}: invalid check sum")
+            _LOGGER.warning(f"{self!r}: invalid check sum")
             if self.on_invalid_check_sum is not None:
                 self.on_invalid_check_sum()
             else:

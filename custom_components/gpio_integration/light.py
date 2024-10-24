@@ -14,8 +14,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from ._base import ClosableMixin, ReprMixin
 from ._devices import Pwm, RgbLight, Switch
-from .core import DOMAIN, ClosableMixin, ReprMixin, get_logger
+from .core import DOMAIN, get_logger
 from .hub import Hub
 from .schemas.light import RgbLightConfig
 from .schemas.main import EntityTypes

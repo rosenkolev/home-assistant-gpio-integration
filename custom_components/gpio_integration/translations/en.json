@@ -38,6 +38,12 @@
           "edge_event_timeout": "Event timeout in seconds (only for motion/vibration sensors)",
           "rely_on_edge_events": "Rely only on edge events (e.g. motion/vibration sensor)",
           "frequency": "The frequency of the PWM signal or 0/None",
+          "chip": "The MCP chip series (e.g. MCP3001)",
+          "channel": "The channel of the MCP chip (e.g. 0-7)",
+          "min_voltage": "The minimum voltage of the analog sensor",
+          "min_value": "The minimum value of the sensor corresponding to the minimum voltage",
+          "step_voltage": "The voltage step of the analog sensor",
+          "step_value": "The value step of the sensor corresponding to the voltage step",
           "unique_id": "Unique ID"
         }
       }
@@ -71,6 +77,12 @@
           "pin_closed_sensor": "pin for 'door closed' sensor",
           "edge_event_timeout": "Event timeout in seconds (only for motion/vibration sensors)",
           "frequency": "The frequency of the PWM signal or 0/None",
+          "chip": "The MCP chip series (e.g. MCP3001)",
+          "channel": "The channel of the MCP chip (e.g. 0-7)",
+          "min_voltage": "The minimum voltage of the analog sensor",
+          "min_value": "The minimum value of the sensor corresponding to the minimum voltage",
+          "step_voltage": "The voltage step of the analog sensor",
+          "step_value": "The value step of the sensor corresponding to the voltage step",
           "unique_id": "Unique ID"
         }
       }

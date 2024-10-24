@@ -3,13 +3,13 @@
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import CONF_MODE, CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
-from homeassistant.helpers.selector import selector
 
 from . import (
     CONF_BOUNCE_TIME,
     CONF_DEFAULT_STATE,
     CONF_EDGE_EVENT_TIMEOUT,
     CONF_INVERT_LOGIC,
+    dropdown,
     get_unique_id,
 )
 from ._validators import v_name, v_pin, v_time
@@ -34,21 +34,16 @@ def create_binary_sensor_schema(data: dict) -> vol.Schema:
                 default=data[CONF_INVERT_LOGIC],
                 description="Invert the logic of the sensor",
             ): cv.boolean,
-            vol.Required(CONF_MODE, default=data[CONF_MODE]): selector(
-                {
-                    "select": {
-                        "options": [
-                            "Door",
-                            "Motion",
-                            "Light",
-                            "Vibration",
-                            "Plug",
-                            "Smoke",
-                            "Window",
-                        ],
-                        "mode": "dropdown",
-                    }
-                }
+            vol.Required(CONF_MODE, default=data[CONF_MODE]): dropdown(
+                [
+                    "Door",
+                    "Motion",
+                    "Light",
+                    "Vibration",
+                    "Plug",
+                    "Smoke",
+                    "Window",
+                ]
             ),
             vol.Optional(
                 CONF_DEFAULT_STATE, default=data[CONF_DEFAULT_STATE]

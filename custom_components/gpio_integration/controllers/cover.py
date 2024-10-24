@@ -1,8 +1,7 @@
 import threading
-from time import sleep
 
 from .._devices import BinarySensor, Switch
-from ..core import get_logger
+from ..core import get_logger, sleep_sec
 from ..schemas.cover import RollerConfig
 
 _LOGGER = get_logger()
@@ -187,7 +186,7 @@ class Roller:
 
         # wait extra second to make sure it's fully closed
         if not self.is_sensor_closed and full_close:
-            sleep(1)
+            sleep_sec(1)
             time += 1
 
         _LOGGER.debug('move "%s" time %s', self.name, time)

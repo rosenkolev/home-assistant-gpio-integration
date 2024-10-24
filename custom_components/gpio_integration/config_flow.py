@@ -37,10 +37,13 @@ from .schemas.light import (
 from .schemas.main import MAIN_SCHEMA, EntityTypes, get_type
 from .schemas.pwm import create_pwm_schema, validate_pwm_data
 from .schemas.sensor import (
+    SENSOR_ANALOG_STEP_SCHEMA,
     SENSOR_DHT22_SCHEMA,
     SENSOR_VARIATION_SCHEMA,
+    create_sensor_analog_step_schema,
     create_sensor_dht22_schema,
     create_sensor_variation_schema,
+    validate_sensor_analog_step_data,
     validate_sensor_dht22_data,
     validate_sensor_variation_data,
 )
@@ -103,6 +106,11 @@ CONF_ENTITIES: dict = {
         "schema": SENSOR_DHT22_SCHEMA,
         "validate": validate_sensor_dht22_data,
         "schema_builder": create_sensor_dht22_schema,
+    },
+    EntityTypes.SENSOR_ANALOG_STEP.value: {
+        "schema": SENSOR_ANALOG_STEP_SCHEMA,
+        "validate": validate_sensor_analog_step_data,
+        "schema_builder": create_sensor_analog_step_schema,
     },
 }
 

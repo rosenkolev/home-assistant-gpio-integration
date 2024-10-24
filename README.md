@@ -341,6 +341,10 @@ flowchart TB
 | Unique ID | Optional: Id of the entity [default ''] |
 
 
+##### Analog step sensors (MCP300X, MCP320X)
+
+Analog sensor based on the MCP chips and steps. See [the TMP36 example here](https://gpiozero.readthedocs.io/en/stable/recipes.html#measure-temperature-with-an-adc).
+
 ## Development
 
 The code is located at `custom_components/gpio_integration`

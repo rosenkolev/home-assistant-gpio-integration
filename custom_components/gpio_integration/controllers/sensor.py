@@ -1,8 +1,7 @@
-import threading
-
-from .._devices import DHT22, DHT22Data
+from .._base import AutoReadLoop, ClosableMixin, ReprMixin
+from .._devices import DHT22, DHT22Data, create_analog_device
 from ..core import get_logger
-from ..schemas.sensor import DHT22Config
+from ..schemas.sensor import AnalogStepConfig, DHT22Config
 
 _LOGGER = get_logger()
 
@@ -42,7 +41,7 @@ class SensorRef:
             self._provider = None
 
 
-class SensorsProvider:
+class SensorsMixin(SensorStateProvider):
     def get_sensors(self) -> list[SensorRef]:
         pass
 
@@ -50,8 +49,9 @@ class SensorsProvider:
         return SensorRef(self, f"{self.name} {name}", id, unit, self.id, self.name)
 
 
-class DHT22Controller(SensorsProvider, SensorStateProvider):
+class DHT22Controller(SensorsMixin, ReprMixin, AutoReadLoop):
     def __init__(self, config: DHT22Config) -> None:
+        super().__init__()
         self.name = config.name
         self.id = config.unique_id
         self._temperature_id = f"{self.id}_T"
@@ -63,9 +63,7 @@ class DHT22Controller(SensorsProvider, SensorStateProvider):
         self._io.on_invalid_check_sum = self._on_invalid_check_sum
         self._retry = 0
 
-        self._loop_stop_event = threading.Event()
-        self._loop_thread = None
-        self.start_auto_read_loop(20)
+        self.start_auto_read_loop(config.update_interval_sec)
 
     def get_sensors(self):
         return [
@@ -81,28 +79,9 @@ class DHT22Controller(SensorsProvider, SensorStateProvider):
 
         raise ValueError(f"Unknown sensor id: {id}")
 
-    def start_auto_read_loop(self, interval_sec: int):
-        """Start async loop to read data every `data: interval_sec` seconds."""
-        self._loop_stop_event.clear()
-        self._loop_thread = threading.Thread(
-            target=self._auto_read_loop, args=(interval_sec,)
-        )
-        self._loop_thread.start()
-
-    def stop_auto_read_loop(self):
-        """Stop the async loop."""
-        self._loop_stop_event.set()
-        if self._loop_thread:
-            self._loop_thread.join()
-            if self._loop_thread.is_alive():
-                _LOGGER.warning("DHT22: failed to stop auto read loop")
-
-            self._loop_thread = None
-            _LOGGER.debug("DHT22: auto read loop stopped")
-
     def release(self) -> None:
         if self._io is not None:
-            _LOGGER.debug("DHT22: releasing resources")
+            _LOGGER.debug(f"{self!r}: releasing")
             self._io.on_data_received = None
             self._io.on_invalid_check_sum = None
             self._io.close()
@@ -114,17 +93,47 @@ class DHT22Controller(SensorsProvider, SensorStateProvider):
         self._temperature = data.temperature
         self._humidity = data.humidity
         self._retry = 0
-        _LOGGER.debug(
-            "DHT22: temperature=%.1fC, humidity=%.1f%", data.temperature, data.humidity
-        )
+        _LOGGER.debug(f"{self!r}: data {data.temperature}C, {data.humidity}%")
+
+    def _read(self):
+        self._io.read()
 
     def _on_invalid_check_sum(self):
-        _LOGGER.warning("DHT22: invalid check sum")
+        _LOGGER.warning(f"{self!r}: invalid check sum")
         if self._retry < 2:
             self._io.read()
             self._retry += 1
 
-    def _auto_read_loop(self, interval_sec: int):
-        while not self._loop_stop_event.wait(interval_sec):
-            _LOGGER.debug("DHT22: auto read")
-            self._io.read()
+
+class AnalogStepControl(SensorsMixin, ClosableMixin, ReprMixin):
+    def __init__(self, config: AnalogStepConfig) -> None:
+        self.name = config.name
+        self.id = config.unique_id
+        self.sensor = SensorRef(
+            self, self.name, self.id, config.native_unit, None, None
+        )
+
+        self._min_voltage = config.min_voltage
+        self._min_value = config.min_value
+        self._step_voltage = config.step_voltage
+        self._step_value = config.step_value
+
+        self._io = create_analog_device(config.chip, config.channel)
+
+    def get_sensors(self):
+        return [self.sensor]
+
+    def get_state(self, id: str) -> float:
+        if id != self.id:
+            raise ValueError(f"{self!r}: unknown sensor id: {id}")
+
+        voltage: float = self._io.value * 3.3  # 3.3V
+        if voltage < self._min_voltage:
+            return self._min_value
+
+        steps = (voltage - self._min_voltage) / self._step_voltage
+        value = self._min_value + (steps * self._step_value)
+        return value
+
+    def release(self) -> None:
+        self._close()
