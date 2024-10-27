@@ -10,10 +10,28 @@
 
 The `gpio_integration` integration supports the following platforms: Binary Sensor, Cover (ON/OFF and toggle), Switch
 
-**Note:** The `port` refers to the GPIO number, not the pin number. See the [Wikipedia article about the Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi#General_purpose_input-output_(GPIO)_connector) for more details about the GPIO layout.
+<details>
+<summary>Table of Contents</summary>
 
-**Note:** The integration is for `Raspberry Pi`.
+1. [Supported Entities](#supported-entities)
+1. [Installation](#installation)
+1. [Interface](#interface)
+1. [Usage](#usage)
+   * [Configuration](#configuration)
+   * [Binary Sensor](#binary-sensor)
+   * [Cover (up/down switch)](#cover-updown-switch)
+   * [Cover (toggle switch)](#cover-toggle-switch)
+   * [Switch](#switch)
+   * [Light (PWM)](#light-pwm)
+   * [Light (RGB)](#light-rgb)
+   * [Fan](#fan)
+   * [Sensors](#sensors)
+1. [Development](#development)
+1. [Interface Advanced Configuration](#interface-advanced-configuration)
+1. [Credits]
 
+</details>
+  
 ## Supported Entities
 
 * [x] Binary Sensor
@@ -21,7 +39,7 @@ The `gpio_integration` integration supports the following platforms: Binary Sens
 * [x] Number
 * [x] Switch
 * [x] Light
-* [x] Fen
+* [x] Fan
 * [x] Sensor
 
 ## Installation
@@ -40,9 +58,7 @@ folder and all of its contents into it.
 
 ## Interface
 
-It uses `pigpio` package as default interface to access the GPIOs and fallback to other options when `pigpio` is not found. You should ensure at least 1 of the packages are installed.
-
-See [Interface Advanced Configuration section](#interface-advanced-configuration).
+The integration uses `pigpio` as default interface to access the GPIO board and fallback to other options when `pigpio` is not found.
 
 The [gpiozero](https://gpiozero.readthedocs.io/) library is used and the integration supports all interfaces `gpiozero` supports.
 
@@ -51,7 +67,11 @@ The [gpiozero](https://gpiozero.readthedocs.io/) library is used and the integra
 * rpigpio (fallback)
 * native (fallback)
 
-The integration is created in a way that can be extended for other hardware like 'Asus Tinker Board' or 'ODroid' but I don't have the hardware to implement it and anyone is welcome to do so (see [Development section](#development))
+> [!NOTE]  
+> The integration is created in a way that can be extended for other hardware like 'Asus Tinker Board' or 'ODroid' but I don't have the hardware to implement it and anyone is welcome to do so (see [Development section](#development))
+
+> [!IMPORTANT]
+> The `pigpio` interface requires `pigpiod`. See the [Interface Advanced Configuration section](#interface-advanced-configuration) for details.
 
 ## Usage
 
@@ -65,20 +85,17 @@ To configure the integration use the UI
 
 ![Configuration flow first step!](/docs/step_setup.png)
 
-#### Notes
+> [!CAUTION]
+> * `unique_id` is not required and will be created automatically based on `Name`.
+> * **Pin numbers are GPIO pin numbers and not the actual pin order of the board**. See the [Wikipedia article about the Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi#General_purpose_input-output_(GPIO)_connector) for more details.
 
-* unique_id is not required and will be created automatically based on `Name`
-* **Pin numbers are GPIO pin numbers and not the actual pin order of the board**
-
-### Entities / Types
-
-#### Binary Sensor
+### Binary Sensor
 
 Binary sensor set state based on GPIO pin input (ON = 3.3v, OFF = 0v) or based on RISING/FALLING events for some `Motion` or `Vibration` sensors (when "Event timeout" is set).
 
 RISING/FALLING events are when pin input have a current goes from 0v to 3.3v (rising) or goes down from 3.3v to 0 (falling).
 
-##### Examples
+#### Examples
 
 ```mermaid
 ---
@@ -110,7 +127,7 @@ flowchart LR
   D === |Motion|C
 ```
 
-##### Options
+#### Options
 
 |  | |
 | - | - |
@@ -123,13 +140,20 @@ flowchart LR
 | Event timeout in seconds | The time, sensor data is considered up to date. For example when set to 3sec and motion (edge event) is not detected from motion sensor for 3sec, the state is considered `Off` or `no motion` [default `0`]. |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default '']. |
 
-#### Cover with up and down button (optional sensor)
+### Cover (up/down switch)
 
-The type defines the home assistant entities **Cover** (_features:_ `OPEN`, `CLOSE`, `STOP`, and `SET POSITION `) and **Number** (for setting a position).
+Entities for controlling `cover` (shade,roller,awning) with up/down button and an optional `closed` state sensor.
+
+_**Entities**_
+* Cover <br>
+  `OPEN` `CLOSE` `STOP` `SET POSITION`
+* Number
+  
+> The defines the home assistant entities **Cover** (_features:_ `OPEN`, `CLOSE`, `STOP`, and `SET POSITION `) and **Number** (for setting a position).
 
 This type consider having a cover (blind/roller/shade) remote or relays with up/down/stop buttons.
 
-##### Example
+#### Example
 
 ```mermaid
 ---
@@ -151,7 +175,7 @@ flowchart TB
   H ---- E
 ```
 
-##### Options
+#### Options
 
 |  | |
 | - | - |
@@ -165,13 +189,15 @@ flowchart TB
 | Mode | Cover type [default `Blind`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
-#### Cover with toggle button (optional sensor)
+### Cover (toggle switch)
 
-The type defines the home assistant entities **Cover** (_features:_ `OPEN`, `CLOSE`).
+Entities for controlling `cover` (shade,blind,roller,awning) with a single toggle switch and an optional `closed` state sensor.
 
-This type consider having a cover (blind/roller/shade) remote or relays with a single toggle button.
+_**Entities**_
+* Cover <br>
+  `OPEN` `CLOSE`
 
-##### Example
+#### Example
 
 ```mermaid
 ---
@@ -190,7 +216,7 @@ flowchart TB
   H ---- E
 ```
 
-##### Options
+#### Options
 
 |  | |
 | - | - |
@@ -202,11 +228,11 @@ flowchart TB
 | Mode | Cover type [default `Blind`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
-#### Switch
+### Switch
 
-Creates a home assistant `Switch` entity, that sets a GPIO pin output.
+Creates a home assistant `Switch` entity, that sets a GPIO pin output to HIGH (3.3V) or LOW.
 
-##### Example
+#### Example
 
 ```mermaid
 ---
@@ -222,7 +248,7 @@ flowchart LR
   C ---- B
 ```
 
-##### Options
+#### Options
 
 |  | |
 | - | - |
@@ -232,11 +258,15 @@ flowchart LR
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
-#### Light (PWM)
+### Light (PWM)
 
 Creates a home assistant `Light` entity, that supports ordinary light and LED light output.
 
-##### Example
+_**Entities**_
+* Light <br>
+  `FLASH` `EFFECT`
+
+#### Example
 
 ```mermaid
 ---
@@ -252,7 +282,7 @@ flowchart LR
   C ---- B
 ```
 
-##### PWM
+#### PWM
 
 The LED lights support different brightness levels based on Pulse-Wide Modulation. This means setting brightness based on impulses and not voltage:
 
@@ -273,7 +303,7 @@ Cycle is a combination from a HIGH and LOW state.
 In the example above We have 2 time units HIGH and 3 units LOW.
 This should indicate LED is at 40% brightness (2/5 every cycle).
 
-##### Options
+#### Options
 
 |  | |
 | - | - |
@@ -284,11 +314,15 @@ This should indicate LED is at 40% brightness (2/5 every cycle).
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
 
-#### Light (RGB/PWM)
+### Light (RGB)
 
 The same as `Light (PWM)` but for a colored RGB LED.
 
-##### Options
+_**Entities**_
+* Light <br>
+  `FLASH` `EFFECT`
+
+#### Options
 
 |  | |
 | - | - |
@@ -300,18 +334,22 @@ The same as `Light (PWM)` but for a colored RGB LED.
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
-#### Fen
+### Fan
 
-Creates a home assistant `Fen` entity, that supports percentage and on/off state.
-The Fen entity is similar to `Light` because it relays on PWM and have the same options.
+Creates a home assistant `Fan` entity, that supports percentage and on/off state.
+The Fan entity is similar to `Light` because it relays on PWM and have the same options.
 
-##### Options
+_**Entities**_
+* Fan <br>
+  `SET_SPEED` `TURN_ON` `TURN_OFF`
 
-See `Light` (_features:_ `FLASH` and `Effect`) entity.
+#### Options
 
-#### Sensors
+See the [Light (PWM)](#light-pwm) entity.
 
-##### DHT22 (humidity and temperature)
+### Sensors
+
+#### DHT22 (humidity and temperature)
 
 Sensor with serial data.
 
@@ -332,7 +370,7 @@ flowchart TB
 ```
 
 
-###### Options
+##### Options
 
 |  | |
 | - | - |
@@ -341,7 +379,7 @@ flowchart TB
 | Unique ID | Optional: Id of the entity [default ''] |
 
 
-##### Analog step sensors (MCP300X, MCP320X)
+#### Analog step sensors (MCP300X, MCP320X)
 
 Analog sensor based on the MCP chips and steps. See [the TMP36 example here](https://gpiozero.readthedocs.io/en/stable/recipes.html#measure-temperature-with-an-adc).
 
