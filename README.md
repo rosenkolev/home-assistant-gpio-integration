@@ -28,7 +28,7 @@ The `gpio_integration` integration supports the following platforms: Binary Sens
    * [Sensors](#sensors)
 1. [Development](#development)
 1. [Interface Advanced Configuration](#interface-advanced-configuration)
-1. [Credits]
+1. [Credits](#credits)
 
 </details>
   
