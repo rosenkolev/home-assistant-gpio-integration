@@ -43,14 +43,14 @@ class GpioSwitch(ClosableMixin, ReprMixin, SwitchEntity):
         """Turn the device on."""
         if not self._io.is_active:
             self._io.on()
-            self.async_write_ha_state()
+            self.schedule_update_ha_state()
             _LOGGER.debug(f"{self!r} turn on")
 
     def turn_off(self, **kwargs) -> None:
         """Turn the device off."""
         if self._io.is_active:
             self._io.off()
-            self.async_write_ha_state()
+            self.schedule_update_ha_state()
             _LOGGER.debug(f"{self!r} turn off")
 
     async def async_will_remove_from_hass(self) -> None:

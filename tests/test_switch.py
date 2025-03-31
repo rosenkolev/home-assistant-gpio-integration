@@ -56,15 +56,15 @@ def test__GpioSwitch_should_set_pin(mocked_factory):
         pin.assert_states([False, True, False])
 
 
-def test__GpioSwitch_on_off_should_write_ha(mocked_factory):
+def test__GpioSwitch_on_off_should_update_ha_scheduled(mocked_factory):
     with GpioSwitch(__create_config()) as gpio:
-        gpio.ha_state_write = False
+        gpio.ha_state_update_scheduled = False
         gpio.turn_on()
-        assert gpio.ha_state_write
+        assert gpio.ha_state_update_scheduled
 
-        gpio.ha_state_write = False
+        gpio.ha_state_update_scheduled = False
         gpio.turn_off()
-        assert gpio.ha_state_write
+        assert gpio.ha_state_update_scheduled
 
 
 @pytest.mark.asyncio
