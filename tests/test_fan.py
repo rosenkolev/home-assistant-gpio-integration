@@ -88,6 +88,21 @@ def test__GpioFan_should_turn_set_attr_percentage(mocked_factory):
         assert gpio.is_on is True
 
 
+def test__GpioFan_off_should_update_ha_scheduled(mocked_factory):
+    number = get_next_pin()
+    pin = mocked_factory.pin(number)
+    with GpioFan(__create_config(number)) as gpio:
+        pin.state = 0.8
+        gpio.turn_off()
+        assert gpio.ha_state_update_scheduled
+
+
+def test__GpioFan_on_should_update_ha_scheduled(mocked_factory):
+    with GpioFan(__create_config()) as gpio:
+        gpio.turn_on(percentage=60)
+        assert gpio.ha_state_update_scheduled
+
+
 @pytest.mark.asyncio
 async def test__GpioFan_will_close_pin(mocked_factory):
     number = get_next_pin()

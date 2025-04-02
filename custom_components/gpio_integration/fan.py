@@ -62,7 +62,7 @@ class GpioFan(ClosableMixin, ReprMixin, FanEntity):
         """Set the percentage property."""
         if self._io.percentage != percentage:
             self._io.percentage = percentage
-            self.async_write_ha_state()
+            self.schedule_update_ha_state()
             _LOGGER.debug(f"{self!r} set to {percentage}%")
 
     def turn_on(self, percentage: None, **kwargs) -> None:
@@ -78,7 +78,7 @@ class GpioFan(ClosableMixin, ReprMixin, FanEntity):
         """Turn off the fan."""
         if self._io.is_active:
             self._io.off()
-            self.async_write_ha_state()
+            self.schedule_update_ha_state()
             _LOGGER.debug(f"{self!r} turn off")
 
     async def async_will_remove_from_hass(self) -> None:
