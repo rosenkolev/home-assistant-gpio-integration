@@ -7,7 +7,8 @@
         "reports/",
         "LICENSE",
         "manifest.json",
-        "extensions.json"
+        "extensions.json",
+        "translations/pl.json"
     ],
     "words": [
         "gpiozero",
