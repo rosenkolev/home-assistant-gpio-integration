@@ -1,0 +1,92 @@
+{
+  "title": "Integração GPIO",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Definir o tipo de entidade",
+        "description": "Selecione o tipo de entidade que deseja configurar",
+        "data": {
+          "type": "O tipo de entidade"
+        }
+      },
+      "select_variation": {
+        "title": "Selecionar a variação da entidade",
+        "description": "Selecione a variação da entidade que deseja configurar",
+        "data": {
+          "variation": "A variação da entidade"
+        }
+      },
+      "common_setup": {
+        "title": "Configurar a entidade",
+        "description": "Introduza os dados GPIO para a entidade",
+        "data": {
+          "name": "Nome",
+          "port": "Pino GPIO",
+          "red_pin": "Pino GPIO de cor vermelha",
+          "green_pin": "Pino GPIO de cor verde",
+          "blue_pin": "Pino GPIO de cor azul",
+          "close_pin": "Pino de fechar GPIO",
+          "close_pin_invert": "Inverter pino de fechar GPIO",
+          "open_pin": "Pino de abrir GPIO",
+          "open_pin_invert": "Lógica de inversão do pino de abrir GPIO",
+          "pull_mode": "Modo de pull (cima, baixo) [o padrão é cima]",
+          "bounce_time_in_ms": "Tempo de debounce em milissegundos (o padrão é 50ms)",
+          "invert_logic": "Inverter lógica (normalmente 3.3v = ligado, 0v = desligado)",
+          "default_state": "Estado padrão (desmarcado = desligado, marcado = ligado)",
+          "relay_time": "Tempo do relé em segundos (tempo do pino ligado)",
+          "pin_closed_sensor": "Pino para o sensor 'porta fechada'",
+          "edge_event_timeout": "Tempo limite de evento em segundos (apenas para sensores de movimento/vibração)",
+          "rely_on_edge_events": "Depender apenas de eventos de borda (por exemplo, sensor de movimento/vibração)",
+          "frequency": "A frequência do sinal PWM ou 0/Nenhum",
+          "chip": "A série de chips MCP (por exemplo, MCP3001)",
+          "channel": "O canal do chip MCP (por exemplo, 0-7)",
+          "min_voltage": "A tensão mínima do sensor analógico",
+          "min_value": "O valor mínimo do sensor correspondente à tensão mínima",
+          "step_voltage": "O passo de tensão do sensor analógico",
+          "step_value": "O passo de valor do sensor correspondente ao passo de tensão",
+          "unique_id": "ID Único"
+        }
+      }
+    }
+  },
+  "error": {
+    "already_configured": "A ponte já está configurada"
+  },
+  "abort": {
+    "already_configured": "A ponte já está configurada"
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configurar Integração GPIO",
+        "data": {
+          "name": "Nome",
+          "port": "Pino GPIO",
+          "red_pin": "Pino GPIO de cor vermelha",
+          "green_pin": "Pino GPIO de cor verde",
+          "blue_pin": "Pino GPIO de cor azul",
+          "close_pin": "Pino de fechar GPIO",
+          "close_pin_invert": "Inverter pino de fechar GPIO",
+          "open_pin": "Pino de abrir GPIO",
+          "open_pin_invert": "Lógica de inversão do pino de abrir GPIO",
+          "pull_mode": "Modo de pull (cima, baixo) [o padrão é cima]",
+          "bounce_time_in_ms": "Tempo de debounce em milissegundos (o padrão é 50ms)",
+          "invert_logic": "Inverter lógica (normalmente 3.3v = ligado, 0v = desligado)",
+          "default_state": "Estado padrão (desmarcado = desligado, marcado = ligado)",
+          "relay_time": "Tempo do relé em segundos (tempo do pino ligado)",
+          "pin_closed_sensor": "Pino para o sensor 'porta fechada'",
+          "edge_event_timeout": "Tempo limite de evento em segundos (apenas para sensores de movimento/vibração)",
+          "rely_on_edge_events": "Depender apenas de eventos de borda (por exemplo, sensor de movimento/vibração)",
+          "frequency": "A frequência do sinal PWM ou 0/Nenhum",
+          "chip": "A série de chips MCP (por exemplo, MCP3001)",
+          "channel": "O canal do chip MCP (por exemplo, 0-7)",
+          "min_voltage": "A tensão mínima do sensor analógico",
+          "min_value": "O valor mínimo do sensor correspondente à tensão mínima",
+          "step_voltage": "O passo de tensão do sensor analógico",
+          "step_value": "O passo de valor do sensor correspondente ao passo de tensão",
+          "unique_id": "ID Único"
+        }
+      }
+    }
+  }
+}
