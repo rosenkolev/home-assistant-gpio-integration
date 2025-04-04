@@ -97,12 +97,15 @@ class BinarySensor(AsStringMixin, DigitalInputDevice):
 
 
 class RgbLight(RGBLED):
-    def __init__(self, red: int, green: int, blue: int, initial_value=(0, 0, 0)):
+    def __init__(
+        self, red: int, green: int, blue: int, active_high=True, initial_value=(0, 0, 0)
+    ):
         super().__init__(
             red,
             green,
             blue,
             pin_factory=get_pin_factory(),
+            active_high=active_high,
             initial_value=initial_value,
         )
 
