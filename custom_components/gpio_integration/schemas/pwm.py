@@ -4,7 +4,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
 
-from . import CONF_DEFAULT_STATE, CONF_FREQUENCY, get_unique_id
+from . import CONF_DEFAULT_STATE, CONF_FREQUENCY, CONF_INVERT_LOGIC, get_unique_id
 from ._validators import v_name, v_pin
 
 
@@ -27,6 +27,11 @@ def create_pwm_schema(data: dict) -> vol.Schema:
                 default=data[CONF_DEFAULT_STATE],
                 description="Default state",
             ): cv.boolean,
+            vol.Optional(
+                CONF_INVERT_LOGIC,
+                default=data[CONF_INVERT_LOGIC],
+                description="Invert the logic of the output (low = on)",
+            ): cv.boolean,
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }
     )
@@ -42,4 +47,5 @@ class PwmConfig:
         self.port: int = data[CONF_PORT]
         self.frequency: int = data[CONF_FREQUENCY]
         self.default_state: bool = data[CONF_DEFAULT_STATE]
+        self.invert_logic: bool = data[CONF_INVERT_LOGIC]
         self.unique_id: str = get_unique_id(data)

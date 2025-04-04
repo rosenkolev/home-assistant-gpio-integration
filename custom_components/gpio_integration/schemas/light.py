@@ -6,6 +6,7 @@ from homeassistant.const import CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
 
 from . import (
     CONF_DEFAULT_STATE,
+    CONF_INVERT_LOGIC,
     CONF_FREQUENCY,
     EMPTY_VARIATION_DATA,
     create_variation_list_schema,
@@ -42,6 +43,7 @@ LIGHT_SCHEMA = create_pwm_schema(
         CONF_PORT: None,
         CONF_FREQUENCY: 0,
         CONF_DEFAULT_STATE: False,
+        CONF_INVERT_LOGIC: False,
         CONF_UNIQUE_ID: "",
     }
 )
@@ -82,6 +84,11 @@ def create_rgb_light_schema(data: dict) -> vol.Schema:
                 default=data[CONF_DEFAULT_STATE],
                 description="Default state of the light",
             ): cv.boolean,
+            vol.Optional(
+                CONF_INVERT_LOGIC,
+                default=data[CONF_INVERT_LOGIC],
+                description="Invert the logic of the LED (low = on)",
+            ): cv.boolean,
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }
     )
@@ -95,6 +102,7 @@ RGB_LIGHT_SCHEMA = create_rgb_light_schema(
         CONF_BLUE_PIN: None,
         CONF_FREQUENCY: 200,
         CONF_DEFAULT_STATE: False,
+        CONF_INVERT_LOGIC: False,
         CONF_UNIQUE_ID: "",
     }
 )
@@ -110,7 +118,7 @@ def validate_rgb_light_data(data):
 
 
 class RgbLightConfig:
-    """Switch configuration schema."""
+    """RGB Light configuration schema."""
 
     def __init__(self, data: dict):
         self.name: str = data[CONF_NAME]
@@ -119,4 +127,5 @@ class RgbLightConfig:
         self.port_blue: int = data[CONF_BLUE_PIN]
         self.frequency: int = data[CONF_FREQUENCY]
         self.default_state: bool = data[CONF_DEFAULT_STATE]
+        self.invert_logic: bool = data[CONF_INVERT_LOGIC]
         self.unique_id: str = get_unique_id(data)
