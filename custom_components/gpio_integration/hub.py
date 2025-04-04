@@ -1,7 +1,5 @@
 from homeassistant.const import Platform
 
-from custom_components.gpio_integration.schemas.light import RgbLightConfig
-
 from .controllers.cover import Roller
 from .controllers.sensor import AnalogStepControl, DHT22Controller
 from .core import get_logger
@@ -9,6 +7,7 @@ from .schemas.binary_sensor import BinarySensorConfig
 from .schemas.cover import RollerConfig, ToggleRollerConfig
 from .schemas.main import EntityTypes
 from .schemas.pwm import PwmConfig
+from .schemas.light import RgbLightConfig
 from .schemas.sensor import AnalogStepConfig, DHT22Config
 from .schemas.switch import SwitchConfig
 
