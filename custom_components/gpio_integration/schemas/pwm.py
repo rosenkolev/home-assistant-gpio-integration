@@ -1,7 +1,8 @@
 """Schema for GPIO outputs using Pulse-Wide Modulation PWM."""
 
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
+
+import homeassistant.helpers.config_validation as cv
 from homeassistant.const import CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
 
 from . import CONF_DEFAULT_STATE, CONF_FREQUENCY, CONF_INVERT_LOGIC, get_unique_id
@@ -47,8 +48,5 @@ class PwmConfig:
         self.port: int = data[CONF_PORT]
         self.frequency: int = data[CONF_FREQUENCY]
         self.default_state: bool = data[CONF_DEFAULT_STATE]
-        if CONF_INVERT_LOGIC in data:
-            self.invert_logic: bool = data[CONF_INVERT_LOGIC]
-        else:
-            self.invert_logic: bool = False
+        self.invert_logic: bool = data[CONF_INVERT_LOGIC]
         self.unique_id: str = get_unique_id(data)
