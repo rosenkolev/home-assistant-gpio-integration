@@ -5,6 +5,7 @@ from homeassistant.const import CONF_PORT
 from custom_components.gpio_integration.light import GpioLight
 from custom_components.gpio_integration.schemas import (
     CONF_DEFAULT_STATE,
+    CONF_INVERT_LOGIC,
     CONF_FREQUENCY,
     CONF_NAME,
 )
@@ -12,13 +13,14 @@ from custom_components.gpio_integration.schemas.pwm import PwmConfig
 from tests.mocks import get_next_pin
 
 
-def __create_config(port=None, default_state=False, frequency=50):
+def __create_config(port=None, default_state=False, frequency=50, invert_logic=False):
     return PwmConfig(
         {
             CONF_NAME: "Test Name",
             CONF_PORT: get_next_pin() if port is None else port,
             CONF_FREQUENCY: frequency,
             CONF_DEFAULT_STATE: default_state,
+            CONF_INVERT_LOGIC: invert_logic,
         }
     )
 
@@ -52,6 +54,13 @@ def test__GpioLight_LED_should_init_default_state(mocked_factory):
         assert gpio.is_on is True
         assert gpio.brightness == 255
         assert gpio.ha_state_update_scheduled is False
+
+
+def test__GpioLight_LED_should_init_invert(mocked_factory):
+    number = get_next_pin()
+    pin = mocked_factory.pin(number)
+    with GpioLight(__create_config(number, invert_logic=True, default_state=True)):
+        pin.assert_states([False])
 
 
 def test__GpioLight_LED_should_turn_led_on_off(mocked_factory):
