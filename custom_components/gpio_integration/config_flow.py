@@ -250,8 +250,10 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
             else:
                 data_clone = data.copy()
                 data_clone["unique_id"] = unique_id or ""
-                edit_schema = entity_info.get("schema_builder")(data_clone)
-
+                base_schema = entity_info.get("schema")
+                edit_schema = self.add_suggested_values_to_schema(
+                    base_schema, data_clone
+                )
                 return self.async_show_form(step_id="init", data_schema=edit_schema)
         else:
             errors["base"] = "unknown_type"
