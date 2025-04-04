@@ -47,5 +47,8 @@ class PwmConfig:
         self.port: int = data[CONF_PORT]
         self.frequency: int = data[CONF_FREQUENCY]
         self.default_state: bool = data[CONF_DEFAULT_STATE]
-        self.invert_logic: bool = data[CONF_INVERT_LOGIC]
+        if CONF_INVERT_LOGIC in data:
+            self.invert_logic: bool = data[CONF_INVERT_LOGIC]
+        else:
+            self.invert_logic: bool = False
         self.unique_id: str = get_unique_id(data)
