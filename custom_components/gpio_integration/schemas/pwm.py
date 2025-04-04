@@ -15,22 +15,22 @@ def create_pwm_schema(data: dict) -> vol.Schema:
             vol.Required(
                 CONF_PORT,
                 default=data[CONF_PORT],
-                description="GPIO pin number for the switch",
+                description={"comment": "GPIO pin number for the switch"},
             ): cv.positive_int,
             vol.Optional(
                 CONF_FREQUENCY,
                 default=data[CONF_FREQUENCY],
-                description="The light pulse frequency (for LED)",
+                description={"comment": "The light pulse frequency (for LED)"},
             ): cv.positive_int,
             vol.Optional(
                 CONF_DEFAULT_STATE,
                 default=data[CONF_DEFAULT_STATE],
-                description="Default state",
+                description={"comment": "Default state"},
             ): cv.boolean,
             vol.Optional(
                 CONF_INVERT_LOGIC,
                 default=data[CONF_INVERT_LOGIC],
-                description="Invert the logic of the output (low = on)",
+                description={"comment": "Invert the logic of the output (low = on)"},
             ): cv.boolean,
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }

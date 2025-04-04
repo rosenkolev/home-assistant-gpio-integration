@@ -62,32 +62,32 @@ def create_rgb_light_schema(data: dict) -> vol.Schema:
             vol.Required(
                 CONF_RED_PIN,
                 default=data[CONF_RED_PIN],
-                description="GPIO pin number for red color",
+                description={"comment": "GPIO pin number for red color"},
             ): cv.positive_int,
             vol.Required(
                 CONF_GREEN_PIN,
                 default=data[CONF_GREEN_PIN],
-                description="GPIO pin number for green color",
+                description={"comment": "GPIO pin number for green color"},
             ): cv.positive_int,
             vol.Required(
                 CONF_BLUE_PIN,
                 default=data[CONF_BLUE_PIN],
-                description="GPIO pin number for blue color",
+                description={"comment": "GPIO pin number for blue color"},
             ): cv.positive_int,
             vol.Required(
                 CONF_FREQUENCY,
                 default=data[CONF_FREQUENCY],
-                description="The light pulse frequency",
+                description={"comment": "The light pulse frequency"},
             ): cv.positive_int,
             vol.Optional(
                 CONF_DEFAULT_STATE,
                 default=data[CONF_DEFAULT_STATE],
-                description="Default state of the light",
+                description={"comment": "Default state of the light"},
             ): cv.boolean,
             vol.Optional(
                 CONF_INVERT_LOGIC,
                 default=data[CONF_INVERT_LOGIC],
-                description="Invert the logic of the LED (low = on)",
+                description={"comment": "Invert the logic of the LED (low = on)"},
             ): cv.boolean,
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }

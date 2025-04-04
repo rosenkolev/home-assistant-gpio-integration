@@ -53,22 +53,22 @@ def create_cover_up_down_schema(data: dict) -> vol.Schema:
             vol.Required(
                 CONF_RELAY_CLOSE_PIN,
                 default=data[CONF_RELAY_CLOSE_PIN],
-                description="GPIO pin number for the close relay",
+                description={"comment": "GPIO pin number for the close relay"},
             ): cv.positive_int,
             vol.Optional(
                 CONF_RELAY_CLOSE_INVERT,
                 default=data[CONF_RELAY_CLOSE_INVERT],
-                description="Invert the logic of the close relay",
+                description={"comment": "Invert the logic of the close relay"},
             ): cv.boolean,
             vol.Required(
                 CONF_RELAY_OPEN_PIN,
                 default=data[CONF_RELAY_OPEN_PIN],
-                description="GPIO pin number for the open relay",
+                description={"comment": "GPIO pin number for the open relay"},
             ): cv.positive_int,
             vol.Optional(
                 CONF_RELAY_OPEN_INVERT,
                 default=data[CONF_RELAY_OPEN_INVERT],
-                description="Invert the logic of the open relay",
+                description={"comment": "Invert the logic of the open relay"},
             ): cv.boolean,
             vol.Optional(
                 CONF_RELAY_TIME, default=data[CONF_RELAY_TIME]
@@ -138,12 +138,12 @@ def create_toggle_cover_schema(data: dict) -> vol.Schema:
             vol.Required(
                 CONF_PORT,
                 default=data[CONF_PORT],
-                description="GPIO pin number for the toggle button",
+                description={"comment": "GPIO pin number for the toggle button"},
             ): cv.positive_int,
             vol.Optional(
                 CONF_INVERT_LOGIC,
                 default=data[CONF_INVERT_LOGIC],
-                description="Invert the logic of the toggle button",
+                description={"comment": "Invert the logic of the toggle button"},
             ): cv.boolean,
             vol.Optional(
                 CONF_RELAY_TIME, default=data[CONF_RELAY_TIME]
