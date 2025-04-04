@@ -55,62 +55,50 @@ CONF_ENTITIES: dict = {
     EntityTypes.COVER.value: {
         "schema": COVER_VARIATION_SCHEMA,
         "validate": validate_cover_variation_data,
-        "schema_builder": create_cover_variation_schema,
     },
     EntityTypes.COVER_UP_DOWN.value: {
         "schema": COVER_UP_DOWN_SCHEMA,
         "validate": validate_cover_up_down_data,
-        "schema_builder": create_cover_up_down_schema,
     },
     EntityTypes.COVER_TOGGLE.value: {
         "schema": COVER_TOGGLE_SCHEMA,
         "validate": validate_toggle_cover_data,
-        "schema_builder": create_toggle_cover_schema,
     },
     EntityTypes.BINARY_SENSOR.value: {
         "schema": BINARY_SENSOR_SCHEMA,
         "validate": validate_binary_sensor_data,
-        "schema_builder": create_binary_sensor_schema,
     },
     EntityTypes.SWITCH.value: {
         "schema": SWITCH_SCHEMA,
         "validate": validate_switch_data,
-        "schema_builder": create_switch_schema,
     },
     EntityTypes.LIGHT.value: {
         "schema": LIGHT_VARIATION_SCHEMA,
         "validate": validate_light_variation_data,
-        "schema_builder": create_light_variation_schema,
     },
     EntityTypes.LIGHT_PWM_LED.value: {
         "schema": LIGHT_SCHEMA,
         "validate": validate_pwm_data,
-        "schema_builder": create_pwm_schema,
     },
     EntityTypes.LIGHT_RGB_LED.value: {
         "schema": RGB_LIGHT_SCHEMA,
         "validate": validate_rgb_light_data,
-        "schema_builder": create_rgb_light_schema,
     },
     EntityTypes.FAN.value: {
         "schema": FAN_SCHEMA,
         "validate": validate_pwm_data,
-        "schema_builder": create_pwm_schema,
     },
     EntityTypes.SENSOR.value: {
         "schema": SENSOR_VARIATION_SCHEMA,
         "validate": validate_sensor_variation_data,
-        "schema_builder": create_sensor_variation_schema,
     },
     EntityTypes.SENSOR_DHT22.value: {
         "schema": SENSOR_DHT22_SCHEMA,
         "validate": validate_sensor_dht22_data,
-        "schema_builder": create_sensor_dht22_schema,
     },
     EntityTypes.SENSOR_ANALOG_STEP.value: {
         "schema": SENSOR_ANALOG_STEP_SCHEMA,
         "validate": validate_sensor_analog_step_data,
-        "schema_builder": create_sensor_analog_step_schema,
     },
 }
 
