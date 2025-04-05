@@ -65,7 +65,10 @@ def brightness_to_value(brightness: int) -> int:
 class BlinkMixin:
     @property
     def is_blinking(self) -> bool:
-        return self._io._blink_thread is not None or self._io._controller is not None
+        # gpiozero.RGBLight don't have effect controller, but DigitalOutputDevice does
+        return self._io._blink_thread is not None or (
+            hasattr(self._io, "_controller") and self._io._controller is not None
+        )
 
     def _blink(self, effect: str, pwm: bool):
         self.turn_off()
@@ -184,6 +187,7 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
     def __init__(self, config: RgbLightConfig) -> None:
         """Initialize the pin."""
 
+        self._pwm = config.frequency is not None and config.frequency > 0
         self._attr_name = config.name
         self._attr_unique_id = config.unique_id
         self._attr_should_poll = False
@@ -203,9 +207,10 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
         self._brightness = HIGH_BRIGHTNESS if config.default_state else 0
         self._rgb = RGB_WHITE if config.default_state else RGB_OFF
         self._io = RgbLight(
-            config.port_red,
-            config.port_green,
-            config.port_blue,
+            red=config.port_red,
+            green=config.port_green,
+            blue=config.port_blue,
+            frequency=config.frequency,
             active_high=not config.invert_logic,
             initial_value=(1, 1, 1) if config.default_state else (0, 0, 0),
         )
@@ -228,15 +233,25 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
     def brightness(self, value: int) -> None:
         self._set(value, self._rgb)
 
+    def _ensure_light(self):
+        """Ensure RGB is not off and light will show then brightness is set"""
+        if self.rgb_color is RGB_OFF:
+            self._set(0, RGB_WHITE)
+
     def turn_on(self, **kwargs) -> None:
         """Turn on."""
-        self._blink_off()
+        if self.is_blinking:
+            self._io.off()  # when blinking, off will stop the effect and reset light to off
+            self._brightness = 0
+
         if ATTR_FLASH in kwargs:
+            self._ensure_light()
             short = kwargs[ATTR_FLASH] == FLASH_SHORT
-            self._blink("flash_short" if short else "flash_long", pwm=True)
+            self._blink("flash_short" if short else "flash_long", pwm=self._pwm)
         elif ATTR_EFFECT in kwargs:
+            self._ensure_light()
             effect_name = kwargs[ATTR_EFFECT]
-            self._blink(effect_name, pwm=True)
+            self._blink(effect_name, pwm=self._pwm)
         elif (
             ATTR_BRIGHTNESS in kwargs
             or ATTR_RGB_COLOR in kwargs
@@ -269,7 +284,7 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
             self._rgb = rgb
             self._brightness = brightness
             self._io.value = value
-            self.async_write_ha_state()
+            self.schedule_update_ha_state()
             _LOGGER.debug(f"{self!r} light set to {rgb}/{brightness} ({value})")
 
     async def async_will_remove_from_hass(self) -> None:

@@ -10,7 +10,7 @@ from custom_components.gpio_integration.schemas import (
     CONF_NAME,
 )
 from custom_components.gpio_integration.schemas.pwm import PwmConfig
-from tests.mocks import get_next_pin
+from tests.mocks import assert_gpio_blink, get_next_pin
 
 
 def __create_config(port=None, default_state=False, frequency=50, invert_logic=False):
@@ -123,14 +123,6 @@ def test__GpioLight_LED_should_set_brightness(mocked_factory):
         assert gpio.is_on is False
 
 
-def _assert_blink(pin, gpio, test: list[tuple[bool, float]]):
-    pin.states = []
-    gpio._io._blink_thread.execute_target()
-    map = gpio._io._blink_thread.zip(pin.states)
-    for idx in range(len(test)):
-        assert test[idx][0] == map[idx][0]
-
-
 def test__GpioLight_should_pulse_slow(mocked_factory, mock_gpio_thread):
     number = get_next_pin()
     pin = mocked_factory.pin(number)
@@ -140,7 +132,7 @@ def test__GpioLight_should_pulse_slow(mocked_factory, mock_gpio_thread):
         assert gpio.brightness == 0
         assert gpio.is_on is False
 
-        _assert_blink(pin, gpio, [(True, 1.5), (False, 1.5)] * 4)
+        assert_gpio_blink(pin, gpio, [(True, 1.5), (False, 1.5)] * 4)
 
 
 def test__GpioLight_should_pulse_fast(mocked_factory, mock_gpio_thread):
@@ -151,7 +143,7 @@ def test__GpioLight_should_pulse_fast(mocked_factory, mock_gpio_thread):
 
         assert gpio.brightness == 0
         assert gpio.is_on is False
-        _assert_blink(pin, gpio, [(True, 1.2), (False, 1.2)] * 2)
+        assert_gpio_blink(pin, gpio, [(True, 1.2), (False, 1.2)] * 2)
 
 
 def test__GpioLight_should_effect_blink(mocked_factory, mock_gpio_thread):
@@ -163,7 +155,7 @@ def test__GpioLight_should_effect_blink(mocked_factory, mock_gpio_thread):
         assert gpio.brightness == 0
         assert gpio.is_on is False
 
-        _assert_blink(pin, gpio, [(True, 1), (False, 1)] * 200)
+        assert_gpio_blink(pin, gpio, [(True, 1), (False, 1)] * 200)
 
 
 def test__GpioLight_should_effect_off(mocked_factory, mock_gpio_thread):

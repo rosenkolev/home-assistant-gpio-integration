@@ -1,3 +1,4 @@
+# cspell:ignore leds
 from collections import deque, namedtuple
 from threading import RLock
 from typing import Callable, Literal
@@ -98,7 +99,7 @@ class BinarySensor(AsStringMixin, DigitalInputDevice):
 
 class RgbLight(RGBLED):
     def __init__(
-        self, red: int, green: int, blue: int, active_high=True, initial_value=(0, 0, 0)
+        self, red: int, green: int, blue: int, active_high=True, frequency=100, initial_value=(0, 0, 0)
     ):
         super().__init__(
             red,
@@ -107,7 +108,12 @@ class RgbLight(RGBLED):
             pin_factory=get_pin_factory(),
             active_high=active_high,
             initial_value=initial_value,
+            pwm=frequency > 0,
         )
+        # When RGB light is PWM and the frequency is not the default 100Hz
+        if frequency > 0 and frequency != 100:
+            for x in self._leds:
+                x.frequency = frequency
 
     def __repr__(self):
         return f"{self.red!r}, {self.green!r}, {self.blue!r}"
