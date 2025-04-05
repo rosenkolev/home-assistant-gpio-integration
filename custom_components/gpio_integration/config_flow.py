@@ -2,6 +2,7 @@
 
 from enum import Enum
 
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
@@ -10,16 +11,12 @@ from .core import DOMAIN, get_logger
 from .schemas import CONF_VARIATION, InvalidPin, get_unique_id
 from .schemas.binary_sensor import (
     BINARY_SENSOR_SCHEMA,
-    create_binary_sensor_schema,
     validate_binary_sensor_data,
 )
 from .schemas.cover import (
     COVER_TOGGLE_SCHEMA,
     COVER_UP_DOWN_SCHEMA,
     COVER_VARIATION_SCHEMA,
-    create_cover_up_down_schema,
-    create_cover_variation_schema,
-    create_toggle_cover_schema,
     validate_cover_up_down_data,
     validate_cover_variation_data,
     validate_toggle_cover_data,
@@ -29,25 +26,20 @@ from .schemas.light import (
     LIGHT_SCHEMA,
     LIGHT_VARIATION_SCHEMA,
     RGB_LIGHT_SCHEMA,
-    create_light_variation_schema,
-    create_rgb_light_schema,
     validate_light_variation_data,
     validate_rgb_light_data,
 )
 from .schemas.main import MAIN_SCHEMA, EntityTypes, get_type
-from .schemas.pwm import create_pwm_schema, validate_pwm_data
+from .schemas.pwm import validate_pwm_data
 from .schemas.sensor import (
     SENSOR_ANALOG_STEP_SCHEMA,
     SENSOR_DHT22_SCHEMA,
     SENSOR_VARIATION_SCHEMA,
-    create_sensor_analog_step_schema,
-    create_sensor_dht22_schema,
-    create_sensor_variation_schema,
     validate_sensor_analog_step_data,
     validate_sensor_dht22_data,
     validate_sensor_variation_data,
 )
-from .schemas.switch import SWITCH_SCHEMA, create_switch_schema, validate_switch_data
+from .schemas.switch import SWITCH_SCHEMA, validate_switch_data
 
 _LOGGER = get_logger()
 
@@ -55,64 +47,77 @@ CONF_ENTITIES: dict = {
     EntityTypes.COVER.value: {
         "schema": COVER_VARIATION_SCHEMA,
         "validate": validate_cover_variation_data,
-        "schema_builder": create_cover_variation_schema,
     },
     EntityTypes.COVER_UP_DOWN.value: {
         "schema": COVER_UP_DOWN_SCHEMA,
         "validate": validate_cover_up_down_data,
-        "schema_builder": create_cover_up_down_schema,
     },
     EntityTypes.COVER_TOGGLE.value: {
         "schema": COVER_TOGGLE_SCHEMA,
         "validate": validate_toggle_cover_data,
-        "schema_builder": create_toggle_cover_schema,
     },
     EntityTypes.BINARY_SENSOR.value: {
         "schema": BINARY_SENSOR_SCHEMA,
         "validate": validate_binary_sensor_data,
-        "schema_builder": create_binary_sensor_schema,
     },
     EntityTypes.SWITCH.value: {
         "schema": SWITCH_SCHEMA,
         "validate": validate_switch_data,
-        "schema_builder": create_switch_schema,
     },
     EntityTypes.LIGHT.value: {
         "schema": LIGHT_VARIATION_SCHEMA,
         "validate": validate_light_variation_data,
-        "schema_builder": create_light_variation_schema,
     },
     EntityTypes.LIGHT_PWM_LED.value: {
         "schema": LIGHT_SCHEMA,
         "validate": validate_pwm_data,
-        "schema_builder": create_pwm_schema,
     },
     EntityTypes.LIGHT_RGB_LED.value: {
         "schema": RGB_LIGHT_SCHEMA,
         "validate": validate_rgb_light_data,
-        "schema_builder": create_rgb_light_schema,
     },
     EntityTypes.FAN.value: {
         "schema": FAN_SCHEMA,
         "validate": validate_pwm_data,
-        "schema_builder": create_pwm_schema,
     },
     EntityTypes.SENSOR.value: {
         "schema": SENSOR_VARIATION_SCHEMA,
         "validate": validate_sensor_variation_data,
-        "schema_builder": create_sensor_variation_schema,
     },
     EntityTypes.SENSOR_DHT22.value: {
         "schema": SENSOR_DHT22_SCHEMA,
         "validate": validate_sensor_dht22_data,
-        "schema_builder": create_sensor_dht22_schema,
     },
     EntityTypes.SENSOR_ANALOG_STEP.value: {
         "schema": SENSOR_ANALOG_STEP_SCHEMA,
         "validate": validate_sensor_analog_step_data,
-        "schema_builder": create_sensor_analog_step_schema,
     },
 }
+
+
+def fill_schema_missing_values(type: EntityTypes, configs: dict):
+    """
+    If we have config and a valid type, then try to
+    add in any missing optional values from the base
+    schema.
+    """
+    base_schema = CONF_ENTITIES[type.value]["schema"]
+    if isinstance(base_schema.schema, dict):
+        for key in base_schema.schema.keys():
+            # Skip anything not an optional key
+            if not isinstance(key, vol.Optional):
+                continue
+
+            # If not present in config data, copy in default
+            if key.schema not in configs:
+                defVal = key.default()
+                _LOGGER.debug(
+                    'Hub: setting missing default for config "%s" to value "%s"',
+                    key.schema,
+                    defVal,
+                )
+
+                configs.setdefault(key.schema, defVal)
 
 
 def validate_config_data(entity_type: str, data_input: dict):
@@ -250,8 +255,10 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithConfigEntry):
             else:
                 data_clone = data.copy()
                 data_clone["unique_id"] = unique_id or ""
-                edit_schema = entity_info.get("schema_builder")(data_clone)
-
+                base_schema = entity_info.get("schema")
+                edit_schema = self.add_suggested_values_to_schema(
+                    base_schema, data_clone
+                )
                 return self.async_show_form(step_id="init", data_schema=edit_schema)
         else:
             errors["base"] = "unknown_type"

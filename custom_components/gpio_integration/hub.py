@@ -1,12 +1,12 @@
 from homeassistant.const import Platform
 
-from custom_components.gpio_integration.schemas.light import RgbLightConfig
-
+from .config_flow import fill_schema_missing_values
 from .controllers.cover import Roller
 from .controllers.sensor import AnalogStepControl, DHT22Controller
 from .core import get_logger
 from .schemas.binary_sensor import BinarySensorConfig
 from .schemas.cover import RollerConfig, ToggleRollerConfig
+from .schemas.light import RgbLightConfig
 from .schemas.main import EntityTypes
 from .schemas.pwm import PwmConfig
 from .schemas.sensor import AnalogStepConfig, DHT22Config
@@ -18,11 +18,15 @@ _LOGGER = get_logger()
 class Hub:
     """Dummy hub for Hello World example."""
 
-    def __init__(self, configs: dict) -> None:
+    def __init__(self, configs) -> None:
         """Init hub."""
+        configs = dict(configs)
 
         self._type = EntityTypes(configs["type"])
         _LOGGER.debug('Hub: type "%s"', self._type.name)
+
+        if self._type is not None and configs:
+            fill_schema_missing_values(self._type, configs)
 
         if self.is_type(EntityTypes.COVER_UP_DOWN):
             self.config = RollerConfig(configs)

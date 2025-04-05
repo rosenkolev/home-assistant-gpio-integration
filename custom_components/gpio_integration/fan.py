@@ -45,7 +45,10 @@ class GpioFan(ClosableMixin, ReprMixin, FanEntity):
             raise ValueError("Frequency must be greater than 0")
 
         self._io = PwmFromPercent(
-            config.port, frequency=config.frequency, initial_value=config.default_state
+            config.port,
+            frequency=config.frequency,
+            active_high=not config.invert_logic,
+            initial_value=config.default_state,
         )
 
     @property
