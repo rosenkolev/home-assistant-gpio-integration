@@ -13,7 +13,7 @@ from custom_components.gpio_integration.schemas.light import (
     CONF_RED_PIN,
     RgbLightConfig,
 )
-from tests.mocks import get_next_pin
+from tests.mocks import assert_gpio_blink, get_next_pin
 
 
 def __create_config(
@@ -167,12 +167,33 @@ def test__RgbGpioLight_LED_should_set_brightness(mocked_factory):
         assert gpio.is_on is False
 
 
-def _assert_blink(pin, gpio, test: list[tuple[bool, float]]):
-    pin.states = []
-    gpio._io._blink_thread.execute_target()
-    map = gpio._io._blink_thread.zip(pin.states)
-    for idx in range(len(test)):
-        assert test[idx][0] == map[idx][0]
+def test__RgbGpioLight_LED_should_set_rgb(mocked_factory):
+    n_r = get_next_pin()
+    n_b = get_next_pin()
+    n_g = get_next_pin()
+    p_r = mocked_factory.pin(n_r)
+    p_b = mocked_factory.pin(n_b)
+    p_g = mocked_factory.pin(n_g)
+    with RgbGpioLight(
+        __create_config(n_r, n_b, n_g, default_state=True, frequency=100)
+    ) as gpio:
+        # set Red only
+        gpio.turn_on(**{"A_RGB": (51, 0, 0)})
+        assert (p_r._state, p_g._state, p_b._state) == (0.2, 0.0, 0.0)
+        assert gpio.brightness == 255
+        assert gpio.is_on is True
+
+        # set Green only
+        gpio.turn_on(**{"A_RGB": (0, 51, 0)})
+        assert (p_r._state, p_g._state, p_b._state) == (0.0, 0.2, 0.0)
+
+        # set Blue only
+        gpio.turn_on(**{"A_RGB": (0, 0, 51)})
+        assert (p_r._state, p_g._state, p_b._state) == (0.0, 0.0, 0.2)
+
+        # mix
+        gpio.turn_on(**{"A_RGB": (25.5, 255, 51)})
+        assert (p_r._state, p_g._state, p_b._state) == (0.1, 1.0, 0.2)
 
 
 def test__RgbGpioLight_should_pulse_slow(mocked_factory, mock_gpio_thread):
@@ -188,41 +209,75 @@ def test__RgbGpioLight_should_pulse_slow(mocked_factory, mock_gpio_thread):
         assert gpio.brightness == 0
         assert gpio.is_on is False
 
-        _assert_blink(p1, gpio, [(True, 1.5), (False, 1.5)] * 4)
-        _assert_blink(p2, gpio, [(True, 1.5), (False, 1.5)] * 4)
-        _assert_blink(p3, gpio, [(True, 1.5), (False, 1.5)] * 4)
+        assert_gpio_blink(p1, gpio, [(True, 1.5), (False, 1.5)] * 4)
+        assert_gpio_blink(p2, gpio, [(True, 1.5), (False, 1.5)] * 4)
+        assert_gpio_blink(p3, gpio, [(True, 1.5), (False, 1.5)] * 4)
 
 
 def test__RgbGpioLight_should_pulse_fast(mocked_factory, mock_gpio_thread):
-    number = get_next_pin()
-    pin = mocked_factory.pin(number)
-    with RgbGpioLight(__create_config(number, frequency=0)) as gpio:
+    n1 = get_next_pin()
+    n2 = get_next_pin()
+    n3 = get_next_pin()
+    p1 = mocked_factory.pin(n1)
+    p2 = mocked_factory.pin(n2)
+    p3 = mocked_factory.pin(n3)
+    with RgbGpioLight(__create_config(n1, n2, n3, frequency=0)) as gpio:
         gpio.turn_on(**{"A_FLASH": "F_SHORT"})
 
         assert gpio.brightness == 0
         assert gpio.is_on is False
-        _assert_blink(pin, gpio, [(True, 1.2), (False, 1.2)] * 2)
+        assert_gpio_blink(p1, gpio, [(True, 1.2), (False, 1.2)] * 2)
+        assert_gpio_blink(p2, gpio, [(True, 1.2), (False, 1.2)] * 2)
+        assert_gpio_blink(p3, gpio, [(True, 1.2), (False, 1.2)] * 2)
 
 
 def test__RgbGpioLight_should_effect_blink(mocked_factory, mock_gpio_thread):
-    number = get_next_pin()
-    pin = mocked_factory.pin(number)
-    with RgbGpioLight(__create_config(number, frequency=0)) as gpio:
+    n1 = get_next_pin()
+    n2 = get_next_pin()
+    n3 = get_next_pin()
+    p1 = mocked_factory.pin(n1)
+    p2 = mocked_factory.pin(n2)
+    p3 = mocked_factory.pin(n3)
+    with RgbGpioLight(__create_config(n1, n2, n3, frequency=0)) as gpio:
         gpio.turn_on(**{"A_EFFECT": "Blink"})
 
         assert gpio.brightness == 0
         assert gpio.is_on is False
 
-        _assert_blink(pin, gpio, [(True, 1), (False, 1)] * 200)
+        assert_gpio_blink(p1, gpio, [(True, 1), (False, 1)] * 200)
+        assert_gpio_blink(p2, gpio, [(True, 1), (False, 1)] * 200)
+        assert_gpio_blink(p3, gpio, [(True, 1), (False, 1)] * 200)
 
 
 def test__RgbGpioLight_should_effect_off(mocked_factory, mock_gpio_thread):
-    number = get_next_pin()
-    with RgbGpioLight(__create_config(number, frequency=0)) as gpio:
+    with RgbGpioLight(__create_config(frequency=0)) as gpio:
         gpio.turn_on(**{"A_EFFECT": "E_OFF"})
 
         assert gpio.brightness == 0
         assert gpio.is_on is False
+
+
+def test__RgbGpioLight_pwm_should_pulse_fast(mocked_factory, mock_gpio_thread):
+    n1 = get_next_pin()
+    n2 = get_next_pin()
+    n3 = get_next_pin()
+    p1 = mocked_factory.pin(n1)
+    p2 = mocked_factory.pin(n2)
+    p3 = mocked_factory.pin(n3)
+    with RgbGpioLight(__create_config(n1, n2, n3, frequency=100)) as gpio:
+        gpio.turn_on(**{"A_FLASH": "F_SHORT"})
+
+        assert gpio.brightness == 0
+        assert gpio.is_on is False
+        steps = (
+            ([(x / 100.0, 0.04) for x in range(4, 100, 4)])
+            + ([(x / 100.0, 0.04) for x in range(100, 0, -4)])
+            + ([(0.0, 0.04)])
+        )
+
+        assert_gpio_blink(p1, gpio, steps * 2)
+        assert_gpio_blink(p2, gpio, steps * 2)
+        assert_gpio_blink(p3, gpio, steps * 2)
 
 
 @pytest.mark.asyncio

@@ -200,9 +200,9 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
         self._brightness = HIGH_BRIGHTNESS if config.default_state else 0
         self._rgb = RGB_WHITE if config.default_state else RGB_OFF
         self._io = RgbLight(
-            config.port_red,
-            config.port_green,
-            config.port_blue,
+            red=config.port_red,
+            green=config.port_green,
+            blue=config.port_blue,
             frequency=config.frequency,
             initial_value=(1, 1, 1) if config.default_state else (0, 0, 0),
         )

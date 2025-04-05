@@ -14,6 +14,16 @@ def get_next_pin() -> int:
     return PIN_NUMBER
 
 
+def assert_gpio_blink(pin, gpio, test: list[tuple[bool, float]]):
+    pin.states = []
+    gpio._io._blink_thread.execute_target()
+    map = gpio._io._blink_thread.zip(pin.states)
+    assert len(map) == len(test)
+    for idx in range(len(test)):
+        val = round(map[idx][0], 2)
+        assert test[idx][0] == val
+
+
 class MockedBaseEntity:
     ha_state_update_scheduled = False
     ha_state_update_scheduled_force_refresh = False
