@@ -1,6 +1,5 @@
 import pytest
 from homeassistant.components.light import ColorMode
-from homeassistant.const import CONF_PORT
 
 from custom_components.gpio_integration.light import RgbGpioLight
 from custom_components.gpio_integration.schemas import (

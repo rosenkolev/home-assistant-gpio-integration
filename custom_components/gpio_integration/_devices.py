@@ -1,3 +1,4 @@
+# cspell:ignore leds
 from collections import deque, namedtuple
 from threading import RLock
 from typing import Callable, Literal
