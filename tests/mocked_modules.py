@@ -23,10 +23,27 @@ class DeviceInfo:
         self.sw_version = sw_version
 
 
+class MockVolSchema:
+    def __init__(self, schema, extra=None):
+        self.schema = schema
+
+
+class MockColOptional:
+    def __init__(self, name, default=None, description=None):
+        self.schema = name
+        self.default = lambda: default
+
+
 sys.modules["voluptuous"] = Mock()
+sys.modules["voluptuous"].Schema = MockVolSchema
+sys.modules["voluptuous"].Optional = MockColOptional
+sys.modules["voluptuous"].ALLOW_EXTRA = "ALLOW_EXTRA"
 sys.modules["homeassistant"] = Mock()
 sys.modules["homeassistant.const"] = Mock()
 sys.modules["homeassistant.const"].Platform = Platform
+sys.modules["homeassistant.const"].CONF_NAME = "CONF_NAME"
+sys.modules["homeassistant.const"].CONF_PORT = "CONF_PORT"
+sys.modules["homeassistant.const"].CONF_UNIQUE_ID = "CONF_UNIQUE_ID"
 sys.modules["homeassistant.core"] = Mock()
 sys.modules["homeassistant.config_entries"] = Mock()
 sys.modules["homeassistant.helpers"] = Mock()
