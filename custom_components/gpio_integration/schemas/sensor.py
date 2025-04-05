@@ -46,7 +46,7 @@ def create_sensor_dht22_schema(data: dict) -> vol.Schema:
             vol.Required(
                 CONF_PORT,
                 default=data[CONF_PORT],
-                description="GPIO pin number for the switch",
+                description={"comment": "GPIO pin number for the switch"},
             ): cv.positive_int,
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }

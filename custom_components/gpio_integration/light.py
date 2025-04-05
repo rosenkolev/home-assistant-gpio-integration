@@ -121,10 +121,17 @@ class GpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
 
         if self._pwm:
             self._io = Pwm(
-                config.port, config.frequency, initial_value=config.default_state
+                config.port,
+                config.frequency,
+                active_high=not config.invert_logic,
+                initial_value=config.default_state,
             )
         else:
-            self._io = Switch(config.port, initial_value=config.default_state)
+            self._io = Switch(
+                config.port,
+                active_high=not config.invert_logic,
+                initial_value=config.default_state,
+            )
 
         self._brightness = HIGH_BRIGHTNESS if config.default_state else 0
 
@@ -204,6 +211,7 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
             green=config.port_green,
             blue=config.port_blue,
             frequency=config.frequency,
+            active_high=not config.invert_logic,
             initial_value=(1, 1, 1) if config.default_state else (0, 0, 0),
         )
 

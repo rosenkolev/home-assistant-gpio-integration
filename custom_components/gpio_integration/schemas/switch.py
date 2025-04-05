@@ -19,17 +19,17 @@ def create_switch_schema(data: dict) -> vol.Schema:
             vol.Required(
                 CONF_PORT,
                 default=data[CONF_PORT],
-                description="GPIO pin number for the switch",
+                description={"comment": "GPIO pin number for the switch"},
             ): cv.positive_int,
             vol.Optional(
                 CONF_INVERT_LOGIC,
                 default=data[CONF_INVERT_LOGIC],
-                description="Invert the logic of the switch",
+                description={"comment": "Invert the logic of the switch"},
             ): cv.boolean,
             vol.Optional(
                 CONF_DEFAULT_STATE,
                 default=data[CONF_DEFAULT_STATE],
-                description="Default state of the switch",
+                description={"comment": "Default state of the switch"},
             ): cv.boolean,
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }

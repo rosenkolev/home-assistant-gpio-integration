@@ -22,17 +22,17 @@ def create_binary_sensor_schema(data: dict) -> vol.Schema:
             vol.Required(
                 CONF_PORT,
                 default=data[CONF_PORT],
-                description="GPIO pin number for the sensor",
+                description={"comment": "GPIO pin number for the sensor"},
             ): cv.positive_int,
             vol.Optional(
                 CONF_BOUNCE_TIME,
                 default=data[CONF_BOUNCE_TIME],
-                description="Bounce time for the sensor in milliseconds",
+                description={"comment": "Bounce time for the sensor in milliseconds"},
             ): cv.positive_int,
             vol.Optional(
                 CONF_INVERT_LOGIC,
                 default=data[CONF_INVERT_LOGIC],
-                description="Invert the logic of the sensor",
+                description={"comment": "Invert the logic of the sensor"},
             ): cv.boolean,
             vol.Required(CONF_MODE, default=data[CONF_MODE]): dropdown(
                 [

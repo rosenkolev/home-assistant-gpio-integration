@@ -1,12 +1,14 @@
+import voluptuous as vol
+
 from homeassistant.const import Platform
 
-from custom_components.gpio_integration.schemas.light import RgbLightConfig
-
+from .config_flow import CONF_ENTITIES
 from .controllers.cover import Roller
 from .controllers.sensor import AnalogStepControl, DHT22Controller
 from .core import get_logger
 from .schemas.binary_sensor import BinarySensorConfig
 from .schemas.cover import RollerConfig, ToggleRollerConfig
+from .schemas.light import RgbLightConfig
 from .schemas.main import EntityTypes
 from .schemas.pwm import PwmConfig
 from .schemas.sensor import AnalogStepConfig, DHT22Config
@@ -23,6 +25,26 @@ class Hub:
 
         self._type = EntityTypes(configs["type"])
         _LOGGER.debug('Hub: type "%s"', self._type.name)
+
+        if self._type is not None and configs:
+            # If we have config and a valid type, then try to
+            # add in any missing optional values from the base
+            # schema.
+            base_schema = CONF_ENTITIES[self._type.value]["schema"]
+            configs = dict(configs)
+            for key, val in base_schema.schema.items():
+                # Skip anything not an optional key
+                if not isinstance(key, vol.Optional):
+                    continue
+                # If not present in config data, copy in default
+                if key.schema not in configs:
+                    defVal = key.default()
+                    _LOGGER.debug(
+                        'Hub: setting missing default for config "%s" to value "%s"',
+                        key.schema,
+                        defVal,
+                    )
+                    configs.setdefault(key.schema, defVal)
 
         if self.is_type(EntityTypes.COVER_UP_DOWN):
             self.config = RollerConfig(configs)
