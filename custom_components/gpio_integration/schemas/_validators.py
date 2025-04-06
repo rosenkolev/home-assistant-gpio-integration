@@ -27,5 +27,10 @@ def v_positive_or_zero(value: float | int) -> bool:
     return v_assert(value >= 0, "Value must be greater than or equal to 0")
 
 
+def v_percentage(value: float | int) -> bool:
+    """Validate 0-100% factor."""
+    return v_assert(value >= 0 and value <= 100, "Value must be in range 0 - 100.")
+
+
 def v_time(time) -> bool:
     return v_assert(time > 0, "Value must be greater than 0")
