@@ -330,6 +330,9 @@ _**Entities**_
 | GPIO red color pin | The GPIO number for red pin |
 | GPIO green color pin | The GPIO number for green pin |
 | GPIO blue color pin | The GPIO number for blue pin |
+| GPIO red calibration | Calibration for red LED to equalize brightness across all three LEDs (0-100%). Used only when PWM is enabled [default `100`] |
+| GPIO green calibration | Calibration for green LED to equalize brightness across all three LEDs (0-100%). Used only when PWM is enabled [default `100`] |
+| GPIO blue calibration | Calibration for blue LED to equalize brightness across all three LEDs (0-100%). Used only when PWM is enabled [default `100`] |
 | Frequency | The pulse-wide modulation PWM frequency used for LED lights, when set greater then 0 it's assumed it's a led light, when `None` or 0 it's assumed normal light bulb. [default `0`] |
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
