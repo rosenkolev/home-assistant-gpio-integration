@@ -1,4 +1,4 @@
-<!-- cspell:ignore hassfest, Rosen, Kolev, lgpio, gpiod, pigpiod, Poeschl, Hassio -->
+<!-- cspell:ignore hassfest, Rosen, Kolev, rosenkolev, lgpio, gpiod, pigpiod, Poeschl, Hassio -->
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 [![](https://img.shields.io/github/release/rosenkolev/home-assistant-gpio-integration/all.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/releases)
 [![HACS Action](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hacs.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hacs.yml)
