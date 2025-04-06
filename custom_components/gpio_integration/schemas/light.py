@@ -1,8 +1,7 @@
 """Schema for the Light entities."""
 
-import voluptuous as vol
-
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant.const import CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
 
 from . import (
@@ -12,6 +11,7 @@ from . import (
     EMPTY_VARIATION_DATA,
     create_variation_list_schema,
     get_unique_id,
+    number_slider,
     validate_variation_data,
 )
 from ._validators import v_name, v_percentage, v_pin
@@ -54,9 +54,9 @@ LIGHT_SCHEMA = create_pwm_schema(
 CONF_RED_PIN = "red_pin"
 CONF_GREEN_PIN = "green_pin"
 CONF_BLUE_PIN = "blue_pin"
-CONF_RED_CALIBRATION = "red_calibration"
-CONF_GREEN_CALIBRATION = "green_calibration"
-CONF_BLUE_CALIBRATION = "blue_calibration"
+CONF_RED_INTENSITY = "red_calibration"
+CONF_GREEN_INTENSITY = "green_calibration"
+CONF_BLUE_INTENSITY = "blue_calibration"
 
 
 def create_rgb_light_schema(data: dict) -> vol.Schema:
@@ -94,26 +94,26 @@ def create_rgb_light_schema(data: dict) -> vol.Schema:
                 description={"comment": "Invert the logic of the LED (low = on)"},
             ): cv.boolean,
             vol.Optional(
-                CONF_RED_CALIBRATION,
-                default=data[CONF_RED_CALIBRATION],
+                CONF_RED_INTENSITY,
+                default=data[CONF_RED_INTENSITY],
                 description={
                     "comment": "Brightness correction factor red color (0-100%)"
                 },
-            ): cv.positive_int,
+            ): number_slider(1),
             vol.Optional(
-                CONF_GREEN_CALIBRATION,
-                default=data[CONF_GREEN_CALIBRATION],
+                CONF_GREEN_INTENSITY,
+                default=data[CONF_GREEN_INTENSITY],
                 description={
                     "comment": "Brightness correction factor green color (0-100%)"
                 },
-            ): cv.positive_int,
+            ): number_slider(1),
             vol.Optional(
-                CONF_BLUE_CALIBRATION,
-                default=data[CONF_BLUE_CALIBRATION],
+                CONF_BLUE_INTENSITY,
+                default=data[CONF_BLUE_INTENSITY],
                 description={
                     "comment": "Brightness correction factor blue color (0-100%)"
                 },
-            ): cv.positive_int,
+            ): number_slider(1),
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }
     )
@@ -128,9 +128,9 @@ RGB_LIGHT_SCHEMA = create_rgb_light_schema(
         CONF_FREQUENCY: 200,
         CONF_DEFAULT_STATE: False,
         CONF_INVERT_LOGIC: False,
-        CONF_RED_CALIBRATION: 100,
-        CONF_GREEN_CALIBRATION: 100,
-        CONF_BLUE_CALIBRATION: 100,
+        CONF_RED_INTENSITY: 100,
+        CONF_GREEN_INTENSITY: 100,
+        CONF_BLUE_INTENSITY: 100,
         CONF_UNIQUE_ID: "",
     }
 )
@@ -142,9 +142,9 @@ def validate_rgb_light_data(data):
         and v_pin(data[CONF_RED_PIN])
         and v_pin(data[CONF_GREEN_PIN])
         and v_pin(data[CONF_BLUE_PIN])
-        and v_percentage(data[CONF_RED_CALIBRATION])
-        and v_percentage(data[CONF_GREEN_CALIBRATION])
-        and v_percentage(data[CONF_BLUE_CALIBRATION])
+        and v_percentage(data[CONF_RED_INTENSITY])
+        and v_percentage(data[CONF_GREEN_INTENSITY])
+        and v_percentage(data[CONF_BLUE_INTENSITY])
     )
 
 
@@ -159,7 +159,7 @@ class RgbLightConfig:
         self.frequency: int = data[CONF_FREQUENCY]
         self.default_state: bool = data[CONF_DEFAULT_STATE]
         self.invert_logic: bool = data[CONF_INVERT_LOGIC]
-        self.calibration_red: int = data[CONF_RED_CALIBRATION]
-        self.calibration_green: int = data[CONF_GREEN_CALIBRATION]
-        self.calibration_blue: int = data[CONF_BLUE_CALIBRATION]
+        self.intensity_red: float = data[CONF_RED_INTENSITY] / 100.0
+        self.intensity_green: float = data[CONF_GREEN_INTENSITY] / 100.0
+        self.intensity_blue: float = data[CONF_BLUE_INTENSITY] / 100.0
         self.unique_id: str = get_unique_id(data)

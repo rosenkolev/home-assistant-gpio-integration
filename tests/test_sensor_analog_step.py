@@ -70,7 +70,7 @@ def test__Sensor_AnalogStep_should_not_be_device(mock_MCP_chips):
 
 
 @pytest.mark.asyncio
-async def test__DHT22_will_close_pin(mock_MCP_chips):
+async def test__MCP_will_close_pin(mock_MCP_chips):
     hub = Hub(_create_config(channel=0))
     device = mock_MCP_chips(0)
     gpio = GpioSensor(hub.sensors[0])

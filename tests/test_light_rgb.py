@@ -9,8 +9,11 @@ from custom_components.gpio_integration.schemas import (
     CONF_NAME,
 )
 from custom_components.gpio_integration.schemas.light import (
+    CONF_BLUE_INTENSITY,
     CONF_BLUE_PIN,
+    CONF_GREEN_INTENSITY,
     CONF_GREEN_PIN,
+    CONF_RED_INTENSITY,
     CONF_RED_PIN,
     RgbLightConfig,
 )
@@ -28,6 +31,9 @@ class RgbLightTestCase:
         self,
         default_state=False,
         invert_logic=False,
+        red_intensity=100,
+        green_intensity=100,
+        blue_intensity=100,
         frequency=50,
     ):
         return RgbLightConfig(
@@ -36,6 +42,9 @@ class RgbLightTestCase:
                 CONF_RED_PIN: self.pin_names[0],
                 CONF_GREEN_PIN: self.pin_names[1],
                 CONF_BLUE_PIN: self.pin_names[2],
+                CONF_RED_INTENSITY: red_intensity,
+                CONF_GREEN_INTENSITY: green_intensity,
+                CONF_BLUE_INTENSITY: blue_intensity,
                 CONF_FREQUENCY: frequency,
                 CONF_DEFAULT_STATE: default_state,
                 CONF_INVERT_LOGIC: invert_logic,
@@ -178,6 +187,20 @@ def test__RgbGpioLight_LED_should_set_rgb(mocked_factory):
         # mix
         gpio.turn_on(**{"A_RGB": (25.5, 255, 51)})
         tc.assert_pin_state(0.1, 1.0, 0.2)
+
+
+def test__RgbGpioLight_LED_should_turn_led_on_with_intensity_shift(mocked_factory):
+    tc = RgbLightTestCase(mocked_factory)
+    with RgbGpioLight(
+        tc.create_config(red_intensity=30, green_intensity=95, blue_intensity=50)
+    ) as gpio:
+        # White
+        gpio.turn_on()
+        tc.assert_pin_state(0.3, 0.95, 0.5)
+
+        # Color
+        gpio.turn_on(**{"A_RGB": (100, 150, 200)})
+        tc.assert_pin_state(0.1176, 0.5588, 0.3922)
 
 
 def test__RgbGpioLight_should_pulse_slow(mocked_factory, mock_gpio_thread):
