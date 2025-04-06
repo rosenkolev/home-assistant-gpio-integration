@@ -58,7 +58,7 @@ BLINKS: dict = {
 }
 
 
-def brightness_to_value(brightness: int) -> int:
+def brightness_to_value(brightness: int) -> float:
     return round(float(brightness / HIGH_BRIGHTNESS), 4)
 
 
@@ -204,6 +204,12 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
             LightEntityFeature.FLASH | LightEntityFeature.EFFECT
         )
 
+        self._calibration = (
+            config.calibration_red / 100.0 if config.frequency > 0 else 1,
+            config.calibration_green / 100.0 if config.frequency > 0 else 1,
+            config.calibration_blue / 100.0 if config.frequency > 0 else 1,
+        )
+
         self._brightness = HIGH_BRIGHTNESS if config.default_state else 0
         self._rgb = RGB_WHITE if config.default_state else RGB_OFF
         self._io = RgbLight(
@@ -212,7 +218,7 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
             blue=config.port_blue,
             frequency=config.frequency,
             active_high=not config.invert_logic,
-            initial_value=(1, 1, 1) if config.default_state else (0, 0, 0),
+            initial_value=(self._calibration if config.default_state else (0, 0, 0)),
         )
 
     @property
@@ -280,7 +286,9 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
 
         if brightness != self._brightness or rgb != self._rgb:
             r = brightness_to_value(brightness)  # between 0 and 1
-            value = tuple((v / HIGH_BRIGHTNESS) * r for v in rgb)
+            value = tuple(
+                (v / HIGH_BRIGHTNESS) * r * c for v, c in zip(rgb, self._calibration)
+            )
             self._rgb = rgb
             self._brightness = brightness
             self._io.value = value

@@ -14,7 +14,7 @@ from . import (
     get_unique_id,
     validate_variation_data,
 )
-from ._validators import v_name, v_pin
+from ._validators import v_name, v_percentage, v_pin
 from .pwm import create_pwm_schema
 
 ### Light Variations ###
@@ -54,6 +54,9 @@ LIGHT_SCHEMA = create_pwm_schema(
 CONF_RED_PIN = "red_pin"
 CONF_GREEN_PIN = "green_pin"
 CONF_BLUE_PIN = "blue_pin"
+CONF_RED_CALIBRATION = "red_calibration"
+CONF_GREEN_CALIBRATION = "green_calibration"
+CONF_BLUE_CALIBRATION = "blue_calibration"
 
 
 def create_rgb_light_schema(data: dict) -> vol.Schema:
@@ -90,6 +93,27 @@ def create_rgb_light_schema(data: dict) -> vol.Schema:
                 default=data[CONF_INVERT_LOGIC],
                 description={"comment": "Invert the logic of the LED (low = on)"},
             ): cv.boolean,
+            vol.Optional(
+                CONF_RED_CALIBRATION,
+                default=data[CONF_RED_CALIBRATION],
+                description={
+                    "comment": "Brightness correction factor red color (0-100%)"
+                },
+            ): cv.positive_int,
+            vol.Optional(
+                CONF_GREEN_CALIBRATION,
+                default=data[CONF_GREEN_CALIBRATION],
+                description={
+                    "comment": "Brightness correction factor green color (0-100%)"
+                },
+            ): cv.positive_int,
+            vol.Optional(
+                CONF_BLUE_CALIBRATION,
+                default=data[CONF_BLUE_CALIBRATION],
+                description={
+                    "comment": "Brightness correction factor blue color (0-100%)"
+                },
+            ): cv.positive_int,
             vol.Optional(CONF_UNIQUE_ID, default=data[CONF_UNIQUE_ID]): cv.string,
         }
     )
@@ -104,6 +128,9 @@ RGB_LIGHT_SCHEMA = create_rgb_light_schema(
         CONF_FREQUENCY: 200,
         CONF_DEFAULT_STATE: False,
         CONF_INVERT_LOGIC: False,
+        CONF_RED_CALIBRATION: 100,
+        CONF_GREEN_CALIBRATION: 100,
+        CONF_BLUE_CALIBRATION: 100,
         CONF_UNIQUE_ID: "",
     }
 )
@@ -115,6 +142,9 @@ def validate_rgb_light_data(data):
         and v_pin(data[CONF_RED_PIN])
         and v_pin(data[CONF_GREEN_PIN])
         and v_pin(data[CONF_BLUE_PIN])
+        and v_percentage(data[CONF_RED_CALIBRATION])
+        and v_percentage(data[CONF_GREEN_CALIBRATION])
+        and v_percentage(data[CONF_BLUE_CALIBRATION])
     )
 
 
@@ -129,4 +159,7 @@ class RgbLightConfig:
         self.frequency: int = data[CONF_FREQUENCY]
         self.default_state: bool = data[CONF_DEFAULT_STATE]
         self.invert_logic: bool = data[CONF_INVERT_LOGIC]
+        self.calibration_red: int = data[CONF_RED_CALIBRATION]
+        self.calibration_green: int = data[CONF_GREEN_CALIBRATION]
+        self.calibration_blue: int = data[CONF_BLUE_CALIBRATION]
         self.unique_id: str = get_unique_id(data)
