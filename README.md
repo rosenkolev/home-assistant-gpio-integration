@@ -8,7 +8,7 @@
 
 # Home Assistant Raspberry Pi GPIO custom integration
 
-The `gpio_integration` integration supports the following platforms: Binary Sensor, Cover (ON/OFF and toggle), Switch
+The `gpio_integration` integration access the 40-pin GPIO chip capabilities
 
 <details>
 <summary>Table of Contents</summary>
@@ -41,12 +41,17 @@ The `gpio_integration` integration supports the following platforms: Binary Sens
 * [x] Light
 * [x] Fan
 * [x] Sensor
+  * MCP3xxx Microchips
+  * DHT22 sensors
 
 ## Installation
 
 ### HACS
 
 The recommend way to install `gpio_integration` is through [HACS](https://hacs.xyz/).
+
+> [!IMPORTANT]
+> **pigpiod** is required.
 
 ### Manual installation
 
@@ -310,6 +315,7 @@ This should indicate LED is at 40% brightness (2/5 every cycle).
 | Name | The name of the entity |
 | GPIO pin | The GPIO pin number |
 | Frequency | The pulse-wide modulation PWM frequency used for LED lights, when set greater then 0 it's assumed it's a led light, when `None` or 0 it's assumed normal light bulb. [default `0`] |
+| Invert logic | When checked, the pin output will be reversed: **ON** = LOW (0v) and **Off** = HIGH (3.3v) [default `False`] |
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
@@ -330,9 +336,10 @@ _**Entities**_
 | GPIO red color pin | The GPIO number for red pin |
 | GPIO green color pin | The GPIO number for green pin |
 | GPIO blue color pin | The GPIO number for blue pin |
-| GPIO red calibration | Calibration for red LED to equalize brightness across all three LEDs (0-100%). Used only when PWM is enabled [default `100`] |
-| GPIO green calibration | Calibration for green LED to equalize brightness across all three LEDs (0-100%). Used only when PWM is enabled [default `100`] |
-| GPIO blue calibration | Calibration for blue LED to equalize brightness across all three LEDs (0-100%). Used only when PWM is enabled [default `100`] |
+| Invert logic | When checked, the pin output will be reversed: **ON** = LOW (0v) and **Off** = HIGH (3.3v) [default `False`] |
+| Calibration red intensity | Calibration for red LED to equalize brightness across all three LEDs (0-100%). Used only when PWM is enabled [default `100`] |
+| Calibration green intensity | Calibration for green LED to equalize brightness across all three LEDs (0-100%). Used only when PWM is enabled [default `100`] |
+| Calibration blue intensity | Calibration for blue LED to equalize brightness across all three LEDs (0-100%). Used only when PWM is enabled [default `100`] |
 | Frequency | The pulse-wide modulation PWM frequency used for LED lights, when set greater then 0 it's assumed it's a led light, when `None` or 0 it's assumed normal light bulb. [default `0`] |
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
@@ -436,4 +443,4 @@ gpio_integration:
 
 ## Credits
 
-This integration is developed by [RosenKolev][rosenkolev] and the code is located [here](https://github.com/rosenkolev/home-assistant-gpio-integration)
+This integration's source code is located at [rosenkolev/home-assistant-gpio-integration](https://github.com/rosenkolev/home-assistant-gpio-integration)

@@ -204,21 +204,21 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
             LightEntityFeature.FLASH | LightEntityFeature.EFFECT
         )
 
-        self._calibration = (
-            config.calibration_red / 100.0 if config.frequency > 0 else 1,
-            config.calibration_green / 100.0 if config.frequency > 0 else 1,
-            config.calibration_blue / 100.0 if config.frequency > 0 else 1,
-        )
-
         self._brightness = HIGH_BRIGHTNESS if config.default_state else 0
         self._rgb = RGB_WHITE if config.default_state else RGB_OFF
+        self._white_light = (  # the white light created by the 3 color with the correct intensity
+            (config.intensity_red, config.intensity_green, config.intensity_blue)
+            if self._pwm
+            else (1, 1, 1)
+        )
+
         self._io = RgbLight(
             red=config.port_red,
             green=config.port_green,
             blue=config.port_blue,
             frequency=config.frequency,
             active_high=not config.invert_logic,
-            initial_value=(self._calibration if config.default_state else (0, 0, 0)),
+            initial_value=(self._white_light if config.default_state else (0, 0, 0)),
         )
 
     @property
@@ -287,7 +287,8 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
         if brightness != self._brightness or rgb != self._rgb:
             r = brightness_to_value(brightness)  # between 0 and 1
             value = tuple(
-                (v / HIGH_BRIGHTNESS) * r * c for v, c in zip(rgb, self._calibration)
+                round((v / HIGH_BRIGHTNESS) * r * c, 4)
+                for v, c in zip(rgb, self._white_light)
             )
             self._rgb = rgb
             self._brightness = brightness

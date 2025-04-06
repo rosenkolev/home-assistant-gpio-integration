@@ -45,6 +45,9 @@ def get_unique_id(data: dict) -> str | None:
     return data.get(CONF_UNIQUE_ID) or data[CONF_NAME].lower().replace(" ", "_") or None
 
 
+# Selectors as described by https://www.home-assistant.io/docs/blueprint/selectors
+
+
 def dropdown(
     options: list[dict[Literal["label", "value"], str]] | list[str],
     mode: Literal["dropdown", "list"] = "dropdown",
@@ -54,6 +57,19 @@ def dropdown(
             "select": {
                 "options": options,
                 "mode": mode,
+            }
+        }
+    )
+
+
+def number_slider(min: int, max=100, step=1, unit="%"):
+    return selector(
+        {
+            "number": {
+                "min": min.__str__(),
+                "max": max.__str__(),
+                "step": step.__str__(),
+                "unit_of_measurement": unit,
             }
         }
     )
