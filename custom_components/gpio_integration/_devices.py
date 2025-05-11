@@ -14,6 +14,7 @@ from gpiozero import (
     MCP3204,
     MCP3208,
     RGBLED,
+    AngularServo,
     DigitalInputDevice,
     DigitalOutputDevice,
     InputDevice,
@@ -95,6 +96,29 @@ class BinarySensor(AsStringMixin, DigitalInputDevice):
     def any_event_time_sec(self) -> float | None:
         active_time = self.active_time
         return active_time if active_time is not None else self.inactive_time
+
+
+class Servo(AsStringMixin, AngularServo):
+    def __init__(
+        self,
+        pin: int,
+        initial_angle=0.0,
+        min_angle=-90,
+        max_angle=90,
+        min_pulse_width_ms=1,
+        max_pulse_width_ms=2,
+        frame_width_ms=20,
+    ):
+        super().__init__(
+            pin,
+            pin_factory=get_pin_factory(),
+            initial_angle=initial_angle,
+            min_angle=min_angle,
+            max_angle=max_angle,
+            min_pulse_width=min_pulse_width_ms / 1000.0,
+            max_pulse_width=max_pulse_width_ms / 1000.0,
+            frame_width=frame_width_ms / 1000.0,
+        )
 
 
 class RgbLight(RGBLED):

@@ -26,6 +26,7 @@ The `gpio_integration` integration access the 40-pin GPIO chip capabilities
    * [Light (RGB)](#light-rgb)
    * [Fan](#fan)
    * [Sensors](#sensors)
+   * [Servo](#servo)
 1. [Development](#development)
 1. [Interface Advanced Configuration](#interface-advanced-configuration)
 1. [Credits](#credits)
@@ -37,6 +38,8 @@ The `gpio_integration` integration access the 40-pin GPIO chip capabilities
 * [x] Binary Sensor
 * [x] Cover
 * [x] Number
+  * Cover Position
+  * Servo
 * [x] Switch
 * [x] Light
 * [x] Fan
@@ -392,6 +395,34 @@ flowchart TB
 #### Analog step sensors (MCP300X, MCP320X)
 
 Analog sensor based on the MCP chips and steps. See [the TMP36 example here](https://gpiozero.readthedocs.io/en/stable/recipes.html#measure-temperature-with-an-adc).
+
+### Servo
+
+Creates a `Number` entity, that controls a Servo motor.
+
+#### Example
+
+```mermaid
+---
+title: Raspberry Pi GPIO Example
+---
+flowchart LR
+  subgraph GPIO
+    A[GPIO X]
+    B["PIN (GRD)"]
+  end
+```
+
+#### Options
+
+|  | |
+| - | - |
+| Name | The name of the entity |
+| GPIO pin | The GPIO pin number |
+| Min angle | The minimum angle the servo rotates to [default `-90°`] |
+| Max angle | The maximum angle the servo rotates to [default `90°`] |
+| Default angle | The initial angle of the sensor motor [default `0°`] |
+| Unique ID | Optional: Id of the entity. When not provided it's auto-generated. |
 
 ## Development
 

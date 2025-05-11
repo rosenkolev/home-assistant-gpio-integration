@@ -45,6 +45,8 @@
           "channel": "O canal do chip MCP (por exemplo, 0-7)",
           "min_voltage": "A tensão mínima do sensor analógico",
           "min_value": "O valor mínimo do sensor correspondente à tensão mínima",
+          "min_angle": "O ângulo mínimo",
+          "max_angle": "O ângulo máximo",
           "step_voltage": "O passo de tensão do sensor analógico",
           "step_value": "O passo de valor do sensor correspondente ao passo de tensão",
           "unique_id": "ID Único"
@@ -88,6 +90,8 @@
           "channel": "O canal do chip MCP (por exemplo, 0-7)",
           "min_voltage": "A tensão mínima do sensor analógico",
           "min_value": "O valor mínimo do sensor correspondente à tensão mínima",
+          "min_angle": "O ângulo mínimo",
+          "max_angle": "O ângulo máximo",
           "step_voltage": "O passo de tensão do sensor analógico",
           "step_value": "O passo de valor do sensor correspondente ao passo de tensão",
           "unique_id": "ID Único"

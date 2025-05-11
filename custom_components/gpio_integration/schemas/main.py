@@ -18,6 +18,7 @@ class EntityTypes(Enum):
     SENSOR = "sensor"
     SENSOR_DHT22 = "sensor_dht22"
     SENSOR_ANALOG_STEP = "sensor_analog_step"
+    SERVO = "servo"
 
 
 CONF_TYPES: dict = {
@@ -27,6 +28,7 @@ CONF_TYPES: dict = {
     "Light": EntityTypes.LIGHT.value,
     "Fan": EntityTypes.FAN.value,
     "Sensor": EntityTypes.SENSOR.value,
+    "Servo": EntityTypes.SERVO.value,
 }
 
 MAIN_SCHEMA = vol.Schema(

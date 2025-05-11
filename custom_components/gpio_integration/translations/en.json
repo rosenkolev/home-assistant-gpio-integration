@@ -45,6 +45,8 @@
           "channel": "The channel of the MCP chip (e.g. 0-7)",
           "min_voltage": "The minimum voltage of the analog sensor",
           "min_value": "The minimum value of the sensor corresponding to the minimum voltage",
+          "min_angle": "The minimum angle",
+          "max_angle": "The maximum angle",
           "step_voltage": "The voltage step of the analog sensor",
           "step_value": "The value step of the sensor corresponding to the voltage step",
           "unique_id": "Unique ID"
@@ -87,6 +89,8 @@
           "channel": "The channel of the MCP chip (e.g. 0-7)",
           "min_voltage": "The minimum voltage of the analog sensor",
           "min_value": "The minimum value of the sensor corresponding to the minimum voltage",
+          "min_angle": "The minimum angle",
+          "max_angle": "The maximum angle",
           "step_voltage": "The voltage step of the analog sensor",
           "step_value": "The value step of the sensor corresponding to the voltage step",
           "unique_id": "Unique ID"
