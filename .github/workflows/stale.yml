@@ -1,0 +1,30 @@
+name: Stale
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+jobs:
+  stale:
+    if: github.repository_owner == 'rosenkolev'
+    runs-on: ubuntu-latest
+    steps:
+      # The 90 day stale policy for issues
+      # Used for:
+      # - Issues (no issues marked as no-stale or help-wanted)
+      # - No PRs (-1)
+      - name: 90 days stale issues
+        uses: actions/stale@v9.1.0
+        with:
+          days-before-stale: 90
+          days-before-close: 7
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          operations-per-run: 250
+          remove-stale-when-updated: true
+          stale-issue-label: "stale"
+          exempt-issue-labels: "no-stale,help-wanted"
+          stale-issue-message: >
+            This issue has now been marked as stale and will be closed if no
+            further activity occurs. Thank you for your contributions.
