@@ -4,7 +4,8 @@
 [![HACS Action](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hacs.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hacs.yml)
 [![Release Drafter](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/release-drafter.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/release-drafter.yml)
 [![Validate with hassfest](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hassfest.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hassfest.yml)
-[![Verification](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/test.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/test.yml)
+[![Test](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/test.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/test.yml)
+[![Coverage](https://raw.githubusercontent.com/gist/rosenkolev/03ba5cb1f9f017852a3d910a8df02fc4/raw/home-assistant-gpio-integration.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/test.yml)
 
 # Home Assistant Raspberry Pi GPIO custom integration
 
