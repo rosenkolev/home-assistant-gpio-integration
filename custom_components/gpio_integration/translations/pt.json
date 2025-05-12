@@ -47,6 +47,8 @@
           "min_value": "O valor mínimo do sensor correspondente à tensão mínima",
           "min_angle": "O ângulo mínimo",
           "max_angle": "O ângulo máximo",
+          "min_duty_cycle": "O ciclo de trabalho mínimo em milissegundos",
+          "max_duty_cycle": "O ciclo de trabalho máximo em milissegundos",
           "step_voltage": "O passo de tensão do sensor analógico",
           "step_value": "O passo de valor do sensor correspondente ao passo de tensão",
           "unique_id": "ID Único"
@@ -92,6 +94,8 @@
           "min_value": "O valor mínimo do sensor correspondente à tensão mínima",
           "min_angle": "O ângulo mínimo",
           "max_angle": "O ângulo máximo",
+          "min_duty_cycle": "O ciclo de trabalho mínimo em milissegundos",
+          "max_duty_cycle": "O ciclo de trabalho máximo em milissegundos",
           "step_voltage": "O passo de tensão do sensor analógico",
           "step_value": "O passo de valor do sensor correspondente ao passo de tensão",
           "unique_id": "ID Único"

@@ -47,6 +47,8 @@
           "min_value": "The minimum value of the sensor corresponding to the minimum voltage",
           "min_angle": "The minimum angle",
           "max_angle": "The maximum angle",
+          "min_duty_cycle": "The minimum duty cycle in milliseconds",
+          "max_duty_cycle": "The maximum duty cycle in milliseconds",
           "step_voltage": "The voltage step of the analog sensor",
           "step_value": "The value step of the sensor corresponding to the voltage step",
           "unique_id": "Unique ID"
@@ -91,6 +93,8 @@
           "min_value": "The minimum value of the sensor corresponding to the minimum voltage",
           "min_angle": "The minimum angle",
           "max_angle": "The maximum angle",
+          "min_duty_cycle": "The minimum duty cycle in milliseconds",
+          "max_duty_cycle": "The maximum duty cycle in milliseconds",
           "step_voltage": "The voltage step of the analog sensor",
           "step_value": "The value step of the sensor corresponding to the voltage step",
           "unique_id": "Unique ID"
