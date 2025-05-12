@@ -20,7 +20,7 @@ SERVO_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_NAME, default=None): cv.string,
         vol.Required(CONF_PORT, default=None): cv.positive_int,
-        vol.Optional(CONF_DEFAULT_STATE, default=0): cv.int,
+        vol.Optional(CONF_DEFAULT_STATE, default=0): vol.Coerce(int),
         vol.Required(CONF_MIN_ANGLE, default=-90): number_slider(-180, 180, 1, "°"),
         vol.Required(CONF_MAX_ANGLE, default=90): number_slider(0, 360, 1, "°"),
         vol.Required(CONF_MIN_DUTY_CYCLE, default=1): cv.positive_int,
