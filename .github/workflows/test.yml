@@ -1,8 +1,14 @@
 name: Verification
 
-on: [push]  
-  
-jobs:  
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+jobs:
   build:  
     runs-on: ubuntu-latest  
     steps:  
@@ -24,9 +30,19 @@ jobs:
       - name: Generate Coverage Report Summary
         run: coverage report -m --data-file reports/.coverage --format=markdown >> $GITHUB_STEP_SUMMARY
       - name: Generate Coverage Report
-        run: coverage xml --data-file reports/.coverage -o reports/coverage.xml
-      - name: Get Cover
-        uses: orgoro/coverage@v3.2
+        run: coverage json --data-file reports/.coverage -o reports/coverage.json
+      - name: Get coverage output
+        id: coverage
+        run: echo "value=$(node -e "const fs = require('node:fs'), x = JSON.parse(fs.readFileSync('reports/coverage.json')); console.log(Math.round(x.totals.percent_covered * 100)/ 100);")" >> "$GITHUB_OUTPUT"
+      - name: Coverage to badge
+        if: github.event_name == 'push'
+        uses: schneegans/dynamic-badges-action@v1.7.0
         with:
-            coverageFile: reports/.coverage
-            token: ${{ secrets.GITHUB_TOKEN }}
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 03ba5cb1f9f017852a3d910a8df02fc4
+          filename: home-assistant-gpio-integration.svg
+          label: Test Coverage
+          message: ${{ steps.coverage.outputs.value }}
+          color: green
+          namedLogo: pytest
+          forceUpdate: true

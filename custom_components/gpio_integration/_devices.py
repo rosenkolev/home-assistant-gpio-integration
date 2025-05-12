@@ -109,6 +109,7 @@ class Servo(AsStringMixin, AngularServo):
         max_pulse_width_ms=2,
         frame_width_ms=20,
     ):
+        self.pin = pin
         super().__init__(
             pin,
             pin_factory=get_pin_factory(),

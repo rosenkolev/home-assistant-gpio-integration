@@ -58,9 +58,7 @@ class GpioPosition(ClosableMixin, ReprMixin, DeviceMixin, NumberEntity):
 
 class GpioServo(ClosableMixin, ReprMixin, DeviceMixin, NumberEntity):
     def __init__(self, config: ServoConfig) -> None:
-        """Initialize the cover."""
-        self._attr_native_unit_of_measurement = "%"
-
+        """Initialize the servo."""
         self._attr_name = config.name
         self._attr_unique_id = config.unique_id
         self._attr_should_poll = False
@@ -71,9 +69,9 @@ class GpioServo(ClosableMixin, ReprMixin, DeviceMixin, NumberEntity):
             initial_angle=config.default_angle,
             min_angle=config.min_angle,
             max_angle=config.max_angle,
-            min_pulse_width_ms=1,
-            max_pulse_width_ms=2,
-            frame_width_ms=20,
+            min_pulse_width_ms=config.min_duty_cycle,
+            max_pulse_width_ms=config.max_duty_cycle,
+            frame_width_ms=1000 / config.frequency,
         )
 
     @property

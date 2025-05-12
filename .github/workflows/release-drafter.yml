@@ -13,7 +13,7 @@ jobs:
     permissions:
       # write permission is required to create a github release
       contents: write
-      # write permission is required for autolabeler
+      # write permission is required for auto-labeler
       # otherwise, read permission is required at least
       pull-requests: write
     runs-on: ubuntu-latest
