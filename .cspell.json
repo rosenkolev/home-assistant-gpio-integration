@@ -17,7 +17,6 @@
         "GPIO",
         "hass",
         "homeassistant",
-        "orgoro",
         "ruff",
         "ONOFF",
         "rpigpio",

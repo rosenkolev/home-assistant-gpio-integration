@@ -10,6 +10,7 @@ from .schemas.light import RgbLightConfig
 from .schemas.main import EntityTypes
 from .schemas.pwm import PwmConfig
 from .schemas.sensor import AnalogStepConfig, DHT22Config
+from .schemas.servo import ServoConfig
 from .schemas.switch import SwitchConfig
 
 _LOGGER = get_logger()
@@ -60,6 +61,9 @@ class Hub:
             self.controller = AnalogStepControl(self.config)
             self.sensors = self.controller.get_sensors()
             self.platforms = [Platform.SENSOR]
+        elif self.is_type(EntityTypes.SERVO):
+            self.config = ServoConfig(configs)
+            self.platforms = [Platform.NUMBER]
 
     def is_type(self, type: EntityTypes) -> bool:
         return self._type == type

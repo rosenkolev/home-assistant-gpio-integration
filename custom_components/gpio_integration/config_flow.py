@@ -39,6 +39,7 @@ from .schemas.sensor import (
     validate_sensor_dht22_data,
     validate_sensor_variation_data,
 )
+from .schemas.servo import SERVO_SCHEMA, validate_servo_data
 from .schemas.switch import SWITCH_SCHEMA, validate_switch_data
 
 _LOGGER = get_logger()
@@ -92,6 +93,10 @@ CONF_ENTITIES: dict = {
         "schema": SENSOR_ANALOG_STEP_SCHEMA,
         "validate": validate_sensor_analog_step_data,
     },
+    EntityTypes.SERVO.value: {
+        "schema": SERVO_SCHEMA,
+        "validate": validate_servo_data,
+    },
 }
 
 
@@ -140,6 +145,7 @@ SINGLE_STEP_ENTITIES = [
     EntityTypes.BINARY_SENSOR.value,
     EntityTypes.SWITCH.value,
     EntityTypes.FAN.value,
+    EntityTypes.SERVO.value,
 ]
 
 

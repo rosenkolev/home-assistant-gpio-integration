@@ -26,7 +26,8 @@ The `gpio_integration` integration access the 40-pin GPIO chip capabilities
    * [Light (RGB)](#light-rgb)
    * [Fan](#fan)
    * [Sensors](#sensors)
-1. [Development](#development)
+   * [Servo](#servo)
+1. [Contributing](#contributing)
 1. [Interface Advanced Configuration](#interface-advanced-configuration)
 1. [Credits](#credits)
 
@@ -37,6 +38,8 @@ The `gpio_integration` integration access the 40-pin GPIO chip capabilities
 * [x] Binary Sensor
 * [x] Cover
 * [x] Number
+  * Cover Position
+  * Servo
 * [x] Switch
 * [x] Light
 * [x] Fan
@@ -393,24 +396,54 @@ flowchart TB
 
 Analog sensor based on the MCP chips and steps. See [the TMP36 example here](https://gpiozero.readthedocs.io/en/stable/recipes.html#measure-temperature-with-an-adc).
 
-## Development
+### Servo
 
-The code is located at `custom_components/gpio_integration`
+Creates a `Number` entity, that controls a Servo motor.
 
-```shell
-custom_components/gpio_integration
-  |- schemas/            #-> The config schematics for the entities
-  |- controllers/        #-> A common controllers that handle entities (cover, sensors)
-  |- __init__.py         #-> home assistant initialization code
-  |- _devices.py         #-> wrappers around `gpiozero` Device classes
-  |- _pin_factory.py     #-> functions that instantiate the correct pin_factory based on configs
-  |- config_flow.py      #-> add/edit new entities logic: ConfigFlow, OptionsFlowHandler
-  |- core.py             #-> common code like constants and base classes
-  |- hub.py              #-> class shared between entities (facade)
-  |- switch.py, number.py, etc #-> Home assistant entities
+#### Example
+
+```mermaid
+---
+title: Raspberry Pi GPIO Example
+---
+flowchart TB
+  subgraph GPIO
+    A[GPIO 17]
+    B["PIN (GRD)"]
+    C["PIN (+5V)"]
+  end
+  A === D("Servo")
+  B --- D
+  C --- D
 ```
 
-To create a new hardware implementation create new `Factory` and `Pin` ([gpiozero.pins](https://github.com/gpiozero/gpiozero/blob/master/gpiozero/pins/__init__.py)) child classes and implement it for the hardware. Then add it to `PIN_FACTORIES` in [_pin_factory](./_pin_factory.py).
+```text
+     duty cycle ms (min - max)       \\\
+     |==|                             \\\  X°
+     ,--.                           ,-------.
+5V   |  |              |            | Servo |
+-----'  `--------------'            `-------'
+     |=================|
+     frame width ms / frequency
+```
+
+#### Options
+
+| | |
+| - | - |
+| Name | Description |
+| GPIO pin | The GPIO pin number |
+| Min angle | The minimum angle the servo rotates to [default `-90°`] |
+| Min duty cycle | The minimum duty cycle for the min angle in ms [default `1ms`] |
+| Max angle | The maximum angle the servo rotates to [default `90°`] |
+| Max duty cycle | The maximum duty cycle for the max angle in ms [default `2ms`] |
+| frequency | The repeat period (i.e. frequency, frame width) in Hz [default `50Hz` (=`20ms`)] |
+| Default angle | The initial angle of the servo motor [default `0°`] |
+| Unique ID | Optional: Id of the entity. When not provided it's auto-generated. |
+
+## Contributing
+
+For details refer to [CONTRIBUTING](./CONTRIBUTING.md).
 
 ## Interface Advanced Configuration
 
