@@ -1,3 +1,4 @@
+<!-- cspell:ignore venv -->
 # Contributing
 
 ## Project Structure
