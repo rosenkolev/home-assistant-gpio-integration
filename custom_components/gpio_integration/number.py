@@ -64,6 +64,8 @@ class GpioServo(ClosableMixin, ReprMixin, DeviceMixin, NumberEntity):
         self._attr_should_poll = False
         self._attr_native_step = 1
         self._attr_native_unit_of_measurement = "°"
+        self._attr_native_min_value = config.min_angle
+        self._attr_native_max_value = config.max_angle
         self._io = Servo(
             config.port,
             initial_angle=config.default_angle,
