@@ -21,6 +21,9 @@ from gpiozero import (
     PWMOutputDevice,
     event,
 )
+from gpiozero import (
+    DistanceSensor as GZDistanceSensor,
+)
 
 from ._pin_factory import get_pin_factory
 from .core import get_logger, sleep_sec
@@ -96,6 +99,16 @@ class BinarySensor(AsStringMixin, DigitalInputDevice):
     def any_event_time_sec(self) -> float | None:
         active_time = self.active_time
         return active_time if active_time is not None else self.inactive_time
+
+
+class DistanceSensor(AsStringMixin, GZDistanceSensor):
+    def __init__(self, echo: int, trigger: int, max_distance: float | int):
+        super().__init__(
+            echo,
+            trigger,
+            max_distance=max_distance,
+            pin_factory=get_pin_factory(),
+        )
 
 
 class Servo(AsStringMixin, AngularServo):

@@ -74,8 +74,15 @@ sys.modules["homeassistant.components.binary_sensor"] = Mock()
 sys.modules["homeassistant.components.binary_sensor"].BinarySensorEntity = (
     MockedBaseEntity
 )
+
+
+class SensorDeviceClass:
+    DISTANCE = "distance"
+
+
 sys.modules["homeassistant.components.sensor"] = Mock()
 sys.modules["homeassistant.components.sensor"].SensorEntity = MockedBaseEntity
+sys.modules["homeassistant.components.sensor"].SensorDeviceClass = SensorDeviceClass
 sys.modules["homeassistant.components.switch"] = Mock()
 sys.modules["homeassistant.components.switch"].SwitchEntity = MockedBaseEntity
 

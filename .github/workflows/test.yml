@@ -29,9 +29,9 @@ jobs:
       - name: Test with pytest
         run: coverage run --data-file reports/.coverage -m pytest -v -s
       - name: Generate Coverage Report Summary
-        run: coverage report -m --data-file reports/.coverage --format=markdown >> $GITHUB_STEP_SUMMARY
+        run: coverage report -m --data-file reports/.coverage --format=markdown --include=custom_components/** >> $GITHUB_STEP_SUMMARY
       - name: Generate Coverage Report
-        run: coverage json --data-file reports/.coverage -o reports/coverage.json
+        run: coverage json --data-file reports/.coverage -o reports/coverage.json --include=custom_components/**
       - name: Get coverage output
         id: coverage
         run: echo "value=$(node -e "const fs = require('node:fs'), x = JSON.parse(fs.readFileSync('reports/coverage.json')); console.log(Math.round(x.totals.percent_covered * 100)/ 100);")" >> "$GITHUB_OUTPUT"
