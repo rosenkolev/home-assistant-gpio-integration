@@ -10,6 +10,7 @@ from homeassistant.const import (
 
 from .._devices import MCP_NAMES
 from . import (
+    CONF_PIN_TRIGGER,
     EMPTY_VARIATION_DATA,
     create_variation_list_schema,
     dropdown,
@@ -19,9 +20,11 @@ from . import (
 from ._validators import v_name, v_pin, v_positive, v_positive_or_zero
 from .main import EntityTypes
 
+CONF_MAX_DISTANCE = "max_distance"
 SENSOR_VARIATIONS = {
     EntityTypes.SENSOR_DHT22.value: "DHT22",
     EntityTypes.SENSOR_ANALOG_STEP.value: "Analog Step",
+    EntityTypes.SENSOR_DISTANCE.value: "Distance",
 }
 
 
@@ -126,6 +129,26 @@ def validate_sensor_analog_step_data(data):
     )
 
 
+SENSOR_DISTANCE_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_NAME, default=None): cv.string,
+        vol.Required(CONF_PORT, default=None): cv.positive_int,
+        vol.Required(CONF_PIN_TRIGGER, default=None): cv.positive_int,
+        vol.Required(CONF_MAX_DISTANCE, default=1): cv.positive_int,
+        vol.Optional(CONF_UNIQUE_ID, default=""): cv.string,
+    }
+)
+
+
+def validate_sensor_distance_data(data):
+    return (
+        v_name(data[CONF_NAME])
+        and v_pin(data[CONF_PORT])
+        and v_pin(data[CONF_PIN_TRIGGER])
+        and v_positive(data[CONF_MAX_DISTANCE])
+    )
+
+
 class DHT22Config:
     def __init__(self, data: dict):
         self.name: str = data[CONF_NAME]
@@ -145,3 +168,12 @@ class AnalogStepConfig:
         self.step_voltage: float = data[CONF_STEP_VOLTAGE]
         self.step_value: float = data[CONF_STEP_VALUE]
         self.native_unit: str = data[CONF_NATIVE_UNIT]
+
+
+class DistanceSensorConfig:
+    def __init__(self, data: dict):
+        self.name: str = data[CONF_NAME]
+        self.echo_pin: int = data[CONF_PORT]
+        self.trigger_pin: int = data[CONF_PIN_TRIGGER]
+        self.max_distance: int = data[CONF_MAX_DISTANCE]
+        self.unique_id: str = get_unique_id(data)

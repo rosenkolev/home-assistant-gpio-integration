@@ -2,14 +2,14 @@ from homeassistant.const import Platform
 
 from .config_flow import fill_schema_missing_values
 from .controllers.cover import Roller
-from .controllers.sensor import AnalogStepControl, DHT22Controller
+from .controllers.sensor import AnalogStepControl, DHT22Controller, DistanceController
 from .core import get_logger
 from .schemas.binary_sensor import BinarySensorConfig
 from .schemas.cover import RollerConfig, ToggleRollerConfig
 from .schemas.light import RgbLightConfig
 from .schemas.main import EntityTypes
 from .schemas.pwm import PwmConfig
-from .schemas.sensor import AnalogStepConfig, DHT22Config
+from .schemas.sensor import AnalogStepConfig, DHT22Config, DistanceSensorConfig
 from .schemas.servo import ServoConfig
 from .schemas.switch import SwitchConfig
 
@@ -59,6 +59,11 @@ class Hub:
         elif self.is_type(EntityTypes.SENSOR_ANALOG_STEP):
             self.config = AnalogStepConfig(configs)
             self.controller = AnalogStepControl(self.config)
+            self.sensors = self.controller.get_sensors()
+            self.platforms = [Platform.SENSOR]
+        elif self.is_type(EntityTypes.SENSOR_DISTANCE):
+            self.config = DistanceSensorConfig(configs)
+            self.controller = DistanceController(self.config)
             self.sensors = self.controller.get_sensors()
             self.platforms = [Platform.SENSOR]
         elif self.is_type(EntityTypes.SERVO):

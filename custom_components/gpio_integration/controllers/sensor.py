@@ -1,7 +1,9 @@
+from homeassistant.components.sensor import SensorDeviceClass
+
 from .._base import AutoReadLoop, ClosableMixin, ReprMixin
-from .._devices import DHT22, DHT22Data, create_analog_device
+from .._devices import DHT22, DHT22Data, DistanceSensor, create_analog_device
 from ..core import get_logger
-from ..schemas.sensor import AnalogStepConfig, DHT22Config
+from ..schemas.sensor import AnalogStepConfig, DHT22Config, DistanceSensorConfig
 
 _LOGGER = get_logger()
 
@@ -23,11 +25,13 @@ class SensorRef:
         unit: str,
         device_id: str,
         device_name: str,
+        device_class: SensorDeviceClass | None = None,
     ) -> None:
         self.name = name
         self.id = id
         self.device_id = device_id
         self.device_name = device_name
+        self.device_class = device_class
         self.unit = unit
         self._provider = provider
 
@@ -134,6 +138,27 @@ class AnalogStepControl(SensorsMixin, ClosableMixin, ReprMixin):
         steps = (voltage - self._min_voltage) / self._step_voltage
         value = self._min_value + (steps * self._step_value)
         return value
+
+    def release(self) -> None:
+        self._close()
+
+
+class DistanceController(SensorsMixin, ClosableMixin, ReprMixin):
+    def __init__(self, config: DistanceSensorConfig) -> None:
+        self.name = config.name
+        self.id = config.unique_id
+        self.sensor = SensorRef(
+            self, self.name, self.id, "m", None, None, SensorDeviceClass.DISTANCE
+        )
+        self._io = DistanceSensor(
+            config.echo_pin, config.trigger_pin, config.max_distance
+        )
+
+    def get_sensors(self):
+        return [self.sensor]
+
+    def get_state(self, _):
+        return self._io.distance
 
     def release(self) -> None:
         self._close()

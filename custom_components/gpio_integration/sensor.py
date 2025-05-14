@@ -31,6 +31,9 @@ class GpioSensor(ClosableMixin, DeviceMixin, SensorEntity):
         self._attr_name = sensor.name
         self._attr_unique_id = sensor.id
         self._attr_native_unit_of_measurement = sensor.unit
+        if sensor.device_class is not None:
+            self._attr_device_class = sensor.device_class
+
         self._io = sensor
 
     @property

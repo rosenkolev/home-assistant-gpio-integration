@@ -82,6 +82,20 @@ class MockPinInner(MockPin):
         else:
             super()._set_state(value)
 
+    def _set_state_with_time(self, value: bool, time_sec: float):
+        self._state = value
+        self.states.append(PinState(time_sec, value))
+        self._last_change += time_sec
+
+    def drive_high_and_low(self, time_sec: float):
+        self._change_state(False)
+        # set high
+        self._set_state_with_time(True, 0.000_001)
+        self._call_when_changed()
+        # set low
+        self._set_state_with_time(False, time_sec)
+        self._call_when_changed()
+
     def close(self):
         super().close()
         self.frequency = None

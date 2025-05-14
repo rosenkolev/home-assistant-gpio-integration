@@ -34,9 +34,11 @@ from .schemas.pwm import validate_pwm_data
 from .schemas.sensor import (
     SENSOR_ANALOG_STEP_SCHEMA,
     SENSOR_DHT22_SCHEMA,
+    SENSOR_DISTANCE_SCHEMA,
     SENSOR_VARIATION_SCHEMA,
     validate_sensor_analog_step_data,
     validate_sensor_dht22_data,
+    validate_sensor_distance_data,
     validate_sensor_variation_data,
 )
 from .schemas.servo import SERVO_SCHEMA, validate_servo_data
@@ -92,6 +94,10 @@ CONF_ENTITIES: dict = {
     EntityTypes.SENSOR_ANALOG_STEP.value: {
         "schema": SENSOR_ANALOG_STEP_SCHEMA,
         "validate": validate_sensor_analog_step_data,
+    },
+    EntityTypes.SENSOR_DISTANCE.value: {
+        "schema": SENSOR_DISTANCE_SCHEMA,
+        "validate": validate_sensor_distance_data,
     },
     EntityTypes.SERVO.value: {
         "schema": SERVO_SCHEMA,
