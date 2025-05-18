@@ -134,7 +134,7 @@ SENSOR_DISTANCE_SCHEMA = vol.Schema(
         vol.Required(CONF_NAME, default=None): cv.string,
         vol.Required(CONF_PORT, default=None): cv.positive_int,
         vol.Required(CONF_PIN_TRIGGER, default=None): cv.positive_int,
-        vol.Required(CONF_MAX_DISTANCE, default=1): cv.positive_int,
+        vol.Required(CONF_MAX_DISTANCE, default=1.0): cv.positive_float,
         vol.Optional(CONF_UNIQUE_ID, default=""): cv.string,
     }
 )
@@ -175,5 +175,5 @@ class DistanceSensorConfig:
         self.name: str = data[CONF_NAME]
         self.echo_pin: int = data[CONF_PORT]
         self.trigger_pin: int = data[CONF_PIN_TRIGGER]
-        self.max_distance: int = data[CONF_MAX_DISTANCE]
+        self.max_distance: float = data[CONF_MAX_DISTANCE]
         self.unique_id: str = get_unique_id(data)

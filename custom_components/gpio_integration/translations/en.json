@@ -38,6 +38,7 @@
           "default_state": "Default state (unchecked = off, checked = on)",
           "relay_time": "relay time in seconds (pin on time)",
           "pin_closed_sensor": "pin for 'door closed' sensor",
+          "pin_trigger": "The trigger pin",
           "edge_event_timeout": "Event timeout in seconds (only for motion/vibration sensors)",
           "rely_on_edge_events": "Rely only on edge events (e.g. motion/vibration sensor)",
           "frequency": "The frequency of the PWM signal or 0/None",
@@ -49,6 +50,7 @@
           "max_angle": "The maximum angle",
           "min_duty_cycle": "The minimum duty cycle in milliseconds",
           "max_duty_cycle": "The maximum duty cycle in milliseconds",
+          "max_distance": "The maximum measurable distance",
           "step_voltage": "The voltage step of the analog sensor",
           "step_value": "The value step of the sensor corresponding to the voltage step",
           "unique_id": "Unique ID"
@@ -85,6 +87,7 @@
           "default_state": "Default state (unchecked = off, checked = on)",
           "relay_time": "relay time in seconds (pin on time)",
           "pin_closed_sensor": "pin for 'door closed' sensor",
+          "pin_trigger": "The trigger pin",
           "edge_event_timeout": "Event timeout in seconds (only for motion/vibration sensors)",
           "frequency": "The frequency of the PWM signal or 0/None",
           "chip": "The MCP chip series (e.g. MCP3001)",
@@ -95,6 +98,7 @@
           "max_angle": "The maximum angle",
           "min_duty_cycle": "The minimum duty cycle in milliseconds",
           "max_duty_cycle": "The maximum duty cycle in milliseconds",
+          "max_distance": "The maximum measurable distance",
           "step_voltage": "The voltage step of the analog sensor",
           "step_value": "The value step of the sensor corresponding to the voltage step",
           "unique_id": "Unique ID"

@@ -8,7 +8,7 @@ from custom_components.gpio_integration.schemas.sensor import (
     DistanceSensorConfig,
 )
 from custom_components.gpio_integration.sensor import GpioSensor
-from tests.mocks import MockFactory, get_next_pin
+from tests.mocks import MockFactory, MockGpioZeroDevice, get_next_pin
 
 
 class GpioServoTestCase:
@@ -30,21 +30,27 @@ class GpioServoTestCase:
 def test__Distance_should_init_default_state(mocked_factory):
     tc = GpioServoTestCase(mocked_factory)
     ctrl = DistanceController(tc.create())
-    # set this to not block test
-    # TODO: Not a good approach and must be fixed
-    ctrl._io._queue.partial = True
     with GpioSensor(ctrl.get_sensors()[0]) as gpio:
-        # tc.pin_echo.clear_states()
-        # tc.pin_echo.drive_high_and_low(0.005)
+        with MockGpioZeroDevice(ctrl._io, 0.0):
+            assert gpio.native_value == 0.0
+            assert gpio._attr_name == "Test Distance"
+            assert gpio._attr_unique_id == "test_distance"
+            assert gpio._attr_native_unit_of_measurement == "m"
+            assert gpio._attr_device_class == "distance"
 
-        assert gpio.native_value == 0.0
-        assert gpio._attr_name == "Test Distance"
-        assert gpio._attr_unique_id == "test_distance"
-        assert gpio._attr_native_unit_of_measurement == "m"
-        assert gpio._attr_device_class == "distance"
+            assert tc.pin_echo._function == "input"
+            assert tc.pin_trigger._function == "output"
 
-        assert tc.pin_echo._function == "input"
-        assert tc.pin_trigger._function == "output"
+
+def test__Distance_should_get_value(mocked_factory):
+    tc = GpioServoTestCase(mocked_factory)
+    ctrl = DistanceController(tc.create(2))
+    with GpioSensor(ctrl.get_sensors()[0]) as gpio:
+        with MockGpioZeroDevice(ctrl._io, 0.6) as md:
+            assert gpio.native_value == 1.2
+
+            md.value = 0.9
+            assert gpio.native_value == 1.8
 
 
 @pytest.mark.asyncio

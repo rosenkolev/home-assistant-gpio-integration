@@ -38,6 +38,7 @@
           "default_state": "Estado padrão (desmarcado = desligado, marcado = ligado)",
           "relay_time": "Tempo do relé em segundos (tempo do pino ligado)",
           "pin_closed_sensor": "Pino para o sensor 'porta fechada'",
+          "pin_trigger": "O pino do gatilho",
           "edge_event_timeout": "Tempo limite de evento em segundos (apenas para sensores de movimento/vibração)",
           "rely_on_edge_events": "Depender apenas de eventos de borda (por exemplo, sensor de movimento/vibração)",
           "frequency": "A frequência do sinal PWM ou 0/Nenhum",
@@ -49,6 +50,7 @@
           "max_angle": "O ângulo máximo",
           "min_duty_cycle": "O ciclo de trabalho mínimo em milissegundos",
           "max_duty_cycle": "O ciclo de trabalho máximo em milissegundos",
+          "max_distance": "A distância máxima mensurável",
           "step_voltage": "O passo de tensão do sensor analógico",
           "step_value": "O passo de valor do sensor correspondente ao passo de tensão",
           "unique_id": "ID Único"
@@ -85,6 +87,7 @@
           "default_state": "Estado padrão (desmarcado = desligado, marcado = ligado)",
           "relay_time": "Tempo do relé em segundos (tempo do pino ligado)",
           "pin_closed_sensor": "Pino para o sensor 'porta fechada'",
+          "pin_trigger": "O pino do gatilho",
           "edge_event_timeout": "Tempo limite de evento em segundos (apenas para sensores de movimento/vibração)",
           "rely_on_edge_events": "Depender apenas de eventos de borda (por exemplo, sensor de movimento/vibração)",
           "frequency": "A frequência do sinal PWM ou 0/Nenhum",
@@ -96,6 +99,7 @@
           "max_angle": "O ângulo máximo",
           "min_duty_cycle": "O ciclo de trabalho mínimo em milissegundos",
           "max_duty_cycle": "O ciclo de trabalho máximo em milissegundos",
+          "max_distance": "A distância máxima mensurável",
           "step_voltage": "O passo de tensão do sensor analógico",
           "step_value": "O passo de valor do sensor correspondente ao passo de tensão",
           "unique_id": "ID Único"

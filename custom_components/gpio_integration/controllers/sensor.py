@@ -151,7 +151,9 @@ class DistanceController(SensorsMixin, ClosableMixin, ReprMixin):
             self, self.name, self.id, "m", None, None, SensorDeviceClass.DISTANCE
         )
         self._io = DistanceSensor(
-            config.echo_pin, config.trigger_pin, config.max_distance
+            config.echo_pin,
+            config.trigger_pin,
+            config.max_distance,
         )
 
     def get_sensors(self):

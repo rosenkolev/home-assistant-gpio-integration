@@ -1,4 +1,5 @@
 from gpiozero import BoardInfo, Factory
+from gpiozero.devices import GPIODevice
 from gpiozero.pins import HeaderInfo, PinInfo
 from gpiozero.pins.mock import MockPin, PinState
 
@@ -82,20 +83,6 @@ class MockPinInner(MockPin):
         else:
             super()._set_state(value)
 
-    def _set_state_with_time(self, value: bool, time_sec: float):
-        self._state = value
-        self.states.append(PinState(time_sec, value))
-        self._last_change += time_sec
-
-    def drive_high_and_low(self, time_sec: float):
-        self._change_state(False)
-        # set high
-        self._set_state_with_time(True, 0.000_001)
-        self._call_when_changed()
-        # set low
-        self._set_state_with_time(False, time_sec)
-        self._call_when_changed()
-
     def close(self):
         super().close()
         self.frequency = None
@@ -178,6 +165,21 @@ class MockFactory(Factory):
             col=1,
             interfaces=frozenset(["gpio", "pwm", "spi"]),
         )
+
+
+class MockGpioZeroDevice:
+    def __init__(self, device: GPIODevice, defaultValue: int | float = 0):
+        self._device = device
+        self.value = defaultValue
+        self._valueProp: property = None
+
+    def __enter__(self):
+        self._valueProp = self._device.__class__.value
+        self._device.__class__.value = property(lambda _: self.value)
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        self._device.__class__.value = self._valueProp
 
 
 class MockedEvent:
