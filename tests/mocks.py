@@ -1,4 +1,5 @@
 from gpiozero import BoardInfo, Factory
+from gpiozero.devices import GPIODevice
 from gpiozero.pins import HeaderInfo, PinInfo
 from gpiozero.pins.mock import MockPin, PinState
 
@@ -164,6 +165,21 @@ class MockFactory(Factory):
             col=1,
             interfaces=frozenset(["gpio", "pwm", "spi"]),
         )
+
+
+class MockGpioZeroDevice:
+    def __init__(self, device: GPIODevice, defaultValue: int | float = 0):
+        self._device = device
+        self.value = defaultValue
+        self._valueProp: property = None
+
+    def __enter__(self):
+        self._valueProp = self._device.__class__.value
+        self._device.__class__.value = property(lambda _: self.value)
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        self._device.__class__.value = self._valueProp
 
 
 class MockedEvent:

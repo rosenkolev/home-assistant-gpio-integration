@@ -47,6 +47,7 @@ The `gpio_integration` integration access the 40-pin GPIO chip capabilities
 * [x] Sensor
   * MCP3xxx Microchips
   * DHT22 sensors
+  * Distance sensor
 
 ## Installation
 
@@ -370,37 +371,9 @@ See the [Light (PWM)](#light-pwm) entity.
 
 ### Sensors
 
-#### DHT22 (humidity and temperature)
-
-Sensor with serial data.
-
-```mermaid
----
-title: GPIO Example
----
-flowchart TB
-  subgraph GPIO
-    A["PIN (+3.3V)"]
-    B[GPIO 23]
-    C["PIN (GRD)"]
-  end
-
-  D["DHT22"] -- pin 1 ---o A
-  D -- pin 2 ---o B
-  D -- pin 4 ---o C
-```
-
-##### Options
-
-|  | |
-| - | - |
-| Name | The name of the entity |
-| GPIO pin | The GPIO pin number |
-| Unique ID | Optional: Id of the entity [default ''] |
-
-#### Analog step sensors (MCP300X, MCP320X)
-
-Analog sensor based on the MCP chips and steps. See [the TMP36 example here](https://gpiozero.readthedocs.io/en/stable/recipes.html#measure-temperature-with-an-adc).
+* [Analog step sensor](./docs/SENSORS.md#analog-step-sensor) - Analog sensor based on the **MCP** chip that calculate value based on a min/max/step inputs.
+* [Distance sensor](./docs/SENSORS.md#distance) - An ultrasonic distance sensor.
+* [DHT22/DHT11 sensor](./docs/SENSORS.md#dht22-humidity-and-temperature) - And DHT humidity and temperature sensors.
 
 ### Servo
 

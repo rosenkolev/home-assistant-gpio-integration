@@ -55,6 +55,18 @@ def test__Sensor_AnalogStep_should_read(mock_MCP_chips):
         assert sensor.native_value == 15.5
 
 
+def test__Sensor_AnalogStep_should_read2(mock_MCP_chips):
+    hub = Hub(
+        _create_config(
+            channel=0, min_voltage=0.3, min_value=-10, step_voltage=0.05, step_value=1
+        )
+    )
+    device = mock_MCP_chips(0)
+    with GpioSensor(hub.sensors[0]) as sensor:
+        device._value = 2.3 / 3.3
+        assert round(sensor.native_value, 2) == 30
+
+
 def test__Sensor_AnalogStep_should_read_below_min_voltage(mock_MCP_chips):
     hub = Hub(_create_config(channel=0))
     device = mock_MCP_chips(0)
