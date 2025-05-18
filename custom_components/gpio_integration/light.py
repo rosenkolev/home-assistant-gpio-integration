@@ -194,8 +194,6 @@ class RgbGpioLight(ClosableMixin, ReprMixin, BlinkMixin, LightEntity):
         self._attr_color_mode = ColorMode.RGB
         self._attr_supported_color_modes = {
             ColorMode.RGB,
-            ColorMode.BRIGHTNESS,
-            ColorMode.ONOFF,
             ColorMode.WHITE,
         }
         self._attr_effect = EFFECT_OFF
