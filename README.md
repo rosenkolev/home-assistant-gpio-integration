@@ -1,13 +1,13 @@
 <!-- cspell:ignore hassfest, Rosen, Kolev, rosenkolev, lgpio, gpiod, pigpiod, Poeschl, Hassio -->
+# Home Assistant Raspberry Pi GPIO custom integration
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
-[![](https://img.shields.io/github/release/rosenkolev/home-assistant-gpio-integration/all.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/releases)
+[![Release](https://img.shields.io/github/release/rosenkolev/home-assistant-gpio-integration/all.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/releases)
 [![HACS Action](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hacs.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hacs.yml)
 [![Release Drafter](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/release-drafter.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/release-drafter.yml)
 [![Validate with hassfest](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hassfest.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/hassfest.yml)
 [![Test](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/test.yml/badge.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/test.yml)
 [![Coverage](https://raw.githubusercontent.com/gist/rosenkolev/03ba5cb1f9f017852a3d910a8df02fc4/raw/home-assistant-gpio-integration.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/actions/workflows/test.yml)
-
-# Home Assistant Raspberry Pi GPIO custom integration
 
 The `gpio_integration` integration access the 40-pin GPIO chip capabilities
 
@@ -33,7 +33,7 @@ The `gpio_integration` integration access the 40-pin GPIO chip capabilities
 1. [Credits](#credits)
 
 </details>
-  
+
 ## Supported Entities
 
 * [x] Binary Sensor
@@ -59,10 +59,10 @@ The recommend way to install `gpio_integration` is through [HACS](https://hacs.x
 
 ### Manual installation
 
-Copy the `gpio_integration` folder and all of its contents into your Home Assistant's 
-`custom_components` folder. This folder is usually inside your `/config` 
-folder. If you are running Hass.io, use SAMBA to copy the folder over. You 
-may need to create the `custom_components` folder and then copy the `gpio_integration` 
+Copy the `gpio_integration` folder and all of its contents into your Home Assistant's
+`custom_components` folder. This folder is usually inside your `/config`
+folder. If you are running Hass.io, use SAMBA to copy the folder over. You
+may need to create the `custom_components` folder and then copy the `gpio_integration`
 folder and all of its contents into it.
 
 ## Interface
@@ -76,8 +76,10 @@ The [gpiozero](https://gpiozero.readthedocs.io/) library is used and the integra
 * rpigpio (fallback)
 * native (fallback)
 
-> [!NOTE]  
-> The integration is created in a way that can be extended for other hardware like 'Asus Tinker Board' or 'ODroid' but I don't have the hardware to implement it and anyone is welcome to do so (see [Development section](#development))
+> [!NOTE]
+> The integration is created in a way that can be extended for other hardware like 'Asus Tinker Board' or 'ODroid' but I don't have the hardware to implement it and anyone is welcome to do so (see [Contributing section](#contributing))
+
+[](ignored)
 
 > [!IMPORTANT]
 > The `pigpio` interface requires `pigpiod`. See the [Interface Advanced Configuration section](#interface-advanced-configuration) for details.
@@ -95,6 +97,7 @@ To configure the integration use the UI
 ![Configuration flow first step!](/docs/step_setup.png)
 
 > [!CAUTION]
+>
 > * `unique_id` is not required and will be created automatically based on `Name`.
 > * **Pin numbers are GPIO pin numbers and not the actual pin order of the board**. See the [Wikipedia article about the Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi#General_purpose_input-output_(GPIO)_connector) for more details.
 
@@ -154,11 +157,12 @@ flowchart LR
 Entities for controlling `cover` (shade,roller,awning) with up/down button and an optional `closed` state sensor.
 
 _**Entities**_
-* Cover <br>
+
+* Cover \
   `OPEN` `CLOSE` `STOP` `SET POSITION`
 * Number
-  
-> The defines the home assistant entities **Cover** (_features:_ `OPEN`, `CLOSE`, `STOP`, and `SET POSITION `) and **Number** (for setting a position).
+
+> The defines the home assistant entities **Cover** (_features:_ `OPEN`, `CLOSE`, `STOP`, and `SET POSITION`) and **Number** (for setting a position).
 
 This type consider having a cover (blind/roller/shade) remote or relays with up/down/stop buttons.
 
@@ -203,7 +207,8 @@ flowchart TB
 Entities for controlling `cover` (shade,blind,roller,awning) with a single toggle switch and an optional `closed` state sensor.
 
 _**Entities**_
-* Cover <br>
+
+* Cover \
   `OPEN` `CLOSE`
 
 #### Example
@@ -272,7 +277,8 @@ flowchart LR
 Creates a home assistant `Light` entity, that supports ordinary light and LED light output.
 
 _**Entities**_
-* Light <br>
+
+* Light \
   `FLASH` `EFFECT`
 
 #### Example
@@ -323,13 +329,13 @@ This should indicate LED is at 40% brightness (2/5 every cycle).
 | Default state | The initial state of the switch [default `False`/`Off`] |
 | Unique ID | Optional: Id of the entity. When not provided it's taken from the `Name` or auto-generated. Example 'motion_sensor_in_kitchen_1' [default ''] |
 
-
 ### Light (RGB)
 
 The same as `Light (PWM)` but for a colored RGB LED.
 
 _**Entities**_
-* Light <br>
+
+* Light \
   `FLASH` `EFFECT`
 
 #### Options
@@ -354,7 +360,8 @@ Creates a home assistant `Fan` entity, that supports percentage and on/off state
 The Fan entity is similar to `Light` because it relays on PWM and have the same options.
 
 _**Entities**_
-* Fan <br>
+
+* Fan \
   `SET_SPEED` `TURN_ON` `TURN_OFF`
 
 #### Options
@@ -383,7 +390,6 @@ flowchart TB
   D -- pin 4 ---o C
 ```
 
-
 ##### Options
 
 |  | |
@@ -391,7 +397,6 @@ flowchart TB
 | Name | The name of the entity |
 | GPIO pin | The GPIO pin number |
 | Unique ID | Optional: Id of the entity [default ''] |
-
 
 #### Analog step sensors (MCP300X, MCP320X)
 

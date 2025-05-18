@@ -1,33 +1,32 @@
 {
-    "version": "0.2",
-    "language": "en",
-    "ignorePaths": [
-        ".gitignore",
-        ".pytest_cache/",
-        "reports/",
-        "LICENSE",
-        "manifest.json",
-        "extensions.json",
-        "**/translations/pt.json"
-    ],
-    "words": [
-        "gpiozero",
-        "gpio",
-        "RGBLED",
-        "GPIO",
-        "hass",
-        "homeassistant",
-        "ruff",
-        "ONOFF",
-        "rpigpio",
-        "pigpio",
-        "dutycycle",
-        "bouncetime",
-        "pytest",
-        "asyncio",
-        "popleft",
-
-        "HACS",
-        "Asus"
-    ]
+  "version": "0.2",
+  "language": "en",
+  "ignorePaths": [
+    ".gitignore",
+    ".pytest_cache/",
+    "reports/",
+    "LICENSE",
+    "manifest.json",
+    "extensions.json",
+    "**/translations/pt.json"
+  ],
+  "words": [
+    "gpiozero",
+    "gpio",
+    "RGBLED",
+    "GPIO",
+    "hass",
+    "homeassistant",
+    "ruff",
+    "ONOFF",
+    "rpigpio",
+    "pigpio",
+    "dutycycle",
+    "bouncetime",
+    "pytest",
+    "asyncio",
+    "popleft",
+    "HACS",
+    "Asus"
+  ]
 }

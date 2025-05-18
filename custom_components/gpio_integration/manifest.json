@@ -1,11 +1,16 @@
 {
   "domain": "gpio_integration",
   "name": "GPIO Integration",
-  "codeowners": ["@rosenkolev"],
+  "codeowners": [
+    "@rosenkolev"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/rosenkolev/home-assistant-gpio-integration/tree/main/",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/rosenkolev/home-assistant-gpio-integration/issues",
-  "requirements": ["pigpio==1.78", "gpiozero==2.0.1"],
+  "requirements": [
+    "pigpio==1.78",
+    "gpiozero==2.0.1"
+  ],
   "version": "2.2.0"
 }

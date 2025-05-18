@@ -9,7 +9,7 @@ from .schemas import CONF_INTERFACE
 
 _LOGGER = get_logger()
 
-PIN_FACTORY_OPTIONS = dict()
+PIN_FACTORY_OPTIONS = dict({})
 PIN_FACTORIES = {
     "pigpio": "gpiozero.pins.pigpio:PiGPIOFactory",
     "lgpio": "gpiozero.pins.lgpio:LGPIOFactory",

@@ -1,0 +1,40 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+    -   id: check-added-large-files
+        args: ['--maxkb=30']
+    -   id: check-builtin-literals
+    -   id: check-docstring-first
+    -   id: check-yaml
+    -   id: check-json
+    -   id: pretty-format-json
+        args: [--indent=2,--no-sort-keys,--no-ensure-ascii]
+    -   id: requirements-txt-fixer
+    -   id: mixed-line-ending
+        args: [--fix=lf]
+-   repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+    -   id: black
+-   repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.18.1
+    hooks:
+    - id: markdownlint-cli2
+-   repo: local
+    hooks:
+    - id: pytest
+      name: pytest
+      entry: python -m pytest tests
+      language: system
+      types: [python]
+      pass_filenames: false
+      always_run: true
+    - id: cspell
+      name: cspell
+      entry: npx -y cspell --no-progress **/*
+      language: system
+      pass_filenames: false
+      always_run: true

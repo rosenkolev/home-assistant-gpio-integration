@@ -1,25 +1,25 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "restore",
-            "type": "shell",
-            "command": "pip install -r requirements.txt"
-        },
-        {
-            "label": "spell-check",
-            "type": "shell",
-            "command": "npx -y cspell --no-progress \"**/*"
-        },
-        {
-            "label": "lint",
-            "type": "shell",
-            "command": "python -m ruff check ."
-        },
-        {
-            "label": "test",
-            "type": "shell",
-            "command": "python -m pytest"
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "restore",
+      "type": "shell",
+      "command": "pip install -r requirements.txt"
+    },
+    {
+      "label": "spell-check",
+      "type": "shell",
+      "command": "npx -y cspell --no-progress \"**/*"
+    },
+    {
+      "label": "lint",
+      "type": "shell",
+      "command": "python -m ruff check ."
+    },
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "python -m pytest"
+    }
+  ]
 }

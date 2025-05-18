@@ -25,20 +25,23 @@ To create a new hardware implementation create new `Factory` and `Pin` ([gpiozer
 ## Setup
 
 1. Create virtual environment and install packages
+
    ```shell
    # setup venv
    python3 -m venv .venv
 
    # activate: shell
    source .venv/bin/activate
-    
+
    # activate: powershell
    ./.venv/Scripts/activate.ps1
 
    # install requirements
    pip3 install -r ./requirements.txt
    ```
+
 1. Run all check
+
    ```shell
    ruff check . && coverage run --data-file reports/.coverage -m pytest -v -s && coverage report -m --data-file reports/.coverage
    ```
