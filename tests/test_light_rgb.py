@@ -70,15 +70,21 @@ def test__RgbLight_should_init_default_light(mocked_factory):
     with RgbGpioLight(tc.create_config(frequency=0)) as gpio:
         assert gpio.is_on is False
         assert gpio.brightness == 0
-        assert ColorMode.ONOFF in gpio._attr_supported_color_modes
         assert ColorMode.RGB in gpio._attr_supported_color_modes
-        assert ColorMode.BRIGHTNESS in gpio._attr_supported_color_modes
         assert ColorMode.WHITE in gpio._attr_supported_color_modes
         assert "Blink" in gpio._attr_effect_list
         assert "E_OFF" in gpio._attr_effect
         assert gpio._attr_color_mode == ColorMode.RGB
 
         tc.assert_frequency(None)
+
+
+def test__RgbLight_stand_alone_color_modes_are_removed(mocked_factory):
+    tc = RgbLightTestCase(mocked_factory)
+    with RgbGpioLight(tc.create_config(frequency=0)) as gpio:
+        assert ColorMode.ONOFF not in gpio._attr_supported_color_modes
+        assert ColorMode.BRIGHTNESS not in gpio._attr_supported_color_modes
+        assert ColorMode.UNKNOWN not in gpio._attr_supported_color_modes
 
 
 def test__RgbGpioLight_LED_should_init_frequency(mocked_factory):
