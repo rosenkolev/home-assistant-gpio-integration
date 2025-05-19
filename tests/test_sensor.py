@@ -5,7 +5,7 @@ from custom_components.gpio_integration.controllers.sensor import DHT22Controlle
 from custom_components.gpio_integration.schemas import CONF_NAME
 from custom_components.gpio_integration.schemas.sensor import DHT22Config
 from custom_components.gpio_integration.sensor import GpioSensor
-from tests.mocks import get_next_pin
+from tests.test__mocks import get_next_pin
 
 
 def _create_config(port):

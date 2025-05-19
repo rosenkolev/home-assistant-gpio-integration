@@ -8,7 +8,7 @@ from custom_components.gpio_integration.schemas.sensor import (
     DistanceSensorConfig,
 )
 from custom_components.gpio_integration.sensor import GpioSensor
-from tests.mocks import MockFactory, MockGpioZeroDevice, get_next_pin
+from tests.test__mocks import MockFactory, MockGpioZeroDevice, get_next_pin
 
 
 class GpioServoTestCase:
@@ -51,6 +51,14 @@ def test__Distance_should_get_value(mocked_factory):
 
             md.value = 0.9
             assert gpio.native_value == 1.8
+
+
+@pytest.mark.timeout(2)
+def test__Distance_should_not_block(mocked_factory):
+    tc = GpioServoTestCase(mocked_factory)
+    ctrl = DistanceController(tc.create(2))
+    with GpioSensor(ctrl.get_sensors()[0]) as gpio:
+        assert gpio.native_value is not None
 
 
 @pytest.mark.asyncio

@@ -4,7 +4,7 @@ import mocked_modules  # noqa: F401
 import pytest
 from gpiozero import Device
 
-from tests.mocks import (
+from tests.test__mocks import (
     MockedGPIOThread,
     MockedTrackTimeInterval,
     MockFactory,

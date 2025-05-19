@@ -1,7 +1,7 @@
 import sys
 from unittest.mock import Mock
 
-from tests.mocks import MockedBaseEntity
+from tests.test__mocks import MockedBaseEntity
 
 
 class Platform:

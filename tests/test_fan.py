@@ -9,7 +9,7 @@ from custom_components.gpio_integration.schemas import (
     CONF_NAME,
 )
 from custom_components.gpio_integration.schemas.pwm import PwmConfig
-from tests.mocks import get_next_pin
+from tests.test__mocks import get_next_pin
 
 
 def __create_config(port=None, default_state=False, frequency=100, invert_logic=False):

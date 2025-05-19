@@ -5,12 +5,12 @@ from homeassistant.const import CONF_PORT
 from custom_components.gpio_integration.light import GpioLight
 from custom_components.gpio_integration.schemas import (
     CONF_DEFAULT_STATE,
-    CONF_INVERT_LOGIC,
     CONF_FREQUENCY,
+    CONF_INVERT_LOGIC,
     CONF_NAME,
 )
 from custom_components.gpio_integration.schemas.pwm import PwmConfig
-from tests.mocks import assert_gpio_blink, get_next_pin
+from tests.test__mocks import assert_gpio_blink, get_next_pin
 
 
 def __create_config(port=None, default_state=False, frequency=50, invert_logic=False):
