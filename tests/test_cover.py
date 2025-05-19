@@ -17,7 +17,7 @@ from custom_components.gpio_integration.schemas.cover import (
     RollerConfig,
     ToggleRollerConfig,
 )
-from tests.mocks import get_next_pin
+from tests.test__mocks import get_next_pin
 
 
 def __create_config(port=None, invert_logic=False, closed_sensor=0, relay_time=0.6):

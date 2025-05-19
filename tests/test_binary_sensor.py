@@ -12,7 +12,7 @@ from custom_components.gpio_integration.schemas import (
 from custom_components.gpio_integration.schemas.binary_sensor import (
     BinarySensorConfig,
 )
-from tests.mocks import get_next_pin
+from tests.test__mocks import get_next_pin
 
 
 def __create_config(

@@ -14,7 +14,7 @@ from custom_components.gpio_integration.schemas.servo import (
     CONF_MIN_DUTY_CYCLE,
     ServoConfig,
 )
-from tests.mocks import MockFactory, get_next_pin
+from tests.test__mocks import MockFactory, get_next_pin
 
 
 class GpioServoTestCase:

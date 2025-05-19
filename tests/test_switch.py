@@ -8,7 +8,7 @@ from custom_components.gpio_integration.schemas import (
 )
 from custom_components.gpio_integration.schemas.switch import SwitchConfig
 from custom_components.gpio_integration.switch import GpioSwitch
-from tests.mocks import get_next_pin
+from tests.test__mocks import get_next_pin
 
 
 def __create_config(port=None, default_state=False, invert_logic=False):

@@ -107,6 +107,7 @@ class DistanceSensor(AsStringMixin, GZDistanceSensor):
             echo,
             trigger,
             max_distance=max_distance,
+            partial=True,  # prevent timeouts
             pin_factory=get_pin_factory(),
         )
 

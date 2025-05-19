@@ -38,6 +38,9 @@ To create a new hardware implementation create new `Factory` and `Pin` ([gpiozer
 
    # install requirements
    pip3 install -r ./requirements.txt
+
+   # setup pre-commit
+   pre-commit install
    ```
 
 1. Run all check
