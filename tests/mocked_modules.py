@@ -1,7 +1,8 @@
 import sys
+from types import ModuleType
 from unittest.mock import Mock
 
-from tests.test__mocks import MockedBaseEntity
+from tests.test__mocks import MockedBaseEntity, MockedConfigFlow
 
 
 class Platform:
@@ -34,11 +35,16 @@ class MockColOptional:
         self.default = lambda: default
 
 
+ha_mock = ModuleType("homeassistant")
+ha_mock.ConfigFlow = MockedConfigFlow
+ha_mock.OptionsFlowWithConfigEntry = Mock()
+
 sys.modules["voluptuous"] = Mock()
 sys.modules["voluptuous"].Schema = MockVolSchema
 sys.modules["voluptuous"].Optional = MockColOptional
 sys.modules["voluptuous"].ALLOW_EXTRA = "ALLOW_EXTRA"
 sys.modules["homeassistant"] = Mock()
+sys.modules["homeassistant"].config_entries = ha_mock
 sys.modules["homeassistant.const"] = Mock()
 sys.modules["homeassistant.const"].Platform = Platform
 sys.modules["homeassistant.const"].CONF_NAME = "CONF_NAME"

@@ -255,3 +255,22 @@ class MockMCP:
     @property
     def value(self) -> float:
         return self._value
+
+
+class MockedConfigFlow:
+    step_id: str
+    data_schema: str
+    abort_reason: str
+
+    @classmethod
+    def __init_subclass__(cls, domain=None, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+    def async_show_form(self, step_id: str, data_schema: dict):
+        self.step_id = step_id
+        self.data_schema = data_schema
+        return {"type": "form", "step_id": step_id}
+
+    def async_abort(self, reason: str):
+        self.abort_reason = reason
+        return {"type": "abort", "reason": reason}
