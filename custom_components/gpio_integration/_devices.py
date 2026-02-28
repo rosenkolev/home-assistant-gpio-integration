@@ -311,7 +311,7 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
             if self._state_index > 4:
                 self.stop()
                 _LOGGER.warning(f"{self!r}: invalid start bits")
-                _LOGGER.warning(self._debug_msg)
+                _LOGGER.debug(self._debug_msg)
             elif info.check(1, 0.07, 0.09):
                 self._transfer = True
                 _LOGGER.debug(f"{self!r}: transfer started")
