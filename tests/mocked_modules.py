@@ -61,6 +61,7 @@ sys.modules["homeassistant.helpers.event"] = Mock()
 sys.modules["homeassistant.helpers.selector"] = Mock()
 sys.modules["homeassistant.helpers.typing"] = Mock()
 sys.modules["homeassistant.exceptions"] = Mock()
+sys.modules["homeassistant.exceptions"].HomeAssistantError = BaseException
 sys.modules["homeassistant.components"] = Mock()
 
 

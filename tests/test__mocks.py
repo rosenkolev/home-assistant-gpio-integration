@@ -261,16 +261,26 @@ class MockedConfigFlow:
     step_id: str
     data_schema: str
     abort_reason: str
+    errors: str
+    unique_id: str
+    entity_title: str
+    entity_data: dict
 
     @classmethod
     def __init_subclass__(cls, domain=None, **kwargs):
         super().__init_subclass__(**kwargs)
 
-    def async_show_form(self, step_id: str, data_schema: dict):
+    def async_show_form(self, step_id: str, data_schema: dict, errors: dict = None):
         self.step_id = step_id
         self.data_schema = data_schema
-        return {"type": "form", "step_id": step_id}
+        self.errors = errors
 
     def async_abort(self, reason: str):
         self.abort_reason = reason
-        return {"type": "abort", "reason": reason}
+
+    async def async_set_unique_id(self, unique_id: str):
+        self.unique_id = unique_id
+
+    def async_create_entry(self, title: str, data: dict):
+        self.entity_title = title
+        self.entity_data = data
