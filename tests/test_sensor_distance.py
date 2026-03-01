@@ -8,7 +8,8 @@ from custom_components.gpio_integration.schemas.sensor import (
     DistanceSensorConfig,
 )
 from custom_components.gpio_integration.sensor import GpioSensor
-from tests.test__mocks import MockFactory, MockGpioZeroDevice, get_next_pin
+from tests.mocked_classes import MockFactory, MockGpioZeroDevice
+from tests.mocked_utils import get_next_pin
 
 
 class GpioServoTestCase:

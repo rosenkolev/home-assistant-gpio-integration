@@ -10,9 +10,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from . import core
 from ._base import ClosableMixin, DeviceMixin, ReprMixin
 from ._devices import BinarySensor, Switch
-from .core import DOMAIN, sleep_sec
 from .hub import Hub, Roller
 from .schemas.cover import ToggleRollerConfig
 from .schemas.main import EntityTypes
@@ -24,7 +24,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Add cover for passed config_entry in HA."""
-    hub: Hub = hass.data[DOMAIN][config_entry.entry_id]
+    hub: Hub = hass.data[core.DOMAIN][config_entry.entry_id]
     if hub.is_type(EntityTypes.COVER_UP_DOWN):
         async_add_entities([GpioCover(hub.controller)])
     elif hub.is_type(EntityTypes.COVER_TOGGLE):
@@ -93,7 +93,7 @@ class GpioBasicCover(ClosableMixin, ReprMixin, CoverEntity):
     def _toggle(self):
         """Trigger the cover."""
         self._io.value = True
-        sleep_sec(self._relay_time)
+        core.sleep_sec(self._relay_time)
         self._io.value = False
         if not self._has_sensor:
             self._closed = not self._closed

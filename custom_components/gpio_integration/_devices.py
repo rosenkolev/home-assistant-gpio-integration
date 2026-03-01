@@ -303,17 +303,25 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
         self._transfer = False
         self._deque: deque[BitInfo] = deque(maxlen=40)
         self._debug_msg = ""
+        self._failed_transfer_count = 0
 
     def _state_changed(self, info: BitInfo) -> None:
         if not self._transfer:
-            self._debug_msg += f"{info.duration_ms}ms {"\\ " if info.state == 1 else "/ "}"
+            self._debug_msg += (
+                f"{info.duration_ms}ms {"\\ " if info.state == 1 else "/ "}"
+            )
 
             if self._state_index > 4:
                 self.stop()
-                _LOGGER.warning(f"{self!r}: invalid start bits")
                 _LOGGER.debug(self._debug_msg)
+                if self._failed_transfer_count >= 3:
+                    _LOGGER.warning(f"{self!r}: 3 sequenced failed transfers")
+                else:
+                    _LOGGER.debug(f"{self!r}: Invalid start bits")
+                    self._failed_transfer_count = 0
             elif info.check(1, 0.07, 0.09):
                 self._transfer = True
+                self._failed_transfer_count = 0
                 _LOGGER.debug(f"{self!r}: transfer started")
 
             return
@@ -362,9 +370,9 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
         self.pin.when_changed = None
         self.pin.function = "output"
 
-        self._send_and_wait(1, 0.000_010) # 10 us
-        self._send_and_wait(0, 0.018_000) # 18 ms
-        self._send_and_wait(1, 0.000_025) # 25 us
+        self._send_and_wait(1, 0.000_010)  # 10 us
+        self._send_and_wait(0, 0.018_000)  # 18 ms
+        self._send_and_wait(1, 0.000_025)  # 25 us
 
         super().read()
 

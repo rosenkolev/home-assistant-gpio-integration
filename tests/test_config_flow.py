@@ -1,7 +1,11 @@
+from types import SimpleNamespace
+from unittest.mock import Mock
+
 import pytest
 
 from custom_components.gpio_integration.config_flow import (
     ConfigFlow,
+    OptionsFlowHandler,
     fill_schema_missing_values,
 )
 from custom_components.gpio_integration.schemas.light import LIGHT_VARIATION_SCHEMA
@@ -86,3 +90,32 @@ async def test__config_flow_common_setup():
     assert config.entity_data["type"] == "switch"
     assert config.entity_data["CONF_NAME"] == "Test name"
     assert config.entity_data["CONF_PORT"] == 20
+
+
+@pytest.mark.asyncio
+async def test__options_flow_with_data():
+    user_input = dict(CONF_NAME="Updated name", CONF_PORT=30)
+    config = OptionsFlowHandler()
+
+    config.config_entry = SimpleNamespace()
+    config.config_entry.unique_id = "test_unique_id"
+    config.config_entry.entry_id = "test_entry_id"
+    config.config_entry.data = dict(type="switch")
+
+    config.hass = SimpleNamespace()
+    config.hass.config_entries = Mock()
+
+    config.options = "options"
+
+    await config.async_step_init(user_input)
+
+    config.hass.config_entries.async_update_entry.assert_called_once_with(
+        entry=config.config_entry,
+        unique_id="test_unique_id",
+        title="Updated name",
+        data=user_input,
+        options="options",
+    )
+    config.hass.config_entries.async_schedule_reload.assert_called_once_with(
+        "test_entry_id"
+    )

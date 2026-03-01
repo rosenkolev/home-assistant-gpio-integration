@@ -17,7 +17,7 @@ from custom_components.gpio_integration.schemas.cover import (
     RollerConfig,
     ToggleRollerConfig,
 )
-from tests.test__mocks import get_next_pin
+from tests.mocked_utils import get_next_pin
 
 
 def __create_config(port=None, invert_logic=False, closed_sensor=0, relay_time=0.6):
@@ -77,7 +77,7 @@ def test__BasicCover_should_init_no_sensor(mocked_factory):
         assert pin.state is False
 
 
-def test__BasicCover_should_open(mocked_factory):
+def test__BasicCover_should_open(mocked_factory, mock_sleep_sec):
     number = get_next_pin()
     pin = mocked_factory.pin(number)
     with GpioBasicCover(__create_config(number, relay_time=0.6)) as gpio:
@@ -90,7 +90,8 @@ def test__BasicCover_should_open(mocked_factory):
 
         gpio._closed = True
         gpio.open_cover()
-        pin.assert_states_and_times([(0, False), (0, True), (0.6, False)])
+        pin.assert_states([0, True, False])
+        assert mock_sleep_sec[0] == 0.6
 
 
 @pytest.mark.asyncio

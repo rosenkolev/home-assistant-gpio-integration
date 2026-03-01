@@ -3,27 +3,6 @@ from gpiozero.devices import GPIODevice
 from gpiozero.pins import HeaderInfo, PinInfo
 from gpiozero.pins.mock import MockPin, PinState
 
-PIN_NUMBER = 0
-
-
-def get_next_pin() -> int:
-    global PIN_NUMBER
-    PIN_NUMBER += 1
-    if PIN_NUMBER > 40:
-        PIN_NUMBER = 1
-
-    return PIN_NUMBER
-
-
-def assert_gpio_blink(pin, gpio, test: list[tuple[bool, float]]):
-    pin.states = []
-    gpio._io._blink_thread.execute_target()
-    map = gpio._io._blink_thread.zip(pin.states)
-    assert len(map) == len(test)
-    for idx in range(len(test)):
-        val = round(map[idx][0], 2)
-        assert test[idx][0] == val
-
 
 class MockedBaseEntity:
     ha_state_update_scheduled = False
@@ -268,7 +247,7 @@ class MockMCP:
         return self._value
 
 
-class MockedConfigFlow:
+class MockedOptionsFlow:
     step_id: str
     data_schema: str
     abort_reason: str
@@ -276,10 +255,6 @@ class MockedConfigFlow:
     unique_id: str
     entity_title: str
     entity_data: dict
-
-    @classmethod
-    def __init_subclass__(cls, domain=None, **kwargs):
-        super().__init_subclass__(**kwargs)
 
     def async_show_form(self, step_id: str, data_schema: dict, errors: dict = None):
         self.step_id = step_id
@@ -295,3 +270,39 @@ class MockedConfigFlow:
     def async_create_entry(self, title: str, data: dict):
         self.entity_title = title
         self.entity_data = data
+
+
+class MockedConfigFlow(MockedOptionsFlow):
+    @classmethod
+    def __init_subclass__(cls, domain=None, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+
+class MockVolSchema:
+    def __init__(self, schema, extra=None):
+        self.schema = schema
+
+
+class MockColOptional:
+    def __init__(self, name, default=None, description=None):
+        self.schema = name
+        self.default = lambda: default
+
+
+class MockedPlatform:
+    SWITCH = "switch"
+    LIGHT = "light"
+    COVER = "cover"
+    BINARY_SENSOR = "binary_sensor"
+    FAN = "fan"
+    SENSOR = "sensor"
+    NUMBER = "number"
+
+
+class MockedDeviceInfo:
+    def __init__(self, identifiers, name, manufacturer, model, sw_version):
+        self.identifiers = identifiers
+        self.name = name
+        self.manufacturer = manufacturer
+        self.model = model
+        self.sw_version = sw_version
