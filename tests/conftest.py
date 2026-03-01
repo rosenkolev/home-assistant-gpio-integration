@@ -5,6 +5,7 @@ import pytest
 from gpiozero import Device
 
 from tests.test__mocks import (
+    MockedEvent,
     MockedGPIOThread,
     MockedTrackTimeInterval,
     MockFactory,
@@ -52,6 +53,31 @@ def mock_track_time_interval(request) -> Generator[MockedTrackTimeInterval, None
         yield mock
     finally:
         base.async_track_time_interval = saved_track_time_interval
+
+
+@pytest.fixture(scope="function")
+def mock_threading_event(request) -> Generator[MockedTrackTimeInterval, None, None]:
+    import threading as threading
+
+    saved_thread_cls = threading.Event
+    try:
+        threading.Event = MockedEvent
+        yield None
+    finally:
+        threading.Event = saved_thread_cls
+
+
+@pytest.fixture(scope="function")
+def mock_sleep_sec(request) -> Generator[MockedTrackTimeInterval, None, None]:
+    import custom_components.gpio_integration.core as core
+
+    saved_sleep_sec = core.sleep_sec
+    sleep_times: list[float] = []
+    try:
+        core.sleep_sec = lambda sec: sleep_times.append(sec)
+        yield sleep_times
+    finally:
+        core.sleep_sec = saved_sleep_sec
 
 
 @pytest.fixture(scope="function")

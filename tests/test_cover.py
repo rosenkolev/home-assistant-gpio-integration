@@ -135,8 +135,9 @@ def test__Cover_should_init_no_sensor(mocked_factory):
         assert pin_down._function == "output"
 
 
-@pytest.mark.skip(reason="too slow, it waits for 5 seconds")
-def test__Cover_should_set_position(mocked_factory):
+def test__Cover_should_set_position(
+    mocked_factory, mock_threading_event, mock_sleep_sec
+):
     pin_up_port = get_next_pin()
     pin_down_port = get_next_pin()
 
@@ -146,11 +147,11 @@ def test__Cover_should_set_position(mocked_factory):
     with GpioCover(roller) as gpio:
         gpio.set_cover_position(**{"A_POSITION": 50})
 
-        pin_down.assert_states_and_times([(0, False), (0, True), (5, False)])
+        pin_down.assert_states([False, True, False])
+        roller._cancel.assert_times([0.5] * 10)
 
 
-@pytest.mark.skip(reason="too slow, it waits for 5 seconds")
-def test__Cover_should_open(mocked_factory):
+def test__Cover_should_open(mocked_factory, mock_threading_event, mock_sleep_sec):
     pin_up_port = get_next_pin()
     pin_down_port = get_next_pin()
 
@@ -160,4 +161,5 @@ def test__Cover_should_open(mocked_factory):
     with GpioCover(roller) as gpio:
         gpio.open_cover()
 
-        pin_down.assert_states_and_times([(0, False), (0, True), (10, False)])
+        pin_down.assert_states([False, True, False])
+        roller._cancel.assert_times([0.5] * 20)

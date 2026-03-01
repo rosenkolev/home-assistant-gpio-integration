@@ -184,10 +184,21 @@ class MockGpioZeroDevice:
 
 class MockedEvent:
     def __init__(self):
-        self.waits = []
+        self.waits: list[float] = []
+        self._set = False
 
     def wait(self, timeout: int):
         return self.waits.append(timeout)
+
+    def set(self):
+        self._set = True
+
+    def clear(self):
+        self._set = True
+
+    def assert_times(self, expected_times: list[float]):
+        for actual, expected in zip(self.waits, expected_times):
+            assert actual == expected
 
 
 class MockedGPIOThread:
