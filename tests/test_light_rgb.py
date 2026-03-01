@@ -17,7 +17,8 @@ from custom_components.gpio_integration.schemas.light import (
     CONF_RED_PIN,
     RgbLightConfig,
 )
-from tests.test__mocks import MockFactory, assert_gpio_blink, get_next_pin
+from tests.mocked_classes import MockFactory
+from tests.mocked_utils import assert_gpio_blink, get_next_pin
 
 
 class RgbLightTestCase:

@@ -10,7 +10,7 @@ from custom_components.gpio_integration.schemas import (
     CONF_NAME,
 )
 from custom_components.gpio_integration.schemas.pwm import PwmConfig
-from tests.test__mocks import assert_gpio_blink, get_next_pin
+from tests.mocked_utils import assert_gpio_blink, get_next_pin
 
 
 def __create_config(port=None, default_state=False, frequency=50, invert_logic=False):

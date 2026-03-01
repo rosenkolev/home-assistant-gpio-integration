@@ -136,6 +136,8 @@ def validate_config_data(entity_type: str, data_input: dict):
         CONF_ENTITIES[entity_type]["validate"](data_input)
     except InvalidPin:
         return {"base": "invalid_pin"}
+    except ValueError as ve:
+        return {"base": ve.__str__()}
     except Exception as e:  # pylint: disable=broad-except
         _LOGGER.exception("Unexpected exception: {}".format(e))
         return {"base": "unknown"}
@@ -194,11 +196,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, id, step_type: StepTypes, data_input=None
     ):
         """Handle a flow initialized by the user."""
-        _LOGGER.debug(f"config step '{id}' with type {self.type}")
         if not hasattr(self, "type") or self.type is None:
             _LOGGER.error("type not set")
             return self.async_abort(reason="unknown_type")
 
+        _LOGGER.debug(f"config step '{id}' with type {self.type}")
         schema = CONF_ENTITIES[self.type]["schema"]
         if data_input is None:
             return self.async_show_form(step_id=id, data_schema=schema)
