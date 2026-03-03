@@ -17,7 +17,6 @@ from gpiozero import (
     AngularServo,
     DigitalInputDevice,
     DigitalOutputDevice,
-    InputDevice,
     PWMOutputDevice,
     event,
 )
@@ -25,10 +24,10 @@ from gpiozero import (
     DistanceSensor as GZDistanceSensor,
 )
 
+from . import core
 from ._pin_factory import get_pin_factory
-from .core import get_logger, sleep_sec
 
-_LOGGER = get_logger()
+_LOGGER = core.get_logger()
 
 
 class AsStringMixin:
@@ -215,34 +214,21 @@ class BitInfo:
         return f"({self.state}[{self.duration_ms:.2f}ms])"
 
 
-class EdgeInputDevice(InputDevice):
-    def __init__(
-        self,
-        pin: int,
-        active_high=True,
-        bounce_time: float = None,
-    ):
-        super().__init__(
-            pin,
-            pin_factory=get_pin_factory(),
-            pull_up=not active_high,
-            active_state=None,
-        )
+class EdgeInputDevice:
+    def __init__(self, pin: int):
+        self.pin_factory = get_pin_factory()
+        self.pin = self.pin_factory.pin(pin)
 
-        self.pin.bounce = bounce_time
-        self.pin.edges = "both"
         self._lock = RLock()
         self._last_state = 0
         self._state_index = 0
         self._last_event = 0
 
-    def read(self) -> None:
-        self._state_index = 0
-        self._last_state = 0
+    def start(self) -> None:
         self._last_event = self.pin_factory.ticks()
         self.pin.function = "input"
         self.pin.when_changed = self._pin_changed
-        _LOGGER.debug(f"{self!r}: reading")
+        _LOGGER.debug(f"{self!r}: start reading")
 
     def stop(self) -> None:
         self.pin.when_changed = None
@@ -253,14 +239,22 @@ class EdgeInputDevice(InputDevice):
 
     def close(self):
         self._lock = None
-        super().close()
+        self.stop()
+        if getattr(self, "pin", None) is not None:
+            self.pin_factory.release_pins(self, self.pin.info.name)
+            self.pin.close()
+            self.pin = None
 
     def _pin_changed(self, ticks: float, state: int):
+        if self.pin is None:
+            return
+
         if self._state_index == 0:
             self._last_state = 1 if state == 0 else 0
         elif state == self._last_state:
             self.stop()
-            raise ValueError("Invalid state change")
+            _LOGGER.error("Invalid state change")
+            return
 
         with self._lock:
             elapsed_ms = self.pin_factory.ticks_diff(ticks, self._last_event) * 1000.0
@@ -274,12 +268,6 @@ class EdgeInputDevice(InputDevice):
 DHT22Data = namedtuple("DHT22Data", ["temperature", "humidity"])
 
 
-class PulseMixin:
-    def _send_and_wait(self, state: int, duration_sec: float) -> None:
-        self.pin.value = state
-        sleep_sec(duration_sec)
-
-
 def dword_from_deque(deque: deque[BitInfo], bit_count: int) -> int:
     dword = 0b0000
     for _ in range(bit_count):
@@ -287,19 +275,18 @@ def dword_from_deque(deque: deque[BitInfo], bit_count: int) -> int:
         bit = deque.popleft()
         if bit.between(0.055, 0.085):
             dword |= 0b0001
-        elif not bit.between(0.02, 0.035):
-            raise ValueError("Invalid bit duration")
+        elif not bit.between(0.020, 0.035):
+            raise ValueError(
+                f"high state duration {bit.duration_ms}ms is invalid, 55us-85us or 20us-35us expected"
+            )
     return dword
 
 
-class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
+class DHT22(AsStringMixin, EdgeInputDevice):
     def __init__(self, pin: int):
-        super().__init__(
-            pin,
-            bounce_time=0.000_005,
-        )
+        super().__init__(pin)
         self._on_data_received = None
-        self._on_invalid_check_sum = None
+        self._on_invalid_data = None
         self._transfer = False
         self._deque: deque[BitInfo] = deque(maxlen=40)
         self._debug_msg = ""
@@ -334,9 +321,12 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
                 self._process()
 
     def _process(self) -> None:
-        humidity = dword_from_deque(self._deque, 16)
-        temperature = dword_from_deque(self._deque, 16)
-        check_sum = dword_from_deque(self._deque, 8)
+        try:
+            humidity = dword_from_deque(self._deque, 16)
+            temperature = dword_from_deque(self._deque, 16)
+            check_sum = dword_from_deque(self._deque, 8)
+        except ValueError as e:
+            return self.invalid_data("deque error: " + e.__str__())
 
         _LOGGER.debug(f"{self!r}: {humidity=}, {temperature=}, {check_sum=}")
 
@@ -347,11 +337,7 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
             + (temperature & 0b1111_1111)
         ) & 0b1111_1111
         if sum != check_sum:
-            _LOGGER.warning(f"{self!r}: invalid check sum")
-            if self.on_invalid_check_sum is not None:
-                self.on_invalid_check_sum()
-            else:
-                raise ValueError("Invalid check sum")
+            self.invalid_data("invalid check sum")
         else:
             temperature_sign = -1 if temperature & 0b1000_0000 else 1
             temperature &= 0b0111_1111_1111_1111
@@ -363,24 +349,35 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
             )
 
     def read(self) -> None:
+        if self.pin is None:
+            return
+
         self._deque.clear()
         self._debug_msg = f"{self!r}: "
         self._transfer = False
+        self._state_index = 0
+        self._last_state = 0
 
         self.pin.when_changed = None
         self.pin.function = "output"
 
-        self._send_and_wait(1, 0.000_010)  # 10 us
-        self._send_and_wait(0, 0.018_000)  # 18 ms
-        self._send_and_wait(1, 0.000_025)  # 25 us
+        self.pin.state = False  # LOW
+        core.sleep_sec(0.018)  # 18 ms
 
-        super().read()
+        super().start()
+
+    def invalid_data(self, error: str) -> None:
+        _LOGGER.warning(f"{self!r}: {error}")
+        if self.on_invalid_data is None:
+            raise ValueError("on_invalid_data is not assigned")
+
+        self.on_invalid_data()
 
     def set_on_data_received(self, callback: Callable[[DHT22Data], None]) -> None:
         self._on_data_received = None if callback is None else WeakMethod(callback)
 
-    def set_on_invalid_check_sum(self, callback: Callable[[], None]) -> None:
-        self._on_invalid_check_sum = None if callback is None else WeakMethod(callback)
+    def set_on_invalid_data(self, callback: Callable[[], None]) -> None:
+        self._on_invalid_data = None if callback is None else WeakMethod(callback)
 
     on_data_received: Callable[[DHT22Data], None] = property(
         fget=lambda self: (
@@ -393,10 +390,12 @@ class DHT22(AsStringMixin, PulseMixin, EdgeInputDevice):
             """,
     )
 
-    on_invalid_check_sum: Callable[[], None] = property(
-        fget=lambda self: self._on_invalid_check_sum(),
-        fset=lambda self, value: self.set_on_invalid_check_sum(value),
+    on_invalid_data: Callable[[], None] = property(
+        fget=lambda self: (
+            None if self._on_invalid_data is None else self._on_invalid_data()
+        ),
+        fset=lambda self, value: self.set_on_invalid_data(value),
         doc="""
-            Event that is fired when an invalid check sum is received from the sensor.
+            Event that is fired when an invalid data is received.
             """,
     )

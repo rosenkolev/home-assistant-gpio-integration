@@ -12,5 +12,5 @@
     "pigpio==1.78",
     "gpiozero==2.0.1"
   ],
-  "version": "2.2.0"
+  "version": "2.2.2"
 }
