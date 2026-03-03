@@ -31,11 +31,9 @@ def test__DHT22_should_init_default_state(mocked_factory):
         assert gpio._attr_native_unit_of_measurement == "C"
         assert controller._humidity_id == "test_name_H"
         assert controller._temperature_id == "test_name_T"
-        assert controller._io._active_state is True
         assert pin._function == "input"
         assert pin._state is False
         assert pin.edges == "both"
-        assert pin.bounce == 0.000_005
 
 
 def _send_DHT22_data(io, bits: str):

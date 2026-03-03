@@ -81,7 +81,9 @@ class AutoReadLoop:
         """Start async loop to read data every `data: interval_sec` seconds."""
         self._loop_stop_event.clear()
         self._loop_thread = threading.Thread(
-            target=self._auto_read_loop, args=(interval_sec,)
+            target=self._auto_read_loop,
+            args=(interval_sec,),
+            daemon=True,
         )
         self._loop_thread.start()
         _LOGGER.debug(f"{self!r}: auto read loop started")

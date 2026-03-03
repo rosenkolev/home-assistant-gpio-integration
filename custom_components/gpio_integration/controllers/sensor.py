@@ -64,7 +64,7 @@ class DHT22Controller(SensorsMixin, ReprMixin, AutoReadLoop):
         self._humidity = 0.0
         self._io = DHT22(config.pin)
         self._io.on_data_received = self._on_data
-        self._io.on_invalid_check_sum = self._on_invalid_check_sum
+        self._io.on_invalid_data = self._on_invalid_data
         self._retry = 0
 
         self.start_auto_read_loop(config.update_interval_sec)
@@ -87,7 +87,7 @@ class DHT22Controller(SensorsMixin, ReprMixin, AutoReadLoop):
         if self._io is not None:
             _LOGGER.debug(f"{self!r}: releasing")
             self._io.on_data_received = None
-            self._io.on_invalid_check_sum = None
+            self._io.on_invalid_data = None
             self._io.close()
             self._io = None
 
@@ -102,8 +102,7 @@ class DHT22Controller(SensorsMixin, ReprMixin, AutoReadLoop):
     def _read(self):
         self._io.read()
 
-    def _on_invalid_check_sum(self):
-        _LOGGER.warning(f"{self!r}: invalid check sum")
+    def _on_invalid_data(self):
         if self._retry < 2:
             self._io.read()
             self._retry += 1
