@@ -156,11 +156,15 @@ class GpioCover(ClosableMixin, ReprMixin, DeviceMixin, CoverEntity):
 
     def close_cover(self, **kwargs):
         """Close the cover."""
-        self.__roller.close()
+        self.__roller._io_close.value = True
+        core.sleep_sec(self.__roller._relay_time)
+        self.__roller._io_close.value = False
 
     def open_cover(self, **kwargs):
         """Open the cover."""
-        self.__roller.open()
+        self.__roller._io_open.value = True
+        core.sleep_sec(self.__roller._relay_time)
+        self.__roller._io_open.value = False
 
     def stop_cover(self, **kwargs):
         """Stop the cover."""
