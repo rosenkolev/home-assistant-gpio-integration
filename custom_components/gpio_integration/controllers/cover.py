@@ -29,6 +29,7 @@ class Roller:
         self._pin_close = config.pin_close
         self._pin_closed = config.pin_closed
         self._step_time = (config.relay_time / 100.0) * 5.0
+        self._relay_time = config.relay_time
         self._direction = -1
         self._has_sensor = config.pin_closed is not None
 
