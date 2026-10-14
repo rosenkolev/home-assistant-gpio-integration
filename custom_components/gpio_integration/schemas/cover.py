@@ -72,7 +72,7 @@ def create_cover_up_down_schema(data: dict) -> vol.Schema:
             ): cv.boolean,
             vol.Optional(
                 CONF_RELAY_TIME, default=data[CONF_RELAY_TIME]
-            ): cv.positive_int,
+            ): cv.positive_float,
             vol.Optional(
                 CONF_PIN_CLOSED_SENSOR, default=data[CONF_PIN_CLOSED_SENSOR]
             ): cv.positive_int,
@@ -89,7 +89,7 @@ COVER_UP_DOWN_SCHEMA = create_cover_up_down_schema(
         CONF_RELAY_CLOSE_INVERT: False,
         CONF_RELAY_OPEN_PIN: 0,
         CONF_RELAY_OPEN_INVERT: False,
-        CONF_RELAY_TIME: 15,
+        CONF_RELAY_TIME: 0;4,
         CONF_PIN_CLOSED_SENSOR: 0,
         CONF_MODE: "Blind",
         CONF_UNIQUE_ID: "",
