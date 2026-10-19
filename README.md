@@ -1,5 +1,5 @@
-<!-- cspell:ignore hassfest, Rosen, Kolev, rosenkolev, lgpio, gpiod, pigpiod, Poeschl, Hassio -->
-# Home Assistant Raspberry Pi GPIO custom integration
+<!-- cspell:ignore hassfest, Rosen, Kolev, rosenkolev, lgpio, gpiod, pigpiod, Poeschl, Hassio, Radxa, libgpiod, gpiochip -->
+# Home Assistant GPIO custom integration (Raspberry Pi, Radxa ROCK, ...)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 [![Release](https://img.shields.io/github/release/rosenkolev/home-assistant-gpio-integration/all.svg)](https://github.com/rosenkolev/home-assistant-gpio-integration/releases)
@@ -15,6 +15,7 @@ The `gpio_integration` integration access the 40-pin GPIO chip capabilities
 <summary>Table of Contents</summary>
 
 1. [Supported Entities](#supported-entities)
+1. [Supported Boards](#supported-boards)
 1. [Installation](#installation)
 1. [Interface](#interface)
 1. [Usage](#usage)
@@ -47,6 +48,12 @@ The `gpio_integration` integration access the 40-pin GPIO chip capabilities
   * DHT22 sensors
   * Distance sensor
 
+## Supported Boards
+
+* [x] Raspberry Pi (all models) - `pigpio`, `lgpio`, `rpigpio` or `native` interface
+* [x] Radxa ROCK 5B / ROCK 5B+ - `gpiod` interface, see [Radxa ROCK 5](./docs/RADXA_ROCK5.md)
+* [x] Any other Linux board exposing `/dev/gpiochip*` (Orange Pi, ODROID, ...) - `gpiod` interface, see [Boards](./docs/BOARDS.md)
+
 ## Installation
 
 ### HACS
@@ -54,7 +61,7 @@ The `gpio_integration` integration access the 40-pin GPIO chip capabilities
 The recommend way to install `gpio_integration` is through [HACS](https://hacs.xyz/).
 
 > [!IMPORTANT]
-> **pigpiod** is required.
+> **pigpiod** is required on Raspberry Pi (not needed with the `gpiod` interface).
 
 ### Manual installation
 
@@ -68,15 +75,18 @@ folder and all of its contents into it.
 
 The integration uses `pigpio` as default interface to access the GPIO board and fallback to other options when `pigpio` is not found.
 
-The [gpiozero](https://gpiozero.readthedocs.io/) library is used and the integration supports all interfaces `gpiozero` supports.
+The [gpiozero](https://gpiozero.readthedocs.io/) library is used and the integration supports all interfaces `gpiozero` supports plus a generic `gpiod` interface.
 
 * pigpio
 * lgpio (fallback)
 * rpigpio (fallback)
 * native (fallback)
+* gpiod (fallback, Linux GPIO character device via [libgpiod](https://libgpiod.readthedocs.io/))
+
+On boards that are not a Raspberry Pi (detected from `/proc/device-tree/model`) the `gpiod` interface is tried first.
 
 > [!NOTE]
-> The integration is created in a way that can be extended for other hardware like 'Asus Tinker Board' or 'ODroid' but I don't have the hardware to implement it and anyone is welcome to do so (see [Contributing section](#contributing))
+> Other hardware can be added by implementing a new pin factory (see [Contributing section](#contributing))
 
 [](ignored)
 
@@ -99,6 +109,7 @@ To configure the integration use the UI
 >
 > * `unique_id` is not required and will be created automatically based on `Name`.
 > * **Pin numbers are GPIO pin numbers and not the actual pin order of the board**. See the [Wikipedia article about the Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi#General_purpose_input-output_(GPIO)_connector) for more details.
+> * On Radxa ROCK boards use the Rockchip GPIO number (e.g. `GPIO4_B3` = `139`). See [Radxa ROCK 5](./docs/RADXA_ROCK5.md).
 
 ### Binary Sensor
 
@@ -148,6 +159,7 @@ For details refer to [CONTRIBUTING](./CONTRIBUTING.md).
 
 * pigpio - supports all features (require `pigpiod` running)
 * rpigpio - `Home Assistant` OS uses [RPi.GPIO](https://pypi.org/project/RPi.GPIO/) python package that have [issue](https://github.com/raspberrypi/linux/issues/6037) preventing EDGE detection. When not using HA OS You must install alternative like [rpi-lgpio](https://pypi.org/project/rpi-lgpio/).
+* gpiod - works on any board with `/dev/gpiochip*` devices (Radxa, Orange Pi, ...). Supports input, output, edge detection (kernel timestamps), bounce and software PWM. Does **not** support the analog (MCP/SPI) sensor. See [Boards](./docs/BOARDS.md).
 
 ### pigpiod
 
@@ -170,7 +182,7 @@ gpio_integration:
 
 | | |
 | - | - |
-| interface | `pigpio`, `lgpio`, `rpigpio`, `native` |
+| interface | `pigpio`, `lgpio`, `rpigpio`, `native`, `gpiod` |
 | host | Host (only for pigpio) |
 
 ## Credits

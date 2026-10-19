@@ -9,6 +9,7 @@ The code is located at `custom_components/gpio_integration`
 custom_components/gpio_integration
   |- schemas/            #-> The config schematics for the entities
   |- controllers/        #-> A common controllers that handle entities (cover, sensors)
+  |- pins/               #-> custom `gpiozero` pin factories (libgpiod for non Raspberry Pi boards)
   |- __init__.py         #-> home assistant initialization code
   |- _devices.py         #-> wrappers around `gpiozero` Device classes
   |- _pin_factory.py     #-> functions that instantiate the correct pin_factory based on configs
@@ -20,7 +21,7 @@ custom_components/gpio_integration
 
 ## Hardware Support
 
-To create a new hardware implementation create new `Factory` and `Pin` ([gpiozero.pins](https://github.com/gpiozero/gpiozero/blob/master/gpiozero/pins/__init__.py)) child classes and implement it for the hardware. Then add it to `PIN_FACTORIES` in [_pin_factory](./_pin_factory.py).
+To create a new hardware implementation create new `Factory` and `Pin` ([gpiozero.pins](https://github.com/gpiozero/gpiozero/blob/master/gpiozero/pins/__init__.py)) child classes and implement it for the hardware (see `pins/libgpiod.py` for an example). Then add it to `PIN_FACTORIES` in [_pin_factory](./custom_components/gpio_integration/_pin_factory.py).
 
 ## Setup
 
