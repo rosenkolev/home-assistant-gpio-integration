@@ -2,6 +2,7 @@ import sys
 from types import ModuleType
 from unittest.mock import Mock
 
+import tests.mocked_gpiod  # noqa: F401 - registers the fake `gpiod` package
 from tests.mocked_classes import (
     MockColOptional,
     MockedBaseEntity,

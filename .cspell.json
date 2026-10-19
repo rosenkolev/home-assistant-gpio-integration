@@ -27,6 +27,16 @@
     "asyncio",
     "popleft",
     "HACS",
-    "Asus"
+    "Asus",
+    "gpiod",
+    "libgpiod",
+    "gpiochip",
+    "Radxa",
+    "Rockchip",
+    "Armbian",
+    "ODROID",
+    "MOSI",
+    "MISO",
+    "socketpair"
   ]
 }

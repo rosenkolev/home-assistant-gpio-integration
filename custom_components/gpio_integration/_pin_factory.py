@@ -1,4 +1,4 @@
-# cspell:ignore lgpio, fromlist
+# cspell:ignore lgpio, fromlist, gpiod, libgpiod
 from typing import Type
 
 from gpiozero import Device, Factory
@@ -9,16 +9,33 @@ from .schemas import CONF_INTERFACE
 
 _LOGGER = get_logger()
 
+DEVICE_TREE_MODEL = "/proc/device-tree/model"
 PIN_FACTORY_OPTIONS = dict({})
 PIN_FACTORIES = {
     "pigpio": "gpiozero.pins.pigpio:PiGPIOFactory",
     "lgpio": "gpiozero.pins.lgpio:LGPIOFactory",
     "rpigpio": "gpiozero.pins.rpigpio:RPiGPIOFactory",
     "native": "gpiozero.pins.native:NativeFactory",
+    # generic Linux GPIO character device (Radxa ROCK, Orange Pi, ...)
+    "gpiod": ".pins.libgpiod:GpiodFactory",
     #
     # add custom pin factory like this:
     # "my_lib": ".pins.my_lib:MyLibFactory",
 }
+
+# Pin factories that only work on a Raspberry Pi
+RASPBERRY_PI_FACTORIES = ["pigpio", "lgpio", "rpigpio", "native"]
+
+
+def is_raspberry_pi() -> bool | None:
+    """Return True/False based on the device tree model, None when unknown."""
+    try:
+        with open(DEVICE_TREE_MODEL, "rb") as f:
+            model = f.read().decode("utf-8", "replace")
+    except OSError:
+        return None
+
+    return model.lower().startswith("raspberry pi")
 
 
 def set_config_options(data: dict) -> None:
@@ -33,7 +50,7 @@ def get_config_option(key: str):
 def _get_pin_factory_class_by_name(name: str) -> Type[Factory]:
     mod_name, cls_name = PIN_FACTORIES[name].split(":", 1)
     if mod_name.startswith("."):
-        path = f"{__package__}{mod_name[1:]}"
+        path = f"{__package__}{mod_name}"
     else:
         path = mod_name
     module = __import__(path, fromlist=(cls_name,))
@@ -50,8 +67,20 @@ def create_pin_factory(name: str, pin_factory_class: type[Factory]) -> Factory:
     return pin_factory_class()
 
 
+def _get_pin_factory_names() -> list[str]:
+    """Pin factory names in the order they are tried during auto detection."""
+    names = list(PIN_FACTORIES.keys())
+    if is_raspberry_pi() is False:
+        # Not a Raspberry Pi, try the generic factories first
+        names = [n for n in names if n not in RASPBERRY_PI_FACTORIES] + [
+            n for n in names if n in RASPBERRY_PI_FACTORIES
+        ]
+
+    return names
+
+
 def _find_pin_factory() -> Factory:
-    for name in PIN_FACTORIES.keys():
+    for name in _get_pin_factory_names():
         try:
             pin_factory_class = _get_pin_factory_class_by_name(name)
             return create_pin_factory(name, pin_factory_class)
