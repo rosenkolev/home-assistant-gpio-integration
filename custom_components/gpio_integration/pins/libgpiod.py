@@ -122,7 +122,7 @@ class GpiodFactory(Factory):
         _LOGGER.debug(f"gpiod factory using {paths}")
 
     def close(self):
-        for pin in self.pins.values():
+        for pin in list(self.pins.values()):
             pin.release()
         self.pins.clear()
         for chip in self._chips:
@@ -132,6 +132,11 @@ class GpiodFactory(Factory):
     @property
     def chips(self) -> list[gpiod.Chip]:
         return self._chips
+
+    def forget(self, pin: "GpiodPin") -> None:
+        """Drop a closed pin, the next pin() call requests the line again."""
+        if self.pins.get(pin.info) is pin:
+            del self.pins[pin.info]
 
     def pin(self, name):
         for header, info in self.board_info.find_pin(name):
@@ -367,7 +372,10 @@ class GpiodPin(PiPin):
         return f"{self._info.name} ({self._chip.get_info().name}:{self._offset})"
 
     def close(self):
-        """Reset the pin to a plain input. The line stays requested for reuse."""
+        """
+        Reset the pin to a plain input and release the line, so it can be
+        requested again (e.g. when a Home Assistant entry is reloaded).
+        """
         self._stop_pwm()
         self._stop_watcher()
         self._when_changed = None
@@ -375,7 +383,12 @@ class GpiodPin(PiPin):
         self._bias = Bias.AS_IS
         self._function = "input"
         if self._request is not None:
-            self._reconfigure(self._input_settings())
+            try:
+                self._reconfigure(self._input_settings())
+            except OSError:
+                pass
+        self.release()
+        self._factory.forget(self)
 
     def release(self):
         """Close the pin and release the line request (used by the factory)."""
