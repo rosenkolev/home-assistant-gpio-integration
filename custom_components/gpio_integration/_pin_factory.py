@@ -1,4 +1,5 @@
 # cspell:ignore lgpio, fromlist, gpiod, libgpiod
+from threading import Lock
 from typing import Type
 
 from gpiozero import Device, Factory
@@ -8,6 +9,7 @@ from .core import get_logger
 from .schemas import CONF_INTERFACE
 
 _LOGGER = get_logger()
+_FACTORY_LOCK = Lock()
 
 DEVICE_TREE_MODEL = "/proc/device-tree/model"
 PIN_FACTORY_OPTIONS = dict({})
@@ -90,20 +92,27 @@ def _find_pin_factory() -> Factory:
     raise RuntimeError("No default pin factory available")
 
 
+def _create_default_pin_factory() -> Factory:
+    name = get_config_option(CONF_INTERFACE)
+    if name is None or name == "":
+        _LOGGER.debug("No pin factory specified - automatically detecting")
+        return _find_pin_factory()
+
+    _LOGGER.debug(f"Using specified pin factory {name}")
+    pin_factory_class = _get_pin_factory_class_by_name(name)
+    return create_pin_factory(name, pin_factory_class)
+
+
 def get_pin_factory() -> Factory:
     # use the gpiozero default pin factory if set
     pin_factory = Device.pin_factory
     if pin_factory is None:
-        name = get_config_option(CONF_INTERFACE)
-        if name is None or name == "":
-            _LOGGER.debug("No pin factory specified - automatically detecting")
-            pin_factory = _find_pin_factory()
-        else:
-            _LOGGER.debug(f"Using specified pin factory {name}")
-            pin_factory_class = _get_pin_factory_class_by_name(name)
-            pin_factory = create_pin_factory(name, pin_factory_class)
-
-        Device.pin_factory = pin_factory
+        # entries are set up in parallel threads: create only one factory
+        with _FACTORY_LOCK:
+            pin_factory = Device.pin_factory
+            if pin_factory is None:
+                pin_factory = _create_default_pin_factory()
+                Device.pin_factory = pin_factory
 
     if pin_factory is None:
         raise RuntimeError("No pin factory available")

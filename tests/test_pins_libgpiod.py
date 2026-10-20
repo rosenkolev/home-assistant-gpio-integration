@@ -340,8 +340,9 @@ def test__pin_pwm(factory: GpiodFactory):
     assert pin.state is False
 
 
-def test__pin_close_resets(factory: GpiodFactory):
+def test__pin_close_resets_and_releases(factory: GpiodFactory):
     pin = factory.pin(139)
+    request = pin.request
     pin.input_with_pull("up")
     pin.when_changed = lambda ticks, state: None
     pin.close()
@@ -349,11 +350,48 @@ def test__pin_close_resets(factory: GpiodFactory):
     assert pin.function == "input"
     assert pin.pull == "floating"
     assert pin.when_changed is None
-    assert pin.request.released is False
-    assert pin.request.last.bias == Bias.AS_IS
-    assert pin.request.last.edge_detection == Edge.NONE
+    assert request.last.bias == Bias.AS_IS
+    assert request.last.edge_detection == Edge.NONE
+    assert request.released is True
+    assert pin.request is None
 
-    assert factory.pin(139) is pin
+
+def test__pin_close_allows_new_request(factory: GpiodFactory):
+    """Reloading a Home Assistant entry closes and requests the pin again."""
+    pin = factory.pin(139)
+    pin.close()
+
+    again = factory.pin(139)
+    assert again is not pin
+    assert again.request.released is False
+
+
+def test__pin_factory_created_once_in_parallel(monkeypatch):
+    import threading
+
+    created = []
+    barrier = threading.Barrier(4)
+
+    def create():
+        created.append(object())
+        return created[-1]
+
+    monkeypatch.setattr(pin_factory, "_create_default_pin_factory", create)
+    monkeypatch.setattr(Device, "pin_factory", None)
+    results = []
+
+    def worker():
+        barrier.wait()
+        results.append(pin_factory.get_pin_factory())
+
+    threads = [threading.Thread(target=worker) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert len(created) == 1
+    assert all(r is created[0] for r in results)
 
 
 def test__devices_with_gpiod_factory():
