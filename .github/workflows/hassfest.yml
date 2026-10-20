@@ -1,3 +1,4 @@
+# cspell:ignore hassfest, PIPESTATUS
 name: Validate with hassfest
 
 on:
