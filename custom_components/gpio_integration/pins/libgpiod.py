@@ -1,4 +1,4 @@
-# cspell:ignore gpiod, libgpiod, gpiochip, gpiochips, Rockchip, Radxa, socketpair
+# cspell:ignore gpiod, libgpiod, gpiochip, gpiochips, Rockchip, Radxa, socketpair, lgpio
 """
 gpiozero pin factory based on the Linux GPIO character device (libgpiod v2).
 
@@ -543,10 +543,14 @@ class GpiodPin(PiPin):
             _LOGGER.exception(f"{self!r}: when_changed callback failed")
 
     def _enable_event_detect(self):
-        if self._function != "input":
-            raise PinInvalidFunction(f"cannot detect edges on non-input pin {self!r}")
+        # Like lgpio (gpio_claim_alert), an output pin is switched to input
+        # and edge detection is enabled in a single atomic reconfigure.
+        # Protocols like DHT22 rely on it: the sensor answers ~20us after the
+        # line is released, so no edge must be lost between both steps.
+        self._stop_pwm()
         self._stop_watcher()
         self._reconfigure(self._input_settings(self.GPIO_EDGES[self._edges]))
+        self._function = "input"
         self._watcher = EdgeWatcher(self)
         self._watcher.start()
 

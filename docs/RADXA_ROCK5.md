@@ -1,67 +1,73 @@
-<!-- cspell:ignore gpiod, libgpiod, gpiochip, gpioget, gpiofind, Radxa, Rockchip, Armbian, SARADC, UART -->
+<!-- cspell:ignore Radxa, Armbian, pigpiod, MOSFET -->
 # Radxa ROCK 5B / ROCK 5B+
 
-Supported through the [`gpiod` interface](./BOARDS.md). Tested on ROCK 5B+ with Armbian (kernel `6.1 vendor-rk35xx`) and Home Assistant container.
+The integration works on the Radxa ROCK 5B and ROCK 5B+ 40-pin header the same way as on a Raspberry Pi. It was tested on a ROCK 5B+ running Armbian with Home Assistant in Docker.
 
-## Pin numbers
+## Setup
 
-Use the Rockchip **GPIO number** (the `GPIO` column) in the integration UI.
+1. **Give Home Assistant access to the pins.** Run the Home Assistant container in *privileged* mode (in Docker Compose add `privileged: true` to the Home Assistant service) and recreate the container. Home Assistant OS and Supervised installations need nothing extra.
+2. **Install the integration** through HACS or by copying the folder, then restart Home Assistant. Nothing else needs to be installed; `pigpiod` is not used on the Radxa.
+3. **Add your devices** under *Settings → Devices & services → Add integration → GPIO Integration*. When asked for a pin, enter the **number** from the table below, not the physical pin position.
 
-| Physical pin | GPIO number | GPIO name | Default level (unconnected) | Functions |
-| - | - | - | - | - |
-| 3 | 139 | GPIO4_B3 | HIGH (I2C pull-up) | I2C7_SDA, PWM15 |
-| 5 | 138 | GPIO4_B2 | HIGH (I2C pull-up) | I2C7_SCL, PWM14 |
-| 7 | 115 | GPIO3_C3 | LOW | SPI1_CS1, PWM15 |
-| 8 | 13 | GPIO0_B5 | HIGH | UART2_TX |
-| 10 | 14 | GPIO0_B6 | HIGH | UART2_RX |
-| 11 | 113 | GPIO3_C1 | LOW | SPI1_CLK |
-| 12 | 109 | GPIO3_B5 | HIGH | PWM12 |
-| 13 | 111 | GPIO3_B7 | LOW | SPI1_MOSI |
-| 15 | 112 | GPIO3_C0 | LOW | SPI1_MISO |
-| 16 | 100 | GPIO3_A4 | HIGH | |
-| 18 | 148 | GPIO4_C4 | HIGH | PWM5 |
-| 19 | 42 | GPIO1_B2 | HIGH | SPI0_MOSI |
-| 21 | 41 | GPIO1_B1 | HIGH | SPI0_MISO |
-| 22 | - | SARADC_IN4 | - | analog input, not a GPIO |
-| 23 | 43 | GPIO1_B3 | HIGH | SPI0_CLK |
-| 24 | 44 | GPIO1_B4 | HIGH | SPI0_CS0 |
-| 26 | 45 | GPIO1_B5 | HIGH | SPI0_CS1 |
-| 27 | 150 | GPIO4_C6 | HIGH | I2C0_SDA, PWM7 |
-| 28 | 149 | GPIO4_C5 | HIGH | I2C0_SCL, PWM6 |
-| 29 | 35 (5B+) / 63 (5B) | GPIO1_A3 (5B+) / GPIO1_D7 (5B) | HIGH | PWM1 (5B+) |
-| 31 | 34 (5B+) / 47 (5B) | GPIO1_A2 (5B+) / GPIO1_B7 (5B) | HIGH | PWM0 (5B+) |
-| 32 | 114 | GPIO3_C2 | LOW | PWM14, SPI1_CS0 |
-| 33 | 103 | GPIO3_A7 | HIGH | PWM8 |
-| 35 | 110 | GPIO3_B6 | LOW | PWM13 |
-| 36 | 105 | GPIO3_B1 | LOW | PWM2 |
-| 37 | 0 | GPIO0_A0 | | |
-| 38 | 106 | GPIO3_B2 | LOW | PWM3 |
-| 40 | 107 | GPIO3_B3 | HIGH | |
+The integration detects the Radxa board automatically.
 
-Pins 1, 17 = 3.3V; 2, 4 = 5V; 6, 9, 14, 20, 25, 30, 34, 39 = GND.
+## Which number to enter
 
-The "Default level" column is the value read on an unconnected pin (`gpioget`) with Armbian; it shows the pull configured by the device tree. Source of the pin functions: [Radxa ROCK 5B hardware interface](https://docs.radxa.com/en/rock5/rock5b/hardware-design/hardware-interface).
+Find the physical pin your wire is connected to and enter the number next to it.
 
-The number can be verified on the board:
+| Physical pin | Number to enter | At start-up | Physical pin | Number to enter | At start-up |
+| - | - | - | - | - | - |
+| 1 | 3.3V power | | 2 | 5V power | |
+| 3 | 139 | On | 4 | 5V power | |
+| 5 | 138 | On | 6 | Ground | |
+| 7 | 115 | Off | 8 | 13 | On |
+| 9 | Ground | | 10 | 14 | On |
+| 11 | 113 | Off | 12 | 109 | On |
+| 13 | 111 | Off | 14 | Ground | |
+| 15 | 112 | Off | 16 | 100 | On |
+| 17 | 3.3V power | | 18 | 148 | On |
+| 19 | 42 | On | 20 | Ground | |
+| 21 | 41 | On | 22 | not usable | |
+| 23 | 43 | On | 24 | 44 | On |
+| 25 | Ground | | 26 | 45 | On |
+| 27 | 150 | On | 28 | 149 | On |
+| 29 | 35 (5B+) or 63 (5B) | On | 30 | Ground | |
+| 31 | 34 (5B+) or 47 (5B) | On | 32 | 114 | Off |
+| 33 | 103 | On | 34 | Ground | |
+| 35 | 110 | Off | 36 | 105 | Off |
+| 37 | 0 | | 38 | 106 | Off |
+| 39 | Ground | | 40 | 107 | On |
 
-```shell
-gpiofind PIN_16   # -> gpiochip3 4  => 3 * 32 + 4 = 100
-```
+Check the pin 1 marking printed on the board before wiring.
 
-## Limitations
+**At start-up** is the state of an unconnected pin before Home Assistant uses it:
 
-* **Pull-up / pull-down**: the Rockchip kernel driver ignores the software pull request. A binary sensor on a pin with a HIGH default level reads `on` when the circuit is open, unless an external pull-down resistor (10kΩ to GND) is used. Pick a pin with the correct default level or add the resistor.
-* **PWM** is generated in software (light, fan, servo). Servo jitter is higher than with hardware PWM.
-* **Analog sensor** (MCP3xxx over SPI) is not supported.
-* PWM pins driven by the fan overlay (`pwm-fan`) or other overlays cannot be used by the integration.
+* **Off** pins are the best choice for switches, relays, lights and covers, because they stay off while the board boots. They also suit sensors that switch the pin to 3.3V, such as most motion sensors.
+* **On** pins suit buttons and door contacts wired between the pin and Ground.
 
-## Home Assistant container
+## Wiring tips
 
-The container must have access to the GPIO devices, for example with docker compose:
+* **Use only 3.3V** on the GPIO pins. Never connect 5V to them; it can permanently damage the pin. Power sensors from pin 1 or 17 (3.3V) unless they need 5V and only send a 3.3V signal.
+* **LEDs** need a resistor (220–330Ω) in series. Connect the LED to a GPIO pin and Ground.
+* **Relays and motors** must not be powered from a GPIO pin. Use a relay board or a transistor/MOSFET module.
 
-```yaml
-services:
-  home-assistant:
-    image: ghcr.io/home-assistant/home-assistant:stable
-    privileged: true   # or map /dev/gpiochip0 .. /dev/gpiochip4 with "devices:"
-```
+## Supported devices
+
+| Device | Works | Notes |
+| - | - | - |
+| Switch, relay | Yes | |
+| Binary sensor (door, motion, button) | Yes | Choose the pin by its *At start-up* state, see above. The *Invert logic* option can flip the state. |
+| Cover | Yes | |
+| Light (on/off, dimmable, RGB) | Yes | Dimming may flicker slightly at low brightness. Raise the frequency to 200–500 Hz if it bothers you. |
+| Fan | Yes | |
+| Servo | Yes | Servos may twitch a little. |
+| DHT22 temperature and humidity | Yes | Requires the privileged container (step 1). Power the sensor from 3.3V. |
+| Distance sensor | Yes | |
+| Analog sensor (MCP3xxx chip) | No | Not supported on the Radxa. |
+
+## Troubleshooting
+
+* **Nothing happens / pin error when adding a device**: check that the container runs privileged (step 1) and that you entered the number from the table, not the physical pin.
+* **Binary sensor is always on (or always off)**: the pin's start-up state does not match your wiring. Move the wire to a pin with the other start-up state, or add a 10kΩ resistor from the pin to Ground (to keep it off) or to 3.3V (to keep it on).
+* **DHT22 shows 0 or stops updating**: check that it is powered from 3.3V and that the container is privileged. Warnings in the Home Assistant log mention the failed reads.
+* **A pin does not respond**: the pin may be used by the operating system (for example by a fan or display overlay in Armbian). Try another pin.

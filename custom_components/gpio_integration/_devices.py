@@ -1,6 +1,6 @@
-# cspell:ignore leds
-from collections import deque, namedtuple
-from threading import RLock
+# cspell:ignore leds, lgpio
+from collections import namedtuple
+from threading import Event
 from typing import Callable, Literal
 from weakref import WeakMethod
 
@@ -199,179 +199,213 @@ def create_analog_device(
     return MCP_CLASS_MAP[model](channel=channel, pin_factory=get_pin_factory())
 
 
-class BitInfo:
-    def __init__(self, state: int, duration_ms: float):
-        self.state = state
-        self.duration_ms = duration_ms
+DHT22Data = namedtuple("DHT22Data", ["temperature", "humidity"])
 
-    def check(self, state: int, min_ms: float, max_ms) -> bool:
-        return self.state == state and min_ms <= self.duration_ms <= max_ms
+DHT22_BIT_COUNT = 40
+# Rising edges of a transfer: line release (not always seen), end of the 80us
+# response LOW, start of the HIGH of every bit and the final line release.
+DHT22_ALL_EDGES = DHT22_BIT_COUNT + 2
+DHT22_ZERO_US = 80.0  # period of a "0": 50us LOW + 26-28us HIGH
+DHT22_ONE_US = 127.0  # period of a "1": 50us LOW + 70us HIGH
+DHT22_SPLIT_US = 103.0  # shorter period is "0", longer is "1"
+DHT22_PERIOD_MIN_US = 55.0
+DHT22_PERIOD_MAX_US = 160.0
+DHT22_TOLERANCE_US = 22.0  # for periods of 2 bits (a missed rising edge)
+DHT22_MAX_REPAIRS = 3
+# (period, bits) of two bits merged by a missed rising edge
+DHT22_MERGED = [
+    (DHT22_ZERO_US * 2, [0, 0]),
+    (DHT22_ZERO_US + DHT22_ONE_US, [0, 1]),
+    (DHT22_ZERO_US + DHT22_ONE_US, [1, 0]),
+    (DHT22_ONE_US * 2, [1, 1]),
+]
 
-    def between(self, min_ms: float, max_ms: float) -> bool:
-        return min_ms <= self.duration_ms <= max_ms
 
-    def __repr__(self):
-        return f"({self.state}[{self.duration_ms:.2f}ms])"
+def _search(periods_us, i, bits, repairs, budget):
+    """Depth first search for 40 bits (collected from the end, reversed)."""
+    if len(bits) >= DHT22_BIT_COUNT:
+        if len(bits) == DHT22_BIT_COUNT:
+            yield bits, repairs
+        return
+    if i < 0:
+        return
+
+    period = periods_us[i]
+    if DHT22_PERIOD_MIN_US <= period <= DHT22_PERIOD_MAX_US:
+        bit = 1 if period >= DHT22_SPLIT_US else 0
+        yield from _search(periods_us, i - 1, bits + [bit], repairs, budget)
+
+    if repairs < budget:
+        for total, merged in DHT22_MERGED:
+            if abs(period - total) <= DHT22_TOLERANCE_US:
+                yield from _search(
+                    periods_us, i - 1, bits + merged[::-1], repairs + 1, budget
+                )
 
 
-class EdgeInputDevice:
+def _valid_check_sum(bits: list[int]) -> bool:
+    value = 0
+    for bit in bits:
+        value = (value << 1) | bit
+    data = value >> 8
+    total = sum((data >> shift) & 0xFF for shift in (0, 8, 16, 24))
+    return (total & 0xFF) == (value & 0xFF)
+
+
+def dht22_bits(periods_us: list[float]) -> tuple[list[int], int]:
+    """
+    Decode the 40 data bits from the periods between RISING edges (in us).
+
+    Every bit is a 50us LOW followed by a 26-28us ("0") or 70us ("1") HIGH,
+    so the time between the rising edges is ~80us for "0" and ~127us for
+    "1". Only rising edges are used because some GPIO drivers lose or mistime
+    events when both edges come every 26us.
+
+    The data is aligned to the end: the last rising edge is the line release
+    after the final 50us LOW. A missed rising edge merges two bits into one
+    period; decodings with 0, 1, 2 and 3 repairs are tried in order and the
+    first one with a valid checksum is used.
+
+    Returns (bits, number of repaired missed edges).
+    """
+    min_periods = DHT22_BIT_COUNT - DHT22_MAX_REPAIRS
+    if len(periods_us) < min_periods:
+        raise ValueError(
+            f"{len(periods_us) + 1} edges received, "
+            f"at least {min_periods + 1} expected"
+        )
+
+    last = len(periods_us) - 1
+    for budget in range(DHT22_MAX_REPAIRS + 1):
+        for bits, repairs in _search(periods_us, last, [], 0, budget):
+            bits = bits[::-1]
+            if repairs == budget and _valid_check_sum(bits):
+                return bits, repairs
+
+    raise ValueError(
+        f"no decoding with a valid check sum ({len(periods_us) + 1} edges)"
+    )
+
+
+def dht22_decode(periods_us: list[float]) -> tuple[int, int, int]:
+    """Decode (humidity, temperature, checksum) from the rising edge periods."""
+    bits, repairs = dht22_bits(periods_us)
+    value = 0
+    for bit in bits:
+        value = (value << 1) | bit
+
+    if repairs:
+        _LOGGER.debug(f"DHT22: {repairs} missed edge(s) repaired")
+
+    return (value >> 24) & 0xFFFF, (value >> 8) & 0xFFFF, value & 0xFF
+
+
+class DHT22(AsStringMixin):
+    """
+    DHT22 / AM2302 temperature and humidity sensor.
+
+    The host pulls the line LOW for 18ms, releases it and records the edge
+    rising edge timestamps the sensor sends back (~5ms). The bits are decoded after the
+    transfer, not in the edge callback.
+    """
+
+    START_SIGNAL_SEC = 0.018
+    TRANSFER_TIMEOUT_SEC = 0.05
+    WARN_AFTER_FAILURES = 3
+
     def __init__(self, pin: int):
         self.pin_factory = get_pin_factory()
         self.pin = self.pin_factory.pin(pin)
+        self._on_data_received = None
+        self._on_invalid_data = None
+        self._ticks: list = []
+        self._complete = Event()
+        self._failed_transfer_count = 0
 
-        self._lock = RLock()
-        self._last_state = 0
-        self._state_index = 0
-        self._last_event = 0
+    def _pin_changed(self, ticks, state) -> None:
+        self._ticks.append(ticks)
+        if len(self._ticks) >= DHT22_ALL_EDGES:
+            self._complete.set()
 
-    def start(self) -> None:
-        self._last_event = self.pin_factory.ticks()
-        self.pin.function = "input"
-        self.pin.when_changed = self._pin_changed
-        _LOGGER.debug(f"{self!r}: start reading")
+    def _start(self) -> None:
+        """Send the start signal and begin recording edges."""
+        pin = self.pin
+        pin.when_changed = None
+        pin.output_with_state(False)  # LOW
+        core.sleep_sec(self.START_SIGNAL_SEC)
 
-    def stop(self) -> None:
-        self.pin.when_changed = None
-        _LOGGER.debug(f"{self!r}: stopped")
+        self._ticks = []
+        self._complete.clear()
+        # Enable edge detection before/while releasing the line. pigpio keeps
+        # the pin as output (LOW) and watches it, lgpio and gpiod switch it to
+        # input in one step. The sensor answers ~20us after the release.
+        pin.edges = "rising"  # see dht22_bits()
+        try:
+            pin.when_changed = self._pin_changed
+        except Exception:
+            pin.function = "input"
+            pin.when_changed = self._pin_changed
 
-    def _state_changed(self, state: BitInfo) -> None:
-        pass
+        if pin.function != "input":
+            pin.function = "input"  # release the line (pull-up -> HIGH)
+
+    def _finish(self) -> DHT22Data | None:
+        """Stop recording and decode the received edges."""
+        if self.pin is not None:
+            self.pin.when_changed = None
+
+        ticks = list(self._ticks)
+        periods = [
+            self.pin_factory.ticks_diff(later, earlier) * 1_000_000
+            for earlier, later in zip(ticks, ticks[1:])
+        ]
+        try:
+            humidity, temperature, _ = dht22_decode(periods)
+        except ValueError as e:
+            timings = " ".join(str(round(x)) for x in periods)
+            self.invalid_data(f"{e} | periods us: {timings}")
+            return None
+
+        self._failed_transfer_count = 0
+        sign = -1 if temperature & 0x8000 else 1
+        data = DHT22Data(sign * (temperature & 0x7FFF) / 10.0, humidity / 10.0)
+        _LOGGER.debug(f"{self!r}: {data}")
+        callback = self.on_data_received
+        if callback is not None:
+            callback(data)
+        return data
+
+    def read(self) -> DHT22Data | None:
+        """Read the sensor (blocks ~25ms). Call at most once every 2 seconds."""
+        if self.pin is None:
+            return None
+
+        # no deep CPU idle during the transfer, waking up loses edges
+        with core.low_latency():
+            self._start()
+            self._complete.wait(self.TRANSFER_TIMEOUT_SEC)
+            core.sleep_sec(0.001)  # allow late edge callbacks
+        return self._finish()
+
+    def invalid_data(self, error: str) -> None:
+        self._failed_transfer_count += 1
+        if self._failed_transfer_count % self.WARN_AFTER_FAILURES == 0:
+            _LOGGER.warning(
+                f"{self!r}: {self._failed_transfer_count} failed reads, last: {error}"
+            )
+        else:
+            _LOGGER.debug(f"{self!r}: invalid data: {error}")
+
+        callback = self.on_invalid_data
+        if callback is not None:
+            callback()
 
     def close(self):
-        self._lock = None
-        self.stop()
         if getattr(self, "pin", None) is not None:
+            self.pin.when_changed = None
             self.pin_factory.release_pins(self, self.pin.info.name)
             self.pin.close()
             self.pin = None
-
-    def _pin_changed(self, ticks: float, state: int):
-        if self.pin is None:
-            return
-
-        if self._state_index == 0:
-            self._last_state = 1 if state == 0 else 0
-        elif state == self._last_state:
-            self.stop()
-            _LOGGER.error("Invalid state change")
-            return
-
-        with self._lock:
-            elapsed_ms = self.pin_factory.ticks_diff(ticks, self._last_event) * 1000.0
-            state_time = BitInfo(self._last_state, elapsed_ms)
-            self._state_changed(state_time)
-            self._last_state = state
-            self._last_event = ticks
-            self._state_index += 1
-
-
-DHT22Data = namedtuple("DHT22Data", ["temperature", "humidity"])
-
-
-def dword_from_deque(deque: deque[BitInfo], bit_count: int) -> int:
-    dword = 0b0000
-    for _ in range(bit_count):
-        dword <<= 1
-        bit = deque.popleft()
-        if bit.between(0.055, 0.085):
-            dword |= 0b0001
-        elif not bit.between(0.020, 0.035):
-            raise ValueError(
-                f"high state duration {bit.duration_ms}ms is invalid, 55us-85us or 20us-35us expected"
-            )
-    return dword
-
-
-class DHT22(AsStringMixin, EdgeInputDevice):
-    def __init__(self, pin: int):
-        super().__init__(pin)
-        self._on_data_received = None
-        self._on_invalid_data = None
-        self._transfer = False
-        self._deque: deque[BitInfo] = deque(maxlen=40)
-        self._debug_msg = ""
-        self._failed_transfer_count = 0
-
-    def _state_changed(self, info: BitInfo) -> None:
-        if not self._transfer:
-            self._debug_msg += (
-                f"{info.duration_ms}ms {"\\ " if info.state == 1 else "/ "}"
-            )
-
-            if self._state_index > 4:
-                self.stop()
-                _LOGGER.debug(self._debug_msg)
-                if self._failed_transfer_count >= 3:
-                    _LOGGER.warning(f"{self!r}: 3 sequenced failed transfers")
-                else:
-                    _LOGGER.debug(f"{self!r}: Invalid start bits")
-                    self._failed_transfer_count = 0
-            elif info.check(1, 0.07, 0.09):
-                self._transfer = True
-                self._failed_transfer_count = 0
-                _LOGGER.debug(f"{self!r}: transfer started")
-
-            return
-
-        if info.state == 1:
-            self._deque.append(info)
-            if self._deque.maxlen == len(self._deque):
-                self.stop()
-                _LOGGER.debug(f"{self!r} deque full")
-                self._process()
-
-    def _process(self) -> None:
-        try:
-            humidity = dword_from_deque(self._deque, 16)
-            temperature = dword_from_deque(self._deque, 16)
-            check_sum = dword_from_deque(self._deque, 8)
-        except ValueError as e:
-            return self.invalid_data("deque error: " + e.__str__())
-
-        _LOGGER.debug(f"{self!r}: {humidity=}, {temperature=}, {check_sum=}")
-
-        sum = (
-            (humidity >> 8)
-            + (humidity & 0b1111_1111)
-            + (temperature >> 8)
-            + (temperature & 0b1111_1111)
-        ) & 0b1111_1111
-        if sum != check_sum:
-            self.invalid_data("invalid check sum")
-        else:
-            temperature_sign = -1 if temperature & 0b1000_0000 else 1
-            temperature &= 0b0111_1111_1111_1111
-            self.on_data_received(
-                DHT22Data(
-                    temperature_sign * temperature / 10.0,
-                    humidity / 10.0,
-                )
-            )
-
-    def read(self) -> None:
-        if self.pin is None:
-            return
-
-        self._deque.clear()
-        self._debug_msg = f"{self!r}: "
-        self._transfer = False
-        self._state_index = 0
-        self._last_state = 0
-
-        self.pin.when_changed = None
-        self.pin.function = "output"
-
-        self.pin.state = False  # LOW
-        core.sleep_sec(0.018)  # 18 ms
-
-        super().start()
-
-    def invalid_data(self, error: str) -> None:
-        _LOGGER.warning(f"{self!r}: {error}")
-        if self.on_invalid_data is None:
-            raise ValueError("on_invalid_data is not assigned")
-
-        self.on_invalid_data()
 
     def set_on_data_received(self, callback: Callable[[DHT22Data], None]) -> None:
         self._on_data_received = None if callback is None else WeakMethod(callback)
@@ -386,7 +420,7 @@ class DHT22(AsStringMixin, EdgeInputDevice):
         fset=lambda self, value: self.set_on_data_received(value),
         doc="""
             Event that is fired when a new data is received from the sensor.
-            The callback should accept 2 arguments: temperature and humidity.
+            The callback should accept 1 argument: DHT22Data.
             """,
     )
 
