@@ -41,7 +41,8 @@ def setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up from a config entry."""
-    hub = Hub(entry.data)
+    # opening the GPIO devices does blocking I/O, keep it out of the event loop
+    hub = await hass.async_add_executor_job(Hub, entry.data)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = hub
 
     # This creates each HA object for each platform your device requires.

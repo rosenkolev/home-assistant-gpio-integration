@@ -54,6 +54,9 @@ class SensorsMixin(SensorStateProvider):
 
 
 class DHT22Controller(SensorsMixin, ReprMixin, AutoReadLoop):
+    READ_ATTEMPTS = 3
+    RETRY_DELAY_SEC = 2.5
+
     def __init__(self, config: DHT22Config) -> None:
         super().__init__()
         self.name = config.name
@@ -64,8 +67,6 @@ class DHT22Controller(SensorsMixin, ReprMixin, AutoReadLoop):
         self._humidity = 0.0
         self._io = DHT22(config.pin)
         self._io.on_data_received = self._on_data
-        self._io.on_invalid_data = self._on_invalid_data
-        self._retry = 0
 
         self.start_auto_read_loop(config.update_interval_sec)
 
@@ -87,7 +88,6 @@ class DHT22Controller(SensorsMixin, ReprMixin, AutoReadLoop):
         if self._io is not None:
             _LOGGER.debug(f"{self!r}: releasing")
             self._io.on_data_received = None
-            self._io.on_invalid_data = None
             self._io.close()
             self._io = None
 
@@ -96,16 +96,16 @@ class DHT22Controller(SensorsMixin, ReprMixin, AutoReadLoop):
     def _on_data(self, data: DHT22Data):
         self._temperature = data.temperature
         self._humidity = data.humidity
-        self._retry = 0
         _LOGGER.debug(f"{self!r}: data {data.temperature}C, {data.humidity}%")
 
     def _read(self):
-        self._io.read()
-
-    def _on_invalid_data(self):
-        if self._retry < 2:
-            self._io.read()
-            self._retry += 1
+        for attempt in range(self.READ_ATTEMPTS):
+            io = self._io
+            if io is None or io.read() is not None:
+                return
+            # the sensor needs at least 2 seconds between reads
+            if self._loop_stop_event.wait(self.RETRY_DELAY_SEC):
+                return
 
 
 class AnalogStepControl(SensorsMixin, ClosableMixin, ReprMixin):

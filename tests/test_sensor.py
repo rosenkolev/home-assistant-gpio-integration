@@ -36,21 +36,23 @@ def test__DHT22_should_init_default_state(mocked_factory):
         assert pin.edges == "both"
 
 
-def _send_DHT22_data(io, bits: str):
-    io.clear_states()
-    data = [(1, 0.01), (0, 0.000_08), (1, 0.000_08)]
+def _send_DHT22_data(dht, pin, bits: str):
+    """Simulate a DHT22 transfer: start, rising edges, decode."""
+    dht._start()
+    periods = [0.000_11, 0.000_13]  # release, end of response LOW, bit 1
     for bit in bits.replace(" ", ""):
-        data.append((0, 0.000_05))
-        data.append((1, 0.000_026 if bit == "0" else 0.000_07))
+        periods.append(0.000_08 if bit == "0" else 0.000_127)
 
-    data.append((0, 0.000_05))
+    ticks = 100.0
+    pin._last_change = ticks
+    pin._state = 1
+    pin._call_when_changed()  # line released
+    for period in periods:
+        ticks += period
+        pin._last_change = ticks
+        pin._call_when_changed()
 
-    io._last_change = 0
-    for bit, time in data:
-        io._state = 1 if bit == 0 else 0
-        io._last_change += time
-        if io._when_changed is not None:
-            io._call_when_changed()
+    return dht._finish()
 
 
 def test__DHT22_should_retrieve(mocked_factory):
@@ -62,8 +64,8 @@ def test__DHT22_should_retrieve(mocked_factory):
         with GpioSensor(sensors[1]) as humidity:
             controller.stop_auto_read_loop()
 
-            controller._io.read()
             _send_DHT22_data(
+                controller._io,
                 pin,
                 "00000010 10001100 00000001 01011111 11101110",
             )
@@ -80,8 +82,8 @@ def test__DHT22_should_retrieve_negative_temp(mocked_factory):
     with GpioSensor(sensors[0]) as temperature:
         controller.stop_auto_read_loop()
 
-        controller._io.read()
         _send_DHT22_data(
+            controller._io,
             pin,
             "00000010 10001100 10000000 10010011 10100001",
         )

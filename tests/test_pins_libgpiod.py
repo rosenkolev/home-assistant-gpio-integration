@@ -269,11 +269,21 @@ def test__pin_when_changed_cleared_from_callback(factory: GpiodFactory):
     assert wait_until(lambda: not watcher.is_alive())
 
 
-def test__pin_when_changed_requires_input(factory: GpiodFactory):
+def test__pin_when_changed_switches_output_to_input(factory: GpiodFactory):
+    """Like lgpio: one atomic reconfigure to input + edge detection."""
     pin = factory.pin(139)
-    pin.function = "output"
-    with pytest.raises(PinInvalidFunction):
-        pin.when_changed = lambda ticks, state: None
+    pin.output_with_state(False)
+    configs = len(pin.request.history)
+
+    def on_change(ticks, state):
+        pass
+
+    pin.when_changed = on_change
+    assert pin.function == "input"
+    assert len(pin.request.history) == configs + 1
+    assert pin.request.last.direction == Direction.INPUT
+    assert pin.request.last.edge_detection == Edge.BOTH
+    pin.when_changed = None
 
 
 def test__pin_function_change_stops_edge_detection(factory: GpiodFactory):
