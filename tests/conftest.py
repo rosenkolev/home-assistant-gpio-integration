@@ -2,7 +2,7 @@ from typing import Callable, Generator
 
 import mocked_modules  # noqa: F401
 import pytest
-from gpiozero import Device
+from custom_components.gpio_integration._vendor.gpiozero import Device
 
 from tests.mocked_classes import (
     MockedEvent,
@@ -32,7 +32,7 @@ def mocked_factory(request) -> Generator[MockFactory, None, None]:
 @pytest.fixture(scope="function")
 def mock_gpio_thread(request) -> Generator[MockFactory, None, None]:
     """Mock GPIOThread"""
-    import gpiozero.output_devices as output_devices
+    import custom_components.gpio_integration._vendor.gpiozero.output_devices as output_devices
 
     saved_gpio_thread = output_devices.GPIOThread
     try:

@@ -1,4 +1,4 @@
-# cspell:ignore hassfest, PIPESTATUS
+# cspell:ignore hassfest
 name: Validate with hassfest
 
 on:
@@ -7,32 +7,9 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
-env:
-  # Home Assistant core pins gpiozero==1.6.2 for the legacy remote_rpi_gpio
-  # integration, this integration requires gpiozero 2.x. Only this error is
-  # ignored, any other hassfest error fails the build.
-  IGNORED_ERROR: "Requirement gpiozero==2.0.1 is incompatible with gpiozero==1.6.2"
-
 jobs:
   validate:
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@v4"
-      - name: Run hassfest
-        run: |
-          set +e
-          docker run --rm -v "${{ github.workspace }}:/github/workspace" ghcr.io/home-assistant/hassfest 2>&1 | tee hassfest.log
-          status=${PIPESTATUS[0]}
-          set -e
-
-          errors=$(grep -F "[ERROR]" hassfest.log | grep -v -F "$IGNORED_ERROR" || true)
-          if [ -n "$errors" ]; then
-            echo "::error::hassfest failed:"
-            echo "$errors"
-            exit 1
-          fi
-
-          if [ "$status" -ne 0 ] && ! grep -q -F "$IGNORED_ERROR" hassfest.log; then
-            echo "::error::hassfest exited with $status"
-            exit "$status"
-          fi
+      - uses: home-assistant/actions/hassfest@master

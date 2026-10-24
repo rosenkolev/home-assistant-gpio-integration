@@ -1,5 +1,5 @@
+colorzero==2.0
 coverage==7.6.1
-gpiozero==2.0.1
 pre-commit
 pytest==9.0.3
 pytest-asyncio==1.4.0

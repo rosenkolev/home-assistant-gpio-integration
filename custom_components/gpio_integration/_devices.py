@@ -4,7 +4,7 @@ from threading import Event
 from typing import Callable, Literal
 from weakref import WeakMethod
 
-from gpiozero import (
+from ._vendor.gpiozero import (
     MCP3001,
     MCP3002,
     MCP3004,
@@ -20,7 +20,7 @@ from gpiozero import (
     PWMOutputDevice,
     event,
 )
-from gpiozero import (
+from ._vendor.gpiozero import (
     DistanceSensor as GZDistanceSensor,
 )
 

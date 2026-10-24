@@ -1,0 +1,2 @@
+# Bundled third party code is kept unchanged
+extend-exclude = ["custom_components/gpio_integration/_vendor"]

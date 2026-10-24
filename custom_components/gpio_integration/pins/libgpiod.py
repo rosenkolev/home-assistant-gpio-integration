@@ -25,8 +25,8 @@ from time import monotonic, sleep
 
 import gpiod
 from gpiod.line import Bias, Clock, Direction, Edge, Value
-from gpiozero.compat import frozendict
-from gpiozero.exc import (
+from .._vendor.gpiozero.compat import frozendict
+from .._vendor.gpiozero.exc import (
     PinFixedPull,
     PinInvalidBounce,
     PinInvalidEdges,
@@ -38,8 +38,8 @@ from gpiozero.exc import (
     PinSetInput,
     PinSPIUnsupported,
 )
-from gpiozero.pins import BoardInfo, Factory, HeaderInfo, PinInfo
-from gpiozero.pins.pi import PiPin
+from .._vendor.gpiozero.pins import BoardInfo, Factory, HeaderInfo, PinInfo
+from .._vendor.gpiozero.pins.pi import PiPin
 
 from ..core import get_logger
 

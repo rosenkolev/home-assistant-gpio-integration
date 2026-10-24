@@ -3,8 +3,8 @@ import os
 from time import monotonic, sleep
 
 import pytest
-from gpiozero import Device
-from gpiozero.exc import (
+from custom_components.gpio_integration._vendor.gpiozero import Device
+from custom_components.gpio_integration._vendor.gpiozero.exc import (
     PinFixedPull,
     PinInvalidEdges,
     PinInvalidFunction,
