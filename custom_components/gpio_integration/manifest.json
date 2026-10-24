@@ -10,8 +10,8 @@
   "issue_tracker": "https://github.com/rosenkolev/home-assistant-gpio-integration/issues",
   "requirements": [
     "pigpio>=1.78",
-    "gpiozero==2.0.1",
+    "colorzero>=1.1",
     "gpiod>=2.1.0"
   ],
-  "version": "2.3.0"
+  "version": "2.3.1"
 }

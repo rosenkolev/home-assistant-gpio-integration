@@ -2,7 +2,7 @@
 from threading import Lock
 from typing import Type
 
-from gpiozero import Device, Factory
+from ._vendor.gpiozero import Device, Factory
 from homeassistant.const import CONF_HOST
 
 from .core import get_logger
@@ -14,10 +14,10 @@ _FACTORY_LOCK = Lock()
 DEVICE_TREE_MODEL = "/proc/device-tree/model"
 PIN_FACTORY_OPTIONS = dict({})
 PIN_FACTORIES = {
-    "pigpio": "gpiozero.pins.pigpio:PiGPIOFactory",
-    "lgpio": "gpiozero.pins.lgpio:LGPIOFactory",
-    "rpigpio": "gpiozero.pins.rpigpio:RPiGPIOFactory",
-    "native": "gpiozero.pins.native:NativeFactory",
+    "pigpio": "._vendor.gpiozero.pins.pigpio:PiGPIOFactory",
+    "lgpio": "._vendor.gpiozero.pins.lgpio:LGPIOFactory",
+    "rpigpio": "._vendor.gpiozero.pins.rpigpio:RPiGPIOFactory",
+    "native": "._vendor.gpiozero.pins.native:NativeFactory",
     # generic Linux GPIO character device (Radxa ROCK, Orange Pi, ...)
     "gpiod": ".pins.libgpiod:GpiodFactory",
     #

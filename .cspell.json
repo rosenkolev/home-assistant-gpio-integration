@@ -8,7 +8,8 @@
     "LICENSE",
     "manifest.json",
     "extensions.json",
-    "**/translations/pt.json"
+    "**/translations/pt.json",
+    "custom_components/gpio_integration/_vendor/**"
   ],
   "words": [
     "gpiozero",
@@ -37,6 +38,7 @@
     "ODROID",
     "MOSI",
     "MISO",
-    "socketpair"
+    "socketpair",
+    "colorzero"
   ]
 }

@@ -10,6 +10,7 @@ custom_components/gpio_integration
   |- schemas/            #-> The config schematics for the entities
   |- controllers/        #-> A common controllers that handle entities (cover, sensors)
   |- pins/               #-> custom `gpiozero` pin factories (libgpiod for non Raspberry Pi boards)
+  |- _vendor/gpiozero/   #-> bundled gpiozero 2.0.1 (Home Assistant core pins gpiozero 1.6.2), do not edit
   |- __init__.py         #-> home assistant initialization code
   |- _devices.py         #-> wrappers around `gpiozero` Device classes
   |- _pin_factory.py     #-> functions that instantiate the correct pin_factory based on configs

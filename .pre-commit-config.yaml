@@ -1,3 +1,6 @@
+# Bundled third party code is kept unchanged
+exclude: ^custom_components/gpio_integration/_vendor/
+
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

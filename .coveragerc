@@ -1,0 +1,7 @@
+[run]
+omit =
+    custom_components/gpio_integration/_vendor/*
+
+[report]
+omit =
+    custom_components/gpio_integration/_vendor/*
